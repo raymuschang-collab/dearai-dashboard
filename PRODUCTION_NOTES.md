@@ -8,15 +8,18 @@ Running log of production-side issues, conventions, and asks for the team. Add n
 
 ## 2026-05-05 — open issues + asks for the team
 
-### 1. Logo on chef uniforms — recurring inconsistency
+### 1. Logo on chef uniforms — RESOLVED 2026-05-06 (path B)
 
-The Hanbyeol embroidered crest on the chef whites is hard to lock across vidgens. Seedance produces inconsistent crest placement, garbled text, or drops it entirely.
+**Original problem:** Hanbyeol embroidered crest + name tags caused recurring inconsistency. Seedance also bled binding-block text directly into the chef coat label area.
 
-**Two paths to fix:**
-- **(A) Bake into the global prompt** so every gen carries the directive — e.g. add to Setting Global (Video Prompts!B3): *"Hanbyeol Bistro chef whites have a small embroidered Hanbyeol crest on the upper-left chest, simple stitched logo, NO printed text."*
-- **(B) Remove the logo entirely** from the team's uniform reference photos and from the wardrobe descriptions in CHARACTERS bible. Cleaner, less gen risk, no consistency hit.
+**Resolution path B taken:** stripped literal-text triggers from CHARACTERS bible Wardrobe fields:
+- TARA: `name tag on chest reading 'TARA — JUNIOR'` → `plain white front with no markings or text or embroidery`
+- JOON-HO: `Hanbyeol embroidered crest on chest` → `plain white front with no markings or text or embroidery`
+- MIN-JUN, BU ENDANG, GALIH: were already clean
 
-Pick one. **(B) is the lower-risk, faster path** — Seedance trained models routinely fail on small embroidered text, and even a clean still-photo upload won't fix the cross-shot inconsistency.
+**Why path B over A:** Seedance models routinely fail on small embroidered text — even with a baked-in global directive, the rendering would be inconsistent across shots. Removing the logo entirely is cheaper to maintain and prevents text-bleed (where prompt verbiage like "name tag" gets rendered as actual fabric printing).
+
+**Going forward:** any new character added to CHARACTERS bible should describe wardrobe abstractly. Avoid: "name tag", "embroidered", "label reading", "crest", "logo on chest", or any quoted text strings. Use color/cut/material terms only.
 
 ### 2. More face videos per character
 
