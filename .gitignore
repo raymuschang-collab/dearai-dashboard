@@ -1,0 +1,49 @@
+# --- Secrets / credentials ---
+.env
+.env.*
+token.json
+credentials.json
+*-credentials.json
+service-account*.json
+
+# --- Local logs / state ---
+.byteplus_expense.json
+.dash_jobs.json
+*.log
+.DS_Store
+
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+.python-version
+
+# --- Caches ---
+.cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- Generated / heavy artifacts ---
+*.zip
+*.tar.gz
+microdrama-shotlist-bahasa.zip
+Handover_*.zip
+
+# --- Local asset folders that shouldn't live in git ---
+sajangnim_assets/
+character-refs/
+costume-refs/
+location-refs/
+prop-refs/
+
+# --- Rendered HTML galleries (reproducible from sheet) ---
+pharaoh_king_gallery_PRODUCTION_v2.html
+
+# --- Editor scratch ---
+.idea/
+.vscode/
+*.swp

@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Pipeline Architecture — Microdrama AI Production</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f8f5ee;
+    --paper-2: #ede5d3;
+    --ink: #1a1a1a;
+    --ink-soft: #4a4a4a;
+    --terracotta: #b85c38;
+    --gold: #c9962a;
+    --green: #16a34a;
+    --blue: #2563eb;
+    --purple: #7c3aed;
+    --red: #dc2626;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 40px 24px;
+    font-family: 'Inter', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.6;
+  }
+  .wrap { max-width: 1200px; margin: 0 auto; }
+  h1 {
+    font-size: 36px;
+    margin: 0 0 6px;
+    letter-spacing: -0.5px;
+  }
+  .sub {
+    color: var(--ink-soft);
+    font-size: 14px;
+    margin-bottom: 32px;
+  }
+  h2 {
+    font-size: 22px;
+    margin: 40px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--ink);
+  }
+  h3 { font-size: 16px; margin: 16px 0 8px; }
+
+  /* Pipeline flow */
+  .flow {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin: 24px 0;
+  }
+  .stage {
+    background: var(--paper-2);
+    border-left: 4px solid var(--terracotta);
+    padding: 14px 18px;
+    border-radius: 0 6px 6px 0;
+  }
+  .stage.bibles { border-color: var(--gold); }
+  .stage.story  { border-color: var(--terracotta); }
+  .stage.video  { border-color: var(--purple); }
+  .stage.output { border-color: var(--green); }
+  .stage.mod    { border-color: var(--red); }
+  .stage h3 {
+    margin: 0 0 6px;
+    font-size: 15px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .stage .desc { font-size: 13px; color: var(--ink-soft); }
+  .stage code, code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    background: rgba(0,0,0,0.05);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* Side-by-side */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 16px 0;
+  }
+  .grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin: 16px 0;
+  }
+
+  /* Component box */
+  .box {
+    background: var(--paper-2);
+    padding: 12px 14px;
+    border-radius: 4px;
+    border: 1px solid rgba(0,0,0,0.1);
+    font-size: 13px;
+  }
+  .box strong { color: var(--ink); }
+  .box .muted { color: var(--ink-soft); font-size: 12px; }
+
+  /* Tags */
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    border-radius: 3px;
+    margin-right: 4px;
+  }
+  .tag.green { background: var(--green); color: #fff; }
+  .tag.blue  { background: var(--blue);  color: #fff; }
+  .tag.gold  { background: var(--gold);  color: #fff; }
+  .tag.purple { background: var(--purple); color: #fff; }
+  .tag.red   { background: var(--red);   color: #fff; }
+  .tag.gray  { background: #6b7280;      color: #fff; }
+
+  /* Schema table */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 8px 0; }
+  th, td { padding: 6px 10px; text-align: left; border-bottom: 1px solid rgba(0,0,0,0.08); }
+  th { background: var(--paper-2); font-weight: 700; }
+  td code { font-size: 11px; }
+
+  /* ASCII diagram */
+  pre.diagram {
+    background: #1a1a1a;
+    color: #e0e0e0;
+    padding: 18px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  /* Cascade detail */
+  .cascade {
+    background: var(--paper-2);
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 12px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.7;
+  }
+  .cascade .step {
+    display: flex;
+    gap: 12px;
+    align-items: baseline;
+  }
+  .cascade .step-num {
+    background: var(--terracotta);
+    color: #fff;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    flex-shrink: 0;
+    font-size: 11px;
+  }
+
+  .insight {
+    background: #fef3c7;
+    border-left: 4px solid var(--gold);
+    padding: 12px 16px;
+    margin: 16px 0;
+    border-radius: 0 4px 4px 0;
+    font-size: 13px;
+  }
+  .insight strong { color: var(--terracotta); }
+
+  .footer {
+    margin-top: 60px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(0,0,0,0.1);
+    color: var(--ink-soft);
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>🎬 Pipeline Architecture</h1>
+<div class="sub">Microdrama AI production pipeline — built across two days for <em>Strike! Pharaoh King</em>. Generic enough to drop into any vertical drama show.</div>
+
+<h2>1 · Source of truth</h2>
+<div class="grid-2">
+  <div class="box">
+    <strong>📊 Google Sheet (per episode)</strong>
+    <div class="muted">Storyboard Prompts tab — one row per Set. Cols A-O hold metadata, body, iter URLs, video URLs.</div>
+  </div>
+  <div class="box">
+    <strong>📁 Google Drive (per show)</strong>
+    <div class="muted">Sibling to the sheet. Holds storyboards/, videos/, and 5 bible folders (character / location / prop / costume / effect).</div>
+  </div>
+</div>
+
+<h3>Sheet schema (Storyboard Prompts tab)</h3>
+<table>
+<tr><th>Col</th><th>Field</th><th>Notes</th></tr>
+<tr><td><code>A</code></td><td>Set #</td><td>Integer ID. Gaps allowed (deleted sets stay deleted).</td></tr>
+<tr><td><code>B</code></td><td>Shot Range</td><td>e.g. "11-15"</td></tr>
+<tr><td><code>C</code></td><td>Body</td><td>Per-shot description. Source of truth for everything downstream.</td></tr>
+<tr><td><code>D</code></td><td>Bahasa Body</td><td>Optional translation</td></tr>
+<tr><td><code>E</code></td><td>Drive Folder</td><td>Per-set folder URL</td></tr>
+<tr><td><code>G/H</code></td><td><span class="tag green">CANONICAL</span> Iter 1 / Iter 2 storyboards</td><td>Pencil/stick figure storyboards. Used as fal.ai visual blueprint.</td></tr>
+<tr><td><code>J/K</code></td><td><span class="tag gray">LEGACY</span> Iter 3 / Iter 4 photoreal</td><td>Deprecated photoreal storyboards. Hidden from gallery.</td></tr>
+<tr><td><code>L/M/N/O</code></td><td>Video iterations 1-4</td><td>Final fal.ai Seedance MP4 URLs</td></tr>
+</table>
+
+<h3>Video Prompts tab</h3>
+<table>
+<tr><th>Cell</th><th>Global</th><th>Default for new shows?</th></tr>
+<tr><td><code>B1</code></td><td>Camera global (e.g. "Shot with arri 35.")</td><td><span class="tag green">REQUIRED</span></td></tr>
+<tr><td><code>B2</code></td><td>Audio/Dialogue global</td><td><span class="tag green">REQUIRED</span></td></tr>
+<tr><td><code>B3</code></td><td>Scale global (kaiju, giants, scale ratios)</td><td><span class="tag gray">OPTIONAL</span> — leave blank for normal-scale shows</td></tr>
+<tr><td><code>B4</code></td><td>Setting global (locked location, era)</td><td><span class="tag gray">OPTIONAL</span> — leave blank if setting varies shot-by-shot</td></tr>
+</table>
+
+
+<h2>2 · Pipeline flow</h2>
+<pre class="diagram">
+  ┌──────────────────────────────────────────────────────────────────┐
+  │  ASSET BIBLES (Drive)                                            │
+  │  characters / locations / props / costumes / effects             │
+  │  Each bible row has Iter 1 (off-white bg) + Iter 2 (dark bg)     │
+  └──────────┬───────────────────────────────────────────────────────┘
+             │ ref images (auto-detected from body text)
+             ▼
+  ┌──────────────────────────────────────────────────────────────────┐
+  │  STORYBOARD GENERATION                                           │
+  │  /imggen → nano_banana_2 + bibles → pencil/stick fig (G/H)       │
+  │  NSFW fallback to gpt_image_2                                    │
+  │  Strict-template-lock prompt locks composition                   │
+  └──────────┬───────────────────────────────────────────────────────┘
+             │ G/H stored in sheet → used as visual blueprint
+             ▼
+  ┌──────────────────────────────────────────────────────────────────┐
+  │  VIDEO GENERATION (per slot)                                     │
+  │  /vidgen --provider fal → fal.ai Seedance 2.0 ref-to-video       │
+  │  Inputs: storyboard + chars (iter 2 portraits) + loc + costume   │
+  │  Moderation cascade or --retry-no-cascade preserves identity     │
+  └──────────┬───────────────────────────────────────────────────────┘
+             │ MP4 downloads → Drive videos/set-NN/ + L/M/N/O written
+             ▼
+  ┌──────────────────────────────────────────────────────────────────┐
+  │  GALLERY (HTML)                                                  │
+  │  build_pharaoh_gallery_production_v2.py                          │
+  │  Renders globals + contextual data + body + iters + videos       │
+  │  LATEST chips on freshly-generated videos                        │
+  └──────────────────────────────────────────────────────────────────┘
+</pre>
+
+
+<h2>3 · Stage details</h2>
+
+<div class="flow">
+
+  <div class="stage bibles">
+    <h3>🗂 Stage 0 — Asset bibles (one-time)</h3>
+    <div class="desc">Five bible tabs: <code>CHARACTERS</code>, <code>LOCATIONS</code>, <code>PROPS</code>, <code>COSTUME</code>, <code>EFFECTS</code>. Each row has a name, descriptive metadata, and Iter 1 + Iter 2 portrait URLs (off-white bg + dark bg variants). Generated upstream by the show's character/world bibles flow.</div>
+  </div>
+
+  <div class="stage story">
+    <h3>📋 Stage 1 — Body locked</h3>
+    <div class="desc">Producer writes per-shot bodies in <code>Storyboard Prompts!C{row}</code>. Each shot: number, duration, shot size, camera move, action description, dialogue, audio cues. <code>/shotlist-edit</code> for revisions.</div>
+  </div>
+
+  <div class="stage story">
+    <h3>🎨 Stage 2 — Storyboard generation</h3>
+    <div class="desc"><span class="tag purple">/imggen set N</span> fires <code>nano_banana_2</code> (Higgsfield) with bible refs auto-detected from body. Two stick-figure panels per set written to <code>G/H</code>. Strict template-lock prompt keeps composition consistent. NSFW failures auto-fall to <code>gpt_image_2</code>.</div>
+  </div>
+
+  <div class="stage video">
+    <h3>🎬 Stage 3 — Video generation</h3>
+    <div class="desc"><span class="tag purple">/vidgen set N iter M slot S</span> fires <code>fal.ai bytedance/seedance-2.0/reference-to-video</code>. Auto-injects bibles. Prompt = camera+audio+(scale)+(setting) globals + contextual data + realism + storyboard directive + body. 720p, 15s, audio-on. ~$4.54/clip.</div>
+  </div>
+
+  <div class="stage mod">
+    <h3>🛡 Stage 3.5 — Moderation handling</h3>
+    <div class="desc">fal.ai's "real person likeness" filter trips on photoreal char portraits. Two strategies:</div>
+
+    <div class="cascade">
+      <div class="step"><span class="step-num">A</span><strong>Cascade mode (default)</strong> — full refs → drop char-1 → drop all chars → drop costume+loc → storyboard-only. Sacrifices identity for completion.</div>
+      <div class="step"><span class="step-num">B</span><strong>--retry-no-cascade N</strong> — repeat SAME full-refs call N times. Preserves character identity. Probabilistic moderation eventually clears (or doesn't).</div>
+      <div class="step"><span class="step-num">C</span><strong>Iter 1 ↔ Iter 2 storyboard swap</strong> — different payload hash bypasses fal.ai per-payload moderation cache. Last-resort breakthrough when N retries deterministically fail.</div>
+    </div>
+  </div>
+
+  <div class="stage output">
+    <h3>📦 Stage 4 — Drive + sheet writeback</h3>
+    <div class="desc">On success: video downloads from fal.ai CDN → <code>videos/set-NN/</code>. Prior file archived (timestamp prefix → <code>archive/</code> subfolder). Sheet cell <code>L/M/N/O</code> updated with new <code>webViewLink</code>. <code>--mark-latest</code> flag appends to <code>latest_videos.json</code> for gallery LATEST badge.</div>
+  </div>
+
+  <div class="stage output">
+    <h3>🖼 Stage 5 — Gallery rebuild</h3>
+    <div class="desc"><code>python3 build_pharaoh_gallery_production_v2.py</code> reads sheet + bibles + latest_videos.json → emits single self-contained HTML. Sections: characters, locations, props, costumes, effects, storyboards (4 iters per set + global preamble + contextual data + body + 2x2 video grid). Light SaaS theme.</div>
+  </div>
+
+</div>
+
+
+<h2>4 · Key file map</h2>
+<table>
+<tr><th>File</th><th>Role</th></tr>
+<tr><td><code>fal_vidgen.py</code></td><td>Primary video generator. fal.ai Seedance 2.0 ref-to-video.</td></tr>
+<tr><td><code>flora_run.py</code></td><td>Legacy FLORA video generator. Still functional, kept for fallback.</td></tr>
+<tr><td><code>storyboard_build.py</code></td><td>Bootstrap a new episode sheet (creates Storyboard Prompts tab + Drive set folders).</td></tr>
+<tr><td><code>storyboard_generate.py</code></td><td>Legacy fal.ai nano-banana-2 stick figure storyboard runner.</td></tr>
+<tr><td><code>build_pharaoh_gallery_production_v2.py</code></td><td>Gallery HTML builder. Reads sheet + Drive + latest_videos.json.</td></tr>
+<tr><td><code>auth.py</code></td><td>Google Drive + Sheets OAuth. Token persists.</td></tr>
+<tr><td><code>approved_iters.json</code></td><td>Per-set canonical iter map (which storyboard variant is approved).</td></tr>
+<tr><td><code>latest_videos.json</code></td><td>Tracks which videos get the LATEST chip in gallery.</td></tr>
+<tr><td><code>.env</code></td><td><code>FAL_KEY</code>, <code>REVE_API_KEY</code>, <code>FLORAFAUNA_API_KEY</code>.</td></tr>
+<tr><td><code>.claude/commands/*.md</code></td><td>Slash command skill docs: <code>/imggen</code>, <code>/vidgen</code>, <code>/shotlist-edit</code>, <code>/storyboard-build</code>, <code>/storyboard-build-all</code>, <code>/storyboard-gen</code>.</td></tr>
+</table>
+
+
+<h2>5 · Hard-won insights</h2>
+
+<div class="insight">
+  <strong>fal.ai moderation appears to cache per-payload-hash.</strong> Same exact ref combo will pass once, then deterministically fail forever. <code>iter 1 ↔ iter 2 storyboard swap</code> is the proven cache-buster — different image bytes = different hash = fresh moderation roll.
+</div>
+
+<div class="insight">
+  <strong>Pencil > photoreal for storyboards.</strong> Photoreal panels look authoritative but often hallucinate (KHENSU in crown when bible says stonecutter). Stick-figure pencils stay abstract enough that the photoreal bible refs carry identity. Cleaner read for production reference too — actual storyboards in real production are pencil/marker.
+</div>
+
+<div class="insight">
+  <strong>Stick-figure storyboards beat detailed pencils.</strong> Detailed pencil renderings of characters "bleed" their interpretation into video gen, fighting the photoreal bible refs (wrong skin tone, wrong face). Stick figures are abstract enough to defer all identity to bibles.
+</div>
+
+<div class="insight">
+  <strong>Per-character iter 2 default.</strong> Iter 2 (dark bg) portraits are more cinematic + bibles tend to use them as canonical. <code>fal_vidgen.py detect_refs</code> defaults all chars to iter 2 (col U); falls back to iter 1 (col T) only if iter 2 is empty.
+</div>
+
+<div class="insight">
+  <strong>Setting + scale anchors are SHOW-specific, not pipeline defaults.</strong> Don't bake B3/B4 into the storyboard-build template. Each show fills these per its narrative needs (kaiju show needs scale; locked-set show needs setting; rom-com needs neither).
+</div>
+
+<div class="insight">
+  <strong>Per-set rooftop/location anchors must appear in the BODY for auto-detect to fire.</strong> If body doesn't say "rooftop", <code>detect_refs</code> doesn't pull the location ref → model defaults to whatever the prior context implies. Fix: include explicit setting cue at top of <code>C{row}</code>.
+</div>
+
+
+<h2>6 · Cost ladder (per 15s clip)</h2>
+<table>
+<tr><th>Stage</th><th>Cost</th><th>Notes</th></tr>
+<tr><td>Storyboard pencil (nano_banana_2)</td><td>~2 cr × 2 = 4 cr</td><td>Higgsfield credits per set</td></tr>
+<tr><td>Storyboard photoreal fallback (gpt_image_2)</td><td>~7 cr per panel</td><td>NSFW recovery only</td></tr>
+<tr><td>Video standard (fal Seedance 2.0)</td><td><code>$4.54</code></td><td>720p 15s ref-to-video</td></tr>
+<tr><td>Video fast tier</td><td><code>$3.63</code></td><td>~80% quality, 20% cheaper</td></tr>
+<tr><td>Video text-to-video (no refs)</td><td><code>~$4.50</code></td><td>Last-resort fallback</td></tr>
+<tr><td>FLORA legacy (sd2-vidgen)</td><td>~1218 cr ≈ $10-12</td><td>2.5× more expensive than fal direct</td></tr>
+</table>
+
+<div class="footer">
+  Built across 2 days. Pipeline operates against any vertical microdrama show.<br>
+  Slot in your bibles + bodies + globals → generate.
+</div>
+
+</div>
+</body>
+</html>

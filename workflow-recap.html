@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Microdrama Pipeline — Workflow Recap</title>
+<style>
+  :root {
+    --bg: #faf8f5;
+    --card-bg: #ffffff;
+    --ink: #1a1a1a;
+    --muted: #6b7280;
+    --done: #10b981;
+    --done-soft: #d1fae5;
+    --future: #9ca3af;
+    --future-soft: #f3f4f6;
+    --accent: #2563eb;
+    --accent-soft: #dbeafe;
+    --line: #e5e7eb;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    margin: 0;
+    padding: 40px 24px;
+    line-height: 1.5;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: -0.5px; }
+  .subtitle { color: var(--muted); margin: 0 0 32px; font-size: 15px; }
+  .legend {
+    display: flex; gap: 16px; margin-bottom: 32px;
+    padding: 12px 16px; background: white; border-radius: 8px;
+    border: 1px solid var(--line); font-size: 13px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.done { background: var(--done); }
+  .dot.future { background: var(--future); }
+  .pipeline { display: flex; flex-direction: column; gap: 0; position: relative; }
+  .stage {
+    background: var(--card-bg);
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    padding: 20px 24px;
+    position: relative;
+  }
+  .stage.done { border-color: var(--done); background: linear-gradient(0deg, var(--done-soft) 0%, white 30%); }
+  .stage.future { border-style: dashed; opacity: 0.85; }
+  .stage-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+  .stage-num {
+    display: inline-block; width: 24px; height: 24px;
+    background: var(--ink); color: white; border-radius: 50%;
+    text-align: center; font-size: 13px; line-height: 24px;
+    font-weight: 600; margin-right: 10px;
+  }
+  .stage.done .stage-num { background: var(--done); }
+  .stage.future .stage-num { background: var(--future); }
+  .stage-title { font-size: 18px; font-weight: 600; margin: 0 0 6px; display: flex; align-items: center; }
+  .stage-status {
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+    padding: 3px 8px; border-radius: 4px; margin-left: 10px;
+  }
+  .stage.done .stage-status { background: var(--done-soft); color: var(--done); }
+  .stage.future .stage-status { background: var(--future-soft); color: var(--future); }
+  .stage-desc { color: var(--muted); font-size: 14px; margin: 0 0 12px; }
+  .stage-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .chip {
+    background: var(--accent-soft); color: var(--accent);
+    padding: 4px 10px; border-radius: 4px; font-size: 12px; font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  .chip.muted { background: var(--future-soft); color: var(--muted); }
+  .stage-detail { font-size: 13px; }
+  .stage-detail dt { font-weight: 600; color: var(--ink); margin-top: 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stage-detail dt:first-child { margin-top: 0; }
+  .stage-detail dd { margin: 2px 0 0; color: var(--muted); }
+  .stage-detail dd code { background: var(--future-soft); padding: 1px 6px; border-radius: 3px; font-size: 12px; }
+  .arrow {
+    width: 2px; height: 28px; background: var(--line);
+    margin-left: 36px; position: relative;
+  }
+  .arrow::after {
+    content: ""; position: absolute; left: -4px; bottom: -1px;
+    border: 5px solid transparent; border-top-color: var(--line);
+  }
+  .summary {
+    margin-top: 40px; padding: 24px; background: white;
+    border-radius: 10px; border: 1px solid var(--line);
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
+  }
+  .summary-card h3 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); }
+  .summary-card .big { font-size: 24px; font-weight: 700; color: var(--ink); }
+  .summary-card p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+  .tools {
+    margin-top: 32px; padding: 24px;
+    background: white; border-radius: 10px; border: 1px solid var(--line);
+  }
+  .tools h2 { margin: 0 0 16px; font-size: 18px; }
+  .tools-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+  .tools-block h3 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); }
+  .tools-block ul { margin: 0; padding: 0; list-style: none; }
+  .tools-block li { padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+  .tools-block li:last-child { border-bottom: 0; }
+  .tools-block code { background: var(--future-soft); padding: 1px 6px; border-radius: 3px; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; color: var(--accent); }
+  .tools-block .desc { color: var(--muted); margin-left: 6px; }
+  @media (max-width: 720px) {
+    .stage-row { grid-template-columns: 1fr; }
+    .summary { grid-template-columns: 1fr; }
+    .tools-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Microdrama Pipeline — Workflow Recap</h1>
+  <p class="subtitle">Where we are. What's built. What's next.</p>
+
+  <div class="legend">
+    <div class="legend-item"><span class="dot done"></span> Built &amp; shipped</div>
+    <div class="legend-item"><span class="dot future"></span> Next phase / parked</div>
+  </div>
+
+  <div class="pipeline">
+
+    <div class="stage done">
+      <div class="stage-row">
+        <div>
+          <h2 class="stage-title"><span class="stage-num">1</span>Script &amp; Synopsis<span class="stage-status">Input</span></h2>
+          <p class="stage-desc">Locked script or synopsis is the entry point. Either human-written or generated by the scriptwriter skill.</p>
+          <div class="stage-meta"><span class="chip">microdrama-scriptwriter</span></div>
+        </div>
+        <dl class="stage-detail">
+          <dt>Format</dt><dd>Logline + episode outlines + per-shot beats</dd>
+          <dt>Audit pass</dt><dd>Copyright similarity + plausibility before "done"</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="arrow"></div>
+
+    <div class="stage done">
+      <div class="stage-row">
+        <div>
+          <h2 class="stage-title"><span class="stage-num">2</span>Shotlist tab (v2.2)<span class="stage-status">Done</span></h2>
+          <p class="stage-desc">16 locked columns + optional column Q (Bahasa Prompt). Column P auto-generates the per-shot prompt via formula.</p>
+          <div class="stage-meta">
+            <span class="chip">microdrama-shotlist</span>
+            <span class="chip">microdrama-shotlist-bahasa</span>
+            <span class="chip">/shotlist-edit</span>
+          </div>
+        </div>
+        <dl class="stage-detail">
+          <dt>Schema</dt><dd>A–P core, +Q for Bahasa GOOGLETRANSLATE</dd>
+          <dt>Self-healing</dt><dd>storyboard_build.py auto-backfills missing P formula</dd>
+          <dt>Editing</dt><dd><code>/shotlist-edit</code> with diff-then-confirm</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="arrow"></div>
+
+    <div class="stage done">
+      <div class="stage-row">
+        <div>
+          <h2 class="stage-title"><span class="stage-num">3</span>Storyboard Prompts tab<span class="stage-status">Done</span></h2>
+          <p class="stage-desc">9 columns. Bunches every 5 shots into one storyboard prompt. Drive folders auto-created. Bahasa column hidden by default.</p>
+          <div class="stage-meta">
+            <span class="chip">/storyboard-build</span>
+            <span class="chip">/storyboard-build-all</span>
+          </div>
+        </div>
+        <dl class="stage-detail">
+          <dt>Schema</dt><dd>Set #, Shot Range, Prompt, Bahasa, Folder, Status, Iter1, Iter2, Error</dd>
+          <dt>Drive structure</dt><dd><code>storyboards/set-NN/</code> per set, auto-created</dd>
+          <dt>Idempotent</dt><dd>Skips populated tabs; <code>--force</code> rebuilds</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="arrow"></div>
+
+    <div class="stage done">
+      <div class="stage-row">
+        <div>
+          <h2 class="stage-title"><span class="stage-num">4</span>Storyboard images<span class="stage-status">Done</span></h2>
+          <p class="stage-desc">2 iterations per set via fal.ai nano-banana-2. Stick-figure pencil sketches, 21:9, 1K resolution. Auto-uploaded to Drive, public URLs written back to sheet.</p>
+          <div class="stage-meta">
+            <span class="chip">/storyboard-gen</span>
+            <span class="chip">fal.ai nano-banana-2</span>
+          </div>
+        </div>
+        <dl class="stage-detail">
+          <dt>Per episode</dt><dd>~$1 cost, ~15 min wall time (50 shots / 10 sets)</dd>
+          <dt>V1 preamble</dt><dd>"Stick figure pencil storyboard with foreground, midground and background depth"</dd>
+          <dt>Status flow</dt><dd>Pending → Generating → Done / Failed</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="arrow"></div>
+
+    <div class="stage future">
+      <div class="stage-row">
+        <div>
+          <h2 class="stage-title"><span class="stage-num">5</span>Video clips (per shot)<span class="stage-status">Next</span></h2>
+          <p class="stage-desc">Seedance 2 generates one ~4s 1080p clip per shotlist row. Uses column P prompt + cropped storyboard panel as image-to-video reference for character/location consistency.</p>
+          <div class="stage-meta">
+            <span class="chip muted">video_generate.py (planned)</span>
+            <span class="chip muted">/video-gen (planned)</span>
+            <span class="chip muted">Seedance 2</span>
+          </div>
+        </div>
+        <dl class="stage-detail">
+          <dt>Per episode</dt><dd>~$15–35, ~15–20 min parallelized (50 clips)</dd>
+          <dt>Output</dt><dd><code>videos/shot-NN.mp4</code> per row</dd>
+          <dt>Effort to build</dt><dd>~half a day</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="arrow"></div>
+
+    <div class="stage future">
+      <div class="stage-row">
+        <div>
+          <h2 class="stage-title"><span class="stage-num">6</span>Rough cut assembly<span class="stage-status">Next</span></h2>
+          <p class="stage-desc">ffmpeg concat (faster, simpler) or Remotion (more flexible) sequences clips into a single 1080p MP4 in shot order. Optional TTS dialogue mix.</p>
+          <div class="stage-meta">
+            <span class="chip muted">assemble.py (planned)</span>
+            <span class="chip muted">ffmpeg / Remotion</span>
+          </div>
+        </div>
+        <dl class="stage-detail">
+          <dt>Output</dt><dd>Single import-ready MP4 (~150–200s for 90s episode)</dd>
+          <dt>Time</dt><dd>&lt;1 min ffmpeg, ~10 min Remotion</dd>
+          <dt>Audio</dt><dd>Optional TTS pass via ElevenLabs (Bahasa supported)</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="arrow"></div>
+
+    <div class="stage future">
+      <div class="stage-row">
+        <div>
+          <h2 class="stage-title"><span class="stage-num">7</span>Premiere finish<span class="stage-status">Editor</span></h2>
+          <p class="stage-desc">Editor imports rough-cut MP4. Premiere's Scene Edit Detection auto-cuts at every clip boundary. Editor lands on a fully cut timeline, ready to trim, color, mix, and add music.</p>
+          <div class="stage-meta">
+            <span class="chip muted">Premiere Pro</span>
+            <span class="chip muted">Scene Edit Detection</span>
+          </div>
+        </div>
+        <dl class="stage-detail">
+          <dt>Editor handoff</dt><dd>1 MP4 + Drive folder of source clips for swap-outs</dd>
+          <dt>Time</dt><dd>2–6 hours human (trim, music, SFX, color)</dd>
+          <dt>Output</dt><dd>Final delivery MP4 + per-format cuts</dd>
+        </dl>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="summary">
+    <div class="summary-card">
+      <h3>Cost per episode (full pipeline)</h3>
+      <p class="big">~$25–60</p>
+      <p>vs. $50K–200K traditional pre-production</p>
+    </div>
+    <div class="summary-card">
+      <h3>Wall time to handoff</h3>
+      <p class="big">~1–2 hours</p>
+      <p>From script-locked to editor-ready MP4 (with parallelization)</p>
+    </div>
+    <div class="summary-card">
+      <h3>Episodes shipped via this pipeline</h3>
+      <p class="big">2 sheets prepped</p>
+      <p>NLB (50 shots, all storyboards) + Last Ride Ep 1 (70 shots, sets 1–3 storyboards)</p>
+    </div>
+  </div>
+
+  <div class="tools">
+    <h2>Tooling inventory</h2>
+    <div class="tools-grid">
+      <div class="tools-block">
+        <h3>Skills</h3>
+        <ul>
+          <li><code>microdrama-scriptwriter</code><span class="desc"> — script + synopsis + audit</span></li>
+          <li><code>microdrama-shotlist</code><span class="desc"> — generic, multi-locale shotlist</span></li>
+          <li><code>microdrama-shotlist-bahasa</code><span class="desc"> — Jakarta-locked variant</span></li>
+        </ul>
+      </div>
+      <div class="tools-block">
+        <h3>Slash commands</h3>
+        <ul>
+          <li><code>/storyboard-build &lt;sheet&gt;</code><span class="desc"> — set up storyboard tab + folders</span></li>
+          <li><code>/storyboard-build-all &lt;folder&gt;</code><span class="desc"> — batch all episodes</span></li>
+          <li><code>/storyboard-gen &lt;sheet&gt;</code><span class="desc"> — generate via fal.ai</span></li>
+          <li><code>/shotlist-edit &lt;description&gt;</code><span class="desc"> — diff-then-confirm cell edits</span></li>
+        </ul>
+      </div>
+      <div class="tools-block">
+        <h3>Python scripts</h3>
+        <ul>
+          <li><code>storyboard_build.py</code><span class="desc"> — build/migrate Storyboard Prompts tab</span></li>
+          <li><code>storyboard_generate.py</code><span class="desc"> — fal.ai → Drive → sheet writeback</span></li>
+          <li><code>auth.py</code><span class="desc"> — OAuth for Sheets + Drive</span></li>
+        </ul>
+      </div>
+      <div class="tools-block">
+        <h3>External services</h3>
+        <ul>
+          <li><code>Google Sheets + Drive</code><span class="desc"> — data + asset storage</span></li>
+          <li><code>fal.ai nano-banana-2</code><span class="desc"> — storyboard generation</span></li>
+          <li><code>fal.ai Seedance 2</code><span class="desc"> — video gen (planned)</span></li>
+          <li><code>ElevenLabs</code><span class="desc"> — TTS dialogue (planned)</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

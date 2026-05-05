@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__ad751824-2e83-473d-9f77-fae21304dd90__read_file_content",
+      "Bash(cp \"/Users/raymuschang/Desktop/Shotlist Workflows/pharaoh_king_gallery_PRODUCTION_v2.html\" ~/Desktop/)",
+      "Read(//Users/raymuschang/Desktop/**)",
+      "Bash(python3 upload_to_drive.py ~/Desktop/pharaoh_king_gallery_PRODUCTION_v2.html)",
+      "Bash(python3 fal_vidgen.py --set 5 --iter 2 --slot 4 --no-storyboard --mark-latest)",
+      "Bash(tee /tmp/fal_5.4_retry.log)",
+      "Bash(python3 fal_vidgen.py --set 5 --iter 2 --slot 3 --mark-latest)",
+      "Bash(tee /tmp/fal_5.3_retry.log)",
+      "Bash(python3 fal_vidgen.py --set 6 --iter 2 --slot 3 --mark-latest)",
+      "Bash(tee /tmp/fal_6.3_retry.log)",
+      "Bash(python3 fal_vidgen.py --set 11 --iter 2 --slot 4 --mark-latest)",
+      "Bash(tee /tmp/fal_11.4_retry.log)",
+      "Bash(python3 -W ignore -c ' *)",
+      "Bash(python3 build_pharaoh_gallery_production_v2.py)"
+    ]
+  }
+}

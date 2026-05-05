@@ -1,0 +1,23 @@
+{
+  "_comment": "Per-set approved storyboard iter (gallery numbering, post-pencil-flip schema). Iter 1 = col G (pencil from nano_banana_2 + bibles), Iter 2 = col H (pencil iter 2). vidgen should default to this iter as the storyboard ref unless overridden. fal_vidgen.py / flora_run.py: pass --iter <approved_iter> to use the right column.",
+  "_updated": "2026-05-01 (post-pencil-flip)",
+  "_iter_to_col": {
+    "1": "G (pencil)",
+    "2": "H (pencil)",
+    "3": "J (legacy photoreal — deprecated)",
+    "4": "K (legacy photoreal — deprecated)"
+  },
+  "approved": {
+    "1": 2,
+    "2": 2,
+    "3": 1,
+    "4": 1,
+    "5": 2,
+    "6": 2,
+    "7": 1,
+    "8": 2,
+    "9": 2,
+    "10": 1,
+    "11": 2
+  }
+}

@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Microdrama Pipeline — Skill Tree</title>
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --bg-card: #131829;
+    --bg-card-hover: #1a2138;
+    --line: #1e2a44;
+    --ink: #e2e8f0;
+    --muted: #64748b;
+    --gold: #fbbf24;
+    /* Status colors */
+    --mastered: #10b981;
+    --mastered-glow: #10b98166;
+    --active: #06b6d4;
+    --active-glow: #06b6d466;
+    --available: #f59e0b;
+    --available-glow: #f59e0b66;
+    --locked: #475569;
+    --parked: #a855f7;
+    --parked-glow: #a855f766;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", sans-serif;
+    background: radial-gradient(ellipse at top, #1a2138 0%, var(--bg) 60%);
+    background-attachment: fixed;
+    color: var(--ink);
+    min-height: 100vh;
+    padding: 32px 24px 64px;
+    line-height: 1.5;
+  }
+  .container { max-width: 1180px; margin: 0 auto; }
+
+  /* Header / Player stats */
+  .header {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    margin-bottom: 8px;
+  }
+  h1 {
+    font-family: "Cinzel", "Trajan Pro", "Times New Roman", serif;
+    font-size: 32px; font-weight: 700; letter-spacing: 1px; margin: 0;
+    color: var(--gold);
+    text-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+  }
+  .subtitle { color: var(--muted); font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase; }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin: 24px 0 32px;
+  }
+  .stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 16px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--mastered), var(--active));
+  }
+  .stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); }
+  .stat-value { font-size: 28px; font-weight: 700; color: var(--ink); margin-top: 4px; }
+  .stat-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  /* XP Bar */
+  .xp-container {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 32px;
+  }
+  .xp-label { display: flex; justify-content: space-between; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 8px; }
+  .xp-bar { height: 10px; background: #0a0e1a; border-radius: 5px; overflow: hidden; position: relative; }
+  .xp-fill {
+    height: 100%; background: linear-gradient(90deg, var(--mastered), var(--active));
+    border-radius: 5px; box-shadow: 0 0 12px var(--active-glow);
+    width: 56%;
+  }
+
+  /* Legend */
+  .legend {
+    display: flex; gap: 24px; flex-wrap: wrap;
+    background: var(--bg-card); border: 1px solid var(--line);
+    border-radius: 8px; padding: 12px 20px; margin-bottom: 32px;
+    font-size: 12px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .dot.m { background: var(--mastered); box-shadow: 0 0 10px var(--mastered-glow); }
+  .dot.a { background: var(--active); box-shadow: 0 0 10px var(--active-glow); }
+  .dot.av { background: var(--available); box-shadow: 0 0 10px var(--available-glow); }
+  .dot.l { background: var(--locked); }
+  .dot.p { background: var(--parked); box-shadow: 0 0 10px var(--parked-glow); }
+
+  /* Tree */
+  .tree {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 32px 24px;
+    margin-bottom: 32px;
+  }
+  .tier {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 24px;
+    align-items: center;
+    margin-bottom: 24px;
+    position: relative;
+  }
+  .tier:last-child { margin-bottom: 0; }
+  .tier-label {
+    text-align: right;
+    font-family: "Cinzel", serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gold);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding-top: 8px;
+  }
+  .tier-label .tier-num { font-size: 11px; display: block; color: var(--muted); letter-spacing: 1.5px; margin-bottom: 2px; }
+  .tier-nodes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    align-items: stretch;
+  }
+
+  /* Node */
+  .node {
+    background: var(--bg-card-hover);
+    border: 2px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+    min-width: 170px;
+    position: relative;
+    cursor: default;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  }
+  .node:hover {
+    transform: translateY(-2px);
+    border-color: var(--ink);
+  }
+  .node.mastered { border-color: var(--mastered); box-shadow: 0 0 16px var(--mastered-glow); }
+  .node.mastered::before { content: "✓"; position: absolute; top: -8px; right: -8px; width: 20px; height: 20px; background: var(--mastered); color: var(--bg); border-radius: 50%; text-align: center; line-height: 20px; font-size: 12px; font-weight: 700; }
+  .node.active { border-color: var(--active); box-shadow: 0 0 12px var(--active-glow); }
+  .node.available { border-color: var(--available); box-shadow: 0 0 8px var(--available-glow); border-style: dashed; }
+  .node.locked { opacity: 0.6; border-color: var(--locked); }
+  .node.parked { border-color: var(--parked); border-style: dotted; box-shadow: 0 0 6px var(--parked-glow); }
+
+  .node-name {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--ink);
+  }
+  .node.locked .node-name { color: var(--muted); }
+  .node-desc {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+  .node-tag {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 2px 8px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 4px;
+    font-size: 10px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    color: var(--muted);
+    letter-spacing: 0.3px;
+  }
+  .node.mastered .node-tag { color: var(--mastered); }
+  .node.active .node-tag { color: var(--active); }
+
+  /* Branch divider */
+  .branch-header {
+    display: flex; align-items: center; gap: 12px;
+    margin: 32px 0 16px;
+  }
+  .branch-header h2 {
+    font-family: "Cinzel", serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 0;
+    letter-spacing: 1px;
+  }
+  .branch-header .branch-line {
+    flex: 1; height: 1px;
+    background: linear-gradient(90deg, var(--gold) 0%, transparent 100%);
+  }
+
+  /* Quest log */
+  .quest-log {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 32px;
+  }
+  .quest-log h2 {
+    font-family: "Cinzel", serif;
+    font-size: 18px;
+    margin: 0 0 16px;
+    color: var(--gold);
+    letter-spacing: 1px;
+  }
+  .quest {
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .quest:last-child { border-bottom: 0; }
+  .quest-icon {
+    width: 32px; height: 32px; flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--bg-card-hover);
+    border: 2px solid var(--available);
+    box-shadow: 0 0 8px var(--available-glow);
+    color: var(--available);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14px;
+  }
+  .quest-icon.locked { border-color: var(--locked); color: var(--muted); box-shadow: none; }
+  .quest-body { flex: 1; }
+  .quest-name { font-weight: 600; color: var(--ink); font-size: 14px; }
+  .quest-name.locked { color: var(--muted); }
+  .quest-desc { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .quest-reward {
+    font-size: 11px; color: var(--gold);
+    text-transform: uppercase; letter-spacing: 1px;
+    margin-top: 4px;
+  }
+
+  /* Achievements */
+  .achievements {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 24px;
+  }
+  .achievements h2 {
+    font-family: "Cinzel", serif;
+    font-size: 18px;
+    margin: 0 0 16px;
+    color: var(--gold);
+    letter-spacing: 1px;
+  }
+  .achievements-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
+  }
+  .achievement {
+    background: var(--bg-card-hover);
+    border: 1px solid var(--mastered);
+    border-radius: 8px;
+    padding: 12px 14px;
+    box-shadow: 0 0 8px var(--mastered-glow);
+  }
+  .achievement.locked { border-color: var(--line); box-shadow: none; opacity: 0.5; }
+  .ach-name { font-size: 12px; font-weight: 600; color: var(--ink); }
+  .ach-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .ach-meta { font-size: 10px; color: var(--mastered); text-transform: uppercase; letter-spacing: 1px; margin-top: 6px; }
+  .achievement.locked .ach-name { color: var(--muted); }
+  .achievement.locked .ach-meta { color: var(--locked); }
+
+  @media (max-width: 720px) {
+    .tier { grid-template-columns: 1fr; }
+    .tier-label { text-align: left; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div>
+      <div class="subtitle">Microdrama Pipeline · Skill Tree</div>
+      <h1>The Producer's Codex</h1>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Level</div>
+      <div class="stat-value">7</div>
+      <div class="stat-sub">Storyboard Master</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Skills mastered</div>
+      <div class="stat-value">14 / 25</div>
+      <div class="stat-sub">11 locked or parked</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Episodes shipped</div>
+      <div class="stat-value">2</div>
+      <div class="stat-sub">NLB · Last Ride Ep 1</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Cost saved vs trad</div>
+      <div class="stat-value">~$100K</div>
+      <div class="stat-sub">2 episodes × ~$50K traditional pre-pro</div>
+    </div>
+  </div>
+
+  <div class="xp-container">
+    <div class="xp-label">
+      <span>Pipeline Mastery</span>
+      <span>14 / 25 — 56%</span>
+    </div>
+    <div class="xp-bar"><div class="xp-fill"></div></div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><span class="dot m"></span>Mastered (built &amp; shipped)</div>
+    <div class="legend-item"><span class="dot a"></span>Active (built, in use)</div>
+    <div class="legend-item"><span class="dot av"></span>Available (next quest)</div>
+    <div class="legend-item"><span class="dot l"></span>Locked (prereqs needed)</div>
+    <div class="legend-item"><span class="dot p"></span>Parked (deferred by choice)</div>
+  </div>
+
+  <!-- BRANCH 1: CORE PIPELINE -->
+  <div class="branch-header">
+    <h2>Branch I — The Core Pipeline</h2>
+    <div class="branch-line"></div>
+  </div>
+
+  <div class="tree">
+
+    <div class="tier">
+      <div class="tier-label"><span class="tier-num">Tier 1</span>Foundations</div>
+      <div class="tier-nodes">
+        <div class="node mastered">
+          <div class="node-name">Google OAuth</div>
+          <div class="node-desc">Sheets + Drive scopes, token persisted</div>
+          <div class="node-tag">auth.py</div>
+        </div>
+        <div class="node mastered">
+          <div class="node-name">fal.ai Account</div>
+          <div class="node-desc">API key in .env, credits topped up</div>
+          <div class="node-tag">FAL_KEY</div>
+        </div>
+        <div class="node mastered">
+          <div class="node-name">Python Env</div>
+          <div class="node-desc">gspread, google-api, fal-client, dotenv</div>
+          <div class="node-tag">--user installs</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tier">
+      <div class="tier-label"><span class="tier-num">Tier 2</span>Script</div>
+      <div class="tier-nodes">
+        <div class="node mastered">
+          <div class="node-name">Scriptwriter Skill</div>
+          <div class="node-desc">Synopsis + outline + per-shot beats with audit pass</div>
+          <div class="node-tag">microdrama-scriptwriter</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tier">
+      <div class="tier-label"><span class="tier-num">Tier 3</span>Shotlist Mastery</div>
+      <div class="tier-nodes">
+        <div class="node mastered">
+          <div class="node-name">v2.2 Schema</div>
+          <div class="node-desc">16 locked columns A–P with worked examples</div>
+          <div class="node-tag">schema_v22.md</div>
+        </div>
+        <div class="node mastered">
+          <div class="node-name">Atomization Rules</div>
+          <div class="node-desc">One action / subject / angle per row</div>
+          <div class="node-tag">atomization_rules.md</div>
+        </div>
+        <div class="node mastered">
+          <div class="node-name">Merge Candidates</div>
+          <div class="node-desc">5-rule gate for editor merge suggestions</div>
+          <div class="node-tag">merge_candidates.md</div>
+        </div>
+        <div class="node mastered">
+          <div class="node-name">Prompt Formula (P)</div>
+          <div class="node-desc">Live formula assembling the per-shot prompt</div>
+          <div class="node-tag">column P</div>
+        </div>
+        <div class="node mastered">
+          <div class="node-name">Beat Color Legend</div>
+          <div class="node-desc">HOOK · JOLT · CLIFF · PAYOFF · etc.</div>
+          <div class="node-tag">column N</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tier">
+      <div class="tier-label"><span class="tier-num">Tier 4</span>Storyboard Build</div>
+      <div class="tier-nodes">
+        <div class="node mastered">
+          <div class="node-name">Storyboard Tab Schema</div>
+          <div class="node-desc">9 columns including Bahasa &amp; Iter URLs</div>
+          <div class="node-tag">storyboard_prompts.md</div>
+        </div>
+        <div class="node mastered">
+          <div class="node-name">/storyboard-build</div>
+          <div class="node-desc">Idempotent setup of storyboard tab + Drive folders</div>
+          <div class="node-tag">slash command</div>
+        </div>
+        <div class="node mastered">
+          <div class="node-name">/storyboard-build-all</div>
+          <div class="node-desc">Batch every Sheet in a parent folder</div>
+          <div class="node-tag">slash command</div>
+        </div>
+        <div class="node mastered">
+          <div class="node-name">Self-healing P</div>
+          <div class="node-desc">Auto-backfills missing Prompt formula on broken sheets</div>
+          <div class="node-tag">storyboard_build.py</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tier">
+      <div class="tier-label"><span class="tier-num">Tier 5</span>Storyboard Gen</div>
+      <div class="tier-nodes">
+        <div class="node mastered">
+          <div class="node-name">Nano-Banana 2 Integration</div>
+          <div class="node-desc">fal.ai 21:9 stick-figure storyboards</div>
+          <div class="node-tag">fal-ai/nano-banana-2</div>
+        </div>
+        <div class="node mastered">
+          <div class="node-name">2 Iterations Per Set</div>
+          <div class="node-desc">Variation A + B for director's pick</div>
+          <div class="node-tag">G + H columns</div>
+        </div>
+        <div class="node mastered">
+          <div class="node-name">/storyboard-gen</div>
+          <div class="node-desc">End-to-end gen + Drive upload + Sheet writeback</div>
+          <div class="node-tag">slash command</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tier">
+      <div class="tier-label"><span class="tier-num">Tier 6</span>Video Gen</div>
+      <div class="tier-nodes">
+        <div class="node available">
+          <div class="node-name">Seedance 2 Integration</div>
+          <div class="node-desc">~4s 1080p clip per shotlist row</div>
+          <div class="node-tag">video_generate.py</div>
+        </div>
+        <div class="node available">
+          <div class="node-name">Image-to-Video Refs</div>
+          <div class="node-desc">Cropped storyboard panel as start frame</div>
+          <div class="node-tag">consistency boost</div>
+        </div>
+        <div class="node available">
+          <div class="node-name">/video-gen</div>
+          <div class="node-desc">Mirror of /storyboard-gen, idempotent + parallel</div>
+          <div class="node-tag">slash command</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tier">
+      <div class="tier-label"><span class="tier-num">Tier 7</span>Assembly</div>
+      <div class="tier-nodes">
+        <div class="node available">
+          <div class="node-name">ffmpeg Concat</div>
+          <div class="node-desc">Stream-copy clips into single MP4 in &lt;1 min</div>
+          <div class="node-tag">assemble.py</div>
+        </div>
+        <div class="node parked">
+          <div class="node-name">Remotion Sequencer</div>
+          <div class="node-desc">Programmatic React-based sequencing</div>
+          <div class="node-tag">@remotion/cli</div>
+        </div>
+        <div class="node locked">
+          <div class="node-name">TTS Dialogue Pass</div>
+          <div class="node-desc">ElevenLabs Bahasa per-shot voice scratch</div>
+          <div class="node-tag">ElevenLabs API</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tier">
+      <div class="tier-label"><span class="tier-num">Tier 8</span>Editor Handoff</div>
+      <div class="tier-nodes">
+        <div class="node locked">
+          <div class="node-name">Premiere Import</div>
+          <div class="node-desc">Single MP4 + source folder for swap-outs</div>
+          <div class="node-tag">editor's domain</div>
+        </div>
+        <div class="node locked">
+          <div class="node-name">Scene Edit Detection</div>
+          <div class="node-desc">Auto-cut timeline at every clip boundary</div>
+          <div class="node-tag">Premiere Pro</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- BRANCH 2: LOCALIZATION -->
+  <div class="branch-header">
+    <h2>Branch II — Localization Path</h2>
+    <div class="branch-line"></div>
+  </div>
+
+  <div class="tree">
+
+    <div class="tier">
+      <div class="tier-label"><span class="tier-num">Tier 1</span>Bahasa Foundation</div>
+      <div class="tier-nodes">
+        <div class="node mastered">
+          <div class="node-name">Bahasa Column (Q)</div>
+          <div class="node-desc">GOOGLETRANSLATE auto-translates Prompt to ID</div>
+          <div class="node-tag">column Q · hidden</div>
+        </div>
+        <div class="node mastered">
+          <div class="node-name">Jakarta Localization Pack</div>
+          <div class="node-desc">Gojek · Pertamina · Pajero · KPK · miliar rupiah</div>
+          <div class="node-tag">localization_packs.md</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tier">
+      <div class="tier-label"><span class="tier-num">Tier 2</span>Forked Skill</div>
+      <div class="tier-nodes">
+        <div class="node mastered">
+          <div class="node-name">microdrama-shotlist-bahasa</div>
+          <div class="node-desc">Jakarta-locked variant with required Q column</div>
+          <div class="node-tag">skill fork</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tier">
+      <div class="tier-label"><span class="tier-num">Tier 3</span>Multi-Market</div>
+      <div class="tier-nodes">
+        <div class="node parked">
+          <div class="node-name">Tagalog Variant</div>
+          <div class="node-desc">Manila pack + tl locale</div>
+          <div class="node-tag">future</div>
+        </div>
+        <div class="node parked">
+          <div class="node-name">Korean Variant</div>
+          <div class="node-desc">Seoul pack + ko locale + honorifics</div>
+          <div class="node-tag">future</div>
+        </div>
+        <div class="node parked">
+          <div class="node-name">Thai / Vietnamese / Chinese</div>
+          <div class="node-desc">Bangkok / HCMC / Taipei packs</div>
+          <div class="node-tag">future</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BRANCH 3: TOOLING & WORKFLOW -->
+  <div class="branch-header">
+    <h2>Branch III — Tooling Discipline</h2>
+    <div class="branch-line"></div>
+  </div>
+
+  <div class="tree">
+
+    <div class="tier">
+      <div class="tier-label"><span class="tier-num">Tier 1</span>Editing &amp; Audit</div>
+      <div class="tier-nodes">
+        <div class="node mastered">
+          <div class="node-name">/shotlist-edit</div>
+          <div class="node-desc">Diff-then-confirm cell, row, &amp; generative edits</div>
+          <div class="node-tag">slash command</div>
+        </div>
+        <div class="node mastered">
+          <div class="node-name">Idempotent Builds</div>
+          <div class="node-desc">All build commands safe to re-run</div>
+          <div class="node-tag">--force opt-in only</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tier">
+      <div class="tier-label"><span class="tier-num">Tier 2</span>Documentation</div>
+      <div class="tier-nodes">
+        <div class="node mastered">
+          <div class="node-name">Failure-Mode Docs</div>
+          <div class="node-desc">"Common failure: P formula missing" baked into skill docs</div>
+          <div class="node-tag">SKILL.md</div>
+        </div>
+        <div class="node mastered">
+          <div class="node-name">V1 / V2 Split</div>
+          <div class="node-desc">V1 stick-figure now · V2 full-fidelity parked</div>
+          <div class="node-tag">storyboard_prompts.md</div>
+        </div>
+        <div class="node mastered">
+          <div class="node-name">Cowork Sync Bundle</div>
+          <div class="node-desc">Skill folders mirrored to working dir for sharing</div>
+          <div class="node-tag">.zip ready</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BRANCH 4: APP / FUTURE -->
+  <div class="branch-header">
+    <h2>Branch IV — The Productization Path</h2>
+    <div class="branch-line"></div>
+  </div>
+
+  <div class="tree">
+    <div class="tier">
+      <div class="tier-label"><span class="tier-num">Tier 1</span>V2 Foundation</div>
+      <div class="tier-nodes">
+        <div class="node parked">
+          <div class="node-name">Show Spec Tab</div>
+          <div class="node-desc">Camera · lens · color · master lighting</div>
+          <div class="node-tag">future tab 3</div>
+        </div>
+        <div class="node parked">
+          <div class="node-name">Character Bibles</div>
+          <div class="node-desc">Locked refs for cross-episode consistency</div>
+          <div class="node-tag">future tab 4</div>
+        </div>
+        <div class="node parked">
+          <div class="node-name">Brand Guidelines Tab</div>
+          <div class="node-desc">Logo · colors · typography for branded work</div>
+          <div class="node-tag">agency play</div>
+        </div>
+      </div>
+    </div>
+    <div class="tier">
+      <div class="tier-label"><span class="tier-num">Tier 2</span>App Path</div>
+      <div class="tier-nodes">
+        <div class="node locked">
+          <div class="node-name">Internal Web UI</div>
+          <div class="node-desc">Streamlit / FastAPI wrapper for non-engineers</div>
+          <div class="node-tag">stage 1</div>
+        </div>
+        <div class="node locked">
+          <div class="node-name">Multi-tenant SaaS</div>
+          <div class="node-desc">Auth, Stripe billing, per-org keys</div>
+          <div class="node-tag">stage 2</div>
+        </div>
+        <div class="node locked">
+          <div class="node-name">Pitch Deck Generator</div>
+          <div class="node-desc">Brief → concept → sample storyboard → .pptx</div>
+          <div class="node-tag">agency wedge</div>
+        </div>
+        <div class="node locked">
+          <div class="node-name">Multi-Format Cuts</div>
+          <div class="node-desc">60s / 15s / 6s / vertical from one shotlist</div>
+          <div class="node-tag">campaign delivery</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUEST LOG -->
+  <div class="quest-log">
+    <h2>Quest Log — Available Now</h2>
+
+    <div class="quest">
+      <div class="quest-icon">!</div>
+      <div class="quest-body">
+        <div class="quest-name">Build /video-gen</div>
+        <div class="quest-desc">Mirror /storyboard-gen for Seedance 2. Reads col P + selected storyboard, generates per-shot 4s 1080p clips, uploads to Drive, writes URLs back.</div>
+        <div class="quest-reward">Reward: ~$15-35/episode video gen, full pipeline unlocked</div>
+      </div>
+    </div>
+
+    <div class="quest">
+      <div class="quest-icon">!</div>
+      <div class="quest-body">
+        <div class="quest-name">Build /episode-render</div>
+        <div class="quest-desc">ffmpeg concat → single 1080p MP4 → upload to Drive. Editor-ready handoff.</div>
+        <div class="quest-reward">Reward: full pipeline · script → editor in ~1 hour</div>
+      </div>
+    </div>
+
+    <div class="quest">
+      <div class="quest-icon locked">?</div>
+      <div class="quest-body">
+        <div class="quest-name locked">Telegram Bot Wrapper</div>
+        <div class="quest-desc">Adjacent path · Claude API as the brain for service-business CRM</div>
+        <div class="quest-reward">Side quest · half-day build</div>
+      </div>
+    </div>
+
+    <div class="quest">
+      <div class="quest-icon locked">?</div>
+      <div class="quest-body">
+        <div class="quest-name locked">Pitch Deck Generator</div>
+        <div class="quest-desc">Brief → 3 concepts → sample shotlist + storyboard each → .pptx</div>
+        <div class="quest-reward">Agency wedge · the actual app play</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACHIEVEMENTS -->
+  <div class="achievements">
+    <h2>Achievements Unlocked</h2>
+    <div class="achievements-grid">
+
+      <div class="achievement">
+        <div class="ach-name">First Shotlist Atomized</div>
+        <div class="ach-desc">Built v2.2 schema with all 16 columns + Q</div>
+        <div class="ach-meta">Earned</div>
+      </div>
+
+      <div class="achievement">
+        <div class="ach-name">Self-Healing Acquired</div>
+        <div class="ach-desc">Build script auto-backfills missing P formula</div>
+        <div class="ach-meta">Earned</div>
+      </div>
+
+      <div class="achievement">
+        <div class="ach-name">Bahasa Localized</div>
+        <div class="ach-desc">Forked skill to Jakarta-locked variant + auto-translate</div>
+        <div class="ach-meta">Earned</div>
+      </div>
+
+      <div class="achievement">
+        <div class="ach-name">First Storyboard</div>
+        <div class="ach-desc">Generated &amp; uploaded via Nano-Banana 2</div>
+        <div class="ach-meta">Earned</div>
+      </div>
+
+      <div class="achievement">
+        <div class="ach-name">Episode Shipped</div>
+        <div class="ach-desc">10 sets × 2 iterations · NLB end-to-end</div>
+        <div class="ach-meta">Earned · 20 / 20 storyboards</div>
+      </div>
+
+      <div class="achievement">
+        <div class="ach-name">Cowork Compatible</div>
+        <div class="ach-desc">Skills bundled, mirrored, ready to share</div>
+        <div class="ach-meta">Earned</div>
+      </div>
+
+      <div class="achievement locked">
+        <div class="ach-name">Video Mage</div>
+        <div class="ach-desc">First Seedance 2 clip generated</div>
+        <div class="ach-meta">Locked</div>
+      </div>
+
+      <div class="achievement locked">
+        <div class="ach-name">Editor's Friend</div>
+        <div class="ach-desc">First rough cut handed to Premiere editor</div>
+        <div class="ach-meta">Locked</div>
+      </div>
+
+      <div class="achievement locked">
+        <div class="ach-name">Polyglot Producer</div>
+        <div class="ach-desc">Ship in 2 markets from same source</div>
+        <div class="ach-meta">Locked</div>
+      </div>
+
+      <div class="achievement locked">
+        <div class="ach-name">Agency Pitch</div>
+        <div class="ach-desc">First pitch deck delivered via the pipeline</div>
+        <div class="ach-meta">Locked</div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

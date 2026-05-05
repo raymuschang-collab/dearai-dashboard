@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Strike! Pharaoh King — Ringkasan Hari Ini</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f5ead2;
+    --paper-deep: #ecd9b1;
+    --card: #fff8e7;
+    --card-border: #d4b896;
+    --ink: #2c1d10;
+    --ink-soft: #5a4630;
+    --ink-mute: #8c7556;
+    --terracotta: #a0552f;
+    --gold: #b8862f;
+    --green: #d9ebd4;
+    --green-deep: #6b8a5a;
+    --shadow: rgba(80, 50, 20, 0.18);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Lora", Georgia, serif;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+    line-height: 1.65;
+    position: relative;
+  }
+  body::before {
+    content: ""; position: fixed; inset: 0; z-index: -1;
+    background-image: url("hieroglyphics_bg.png");
+    background-size: 1400px auto; background-repeat: repeat;
+    opacity: 0.14; filter: contrast(0.95) brightness(1.05);
+    pointer-events: none;
+  }
+
+  .wrap { max-width: 820px; margin: 0 auto; padding: 44px 32px 80px; }
+
+  header.hero {
+    text-align: center;
+    border-bottom: 1px dashed var(--card-border);
+    padding-bottom: 28px;
+    margin-bottom: 36px;
+  }
+  header.hero .show {
+    font-family: "Cinzel", serif;
+    font-size: 12px; letter-spacing: 5px;
+    text-transform: uppercase;
+    color: var(--terracotta);
+    margin-bottom: 6px;
+  }
+  header.hero h1 {
+    font-family: "Cinzel", serif;
+    font-size: 32px; font-weight: 700;
+    margin: 0 0 10px;
+    letter-spacing: 1.5px;
+    color: var(--ink);
+  }
+  header.hero .sub {
+    font-style: italic;
+    font-size: 14px;
+    color: var(--ink-soft);
+  }
+  header.hero .date {
+    margin-top: 14px;
+    font-family: "Cinzel", serif;
+    font-size: 11px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+
+  /* Stat strip */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 36px;
+  }
+  .stat {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    text-align: center;
+    box-shadow: 0 2px 6px var(--shadow);
+  }
+  .stat .num {
+    font-family: "Cinzel", serif;
+    font-size: 26px; font-weight: 700;
+    color: var(--terracotta);
+    line-height: 1;
+    margin-bottom: 5px;
+  }
+  .stat .lbl {
+    font-size: 11px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  section {
+    background: rgba(255, 248, 231, 0.82);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 22px 28px;
+    margin-bottom: 18px;
+    box-shadow: 0 2px 8px var(--shadow);
+  }
+  section h2 {
+    font-family: "Cinzel", serif;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--terracotta);
+    margin: 0 0 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--card-border);
+    padding-bottom: 8px;
+  }
+  section p { margin: 8px 0; color: var(--ink-soft); }
+  section ul { margin: 8px 0; padding-left: 22px; }
+  section li {
+    margin: 6px 0;
+    color: var(--ink-soft);
+  }
+  section li b { color: var(--ink); font-weight: 600; }
+
+  .pill {
+    display: inline-block;
+    font-family: "Cinzel", serif;
+    font-size: 10px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    padding: 2px 10px;
+    border-radius: 12px;
+    margin-right: 4px;
+  }
+  .pill.green { background: var(--green); color: var(--green-deep); }
+  .pill.gold  { background: rgba(184, 134, 47, 0.18); color: var(--gold); }
+  .pill.tcc   { background: rgba(160, 85, 47, 0.13); color: var(--terracotta); }
+
+  /* Timeline */
+  .timeline {
+    border-left: 2px solid var(--card-border);
+    margin-left: 6px;
+    padding-left: 22px;
+  }
+  .ev {
+    margin-bottom: 16px;
+    position: relative;
+  }
+  .ev::before {
+    content: "";
+    position: absolute;
+    left: -29px;
+    top: 8px;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: var(--terracotta);
+    border: 2px solid var(--paper);
+    box-shadow: 0 0 0 2px var(--card-border);
+  }
+  .ev.green::before { background: var(--green-deep); }
+  .ev .when {
+    font-family: "Cinzel", serif;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    color: var(--terracotta);
+    margin-bottom: 2px;
+    text-transform: uppercase;
+  }
+  .ev .what {
+    font-size: 14px;
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .ev .detail {
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-top: 4px;
+  }
+
+  .quote {
+    background: rgba(212, 184, 150, 0.18);
+    border-left: 3px solid var(--terracotta);
+    padding: 10px 16px;
+    font-style: italic;
+    font-size: 13px;
+    color: var(--ink-soft);
+    border-radius: 0 6px 6px 0;
+    margin: 10px 0;
+  }
+
+  footer {
+    text-align: center;
+    padding: 24px 0 0;
+    border-top: 1px dashed var(--card-border);
+    margin-top: 30px;
+    font-size: 11px;
+    color: var(--ink-mute);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-family: "Cinzel", serif;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="show">Strike! Pharaoh King</div>
+  <h1>Ringkasan Pekerjaan Hari Ini</h1>
+  <div class="sub">Episode 1 — The Isfet Spawn · untuk seluruh tim</div>
+  <div class="date">30 April 2026</div>
+</header>
+
+<!-- Stat strip -->
+<div class="stats">
+  <div class="stat"><div class="num">14</div><div class="lbl">Sel Diperbaiki</div></div>
+  <div class="stat"><div class="num">32</div><div class="lbl">Gambar Dibuat Ulang</div></div>
+  <div class="stat"><div class="num">26</div><div class="lbl">Sel Hijau</div></div>
+  <div class="stat"><div class="num">17</div><div class="lbl">Folder Video Baru</div></div>
+  <div class="stat"><div class="num">3</div><div class="lbl">Versi Galeri HTML</div></div>
+</div>
+
+<!-- Apa yang kami kerjakan -->
+<section>
+  <h2>Apa yang Kami Kerjakan Hari Ini</h2>
+  <p>Tim kreatif memberikan masukan di kolom <b>Feedback</b> di 5 tab bible (Characters, Locations, Costume, Props, Effects). Kami menerapkan semua perubahan, membuat ulang gambar referensi yang terdampak, lalu menandai sel yang sudah dikerjakan dengan warna hijau muda — supaya tim bisa langsung melihat apa yang sudah ditindaklanjuti.</p>
+  <p>Selain itu, struktur Google Sheet juga disederhanakan supaya lebih mudah dirawat ke depannya: semua "preamble" prompt sekarang hidup di satu tempat saja (bagian atas tab), dan body per-set bisa diedit langsung tanpa duplikasi.</p>
+</section>
+
+<!-- Timeline -->
+<section>
+  <h2>Urutan Pekerjaan</h2>
+  <div class="timeline">
+
+    <div class="ev">
+      <div class="when">Tahap 1 · 14 perubahan</div>
+      <div class="what">Masukan tim diterapkan ke sel sumber</div>
+      <div class="detail">
+        Wajah AHMOSE dibuat lebih khas dari KHENSU · ISFET SPAWN dipertegas hanya satu ekor · Layout lokasi diubah ke grid 2×2 tanpa figur manusia · Base of Pyramid &amp; Impact Crater dibingkai ulang ke skala manusia · Kostum Sun-Guard, AHMOSE, TEHUTI, SESHET, MERCHANT disesuaikan · Properti gerobak buah dibuat lebih fotorealistik.
+      </div>
+    </div>
+
+    <div class="ev">
+      <div class="when">Tahap 2 · 32 regenerasi · 0 gagal</div>
+      <div class="what">Gambar dibuat ulang dengan provider yang sesuai</div>
+      <div class="detail">
+        Karakter (gpt-image-2) · Lokasi (fal-ai/reve) · Kostum &amp; properti (nano-banana-2) · Total waktu sekitar 21 menit untuk 32 gambar.
+      </div>
+    </div>
+
+    <div class="ev green">
+      <div class="when">Tahap 3 · 26 sel ditandai hijau</div>
+      <div class="what">Sel masukan diberi tanda agar tim langsung lihat hasilnya</div>
+      <div class="detail">
+        Sel yang diubah <em>dan</em> sel Feedback masing-masing diberi warna hijau muda. Tim kreatif bisa scan sheet sekilas dan tahu masukan mana yang sudah diaksi.
+      </div>
+    </div>
+
+    <div class="ev">
+      <div class="when">Bonus 1</div>
+      <div class="what">Latar belakang hieroglyphics dibuat untuk galeri HTML</div>
+      <div class="detail">
+        Tekstur batu kapur Mesir dengan simbol hieroglyphics yang pudar — diembed ke dalam HTML sebagai latar belakang dengan opacity 18% supaya tidak mencuri perhatian dari aset utama.
+      </div>
+    </div>
+
+    <div class="ev">
+      <div class="when">Bonus 2</div>
+      <div class="what">3 versi galeri HTML dibangun</div>
+      <div class="detail">
+        <b>Tim</b> (lengkap dengan kotak feedback) · <b>Client</b> (tanpa feedback, deskripsi 1 baris, storyboard iter 1 saja) · <b>Production crew</b> (storyboard berdampingan dengan video prompt per-set, untuk dipakai saat shooting).
+      </div>
+    </div>
+
+    <div class="ev">
+      <div class="when">Restrukturisasi Sheet</div>
+      <div class="what">Format "Living Document" diterapkan</div>
+      <div class="detail">
+        Sebelumnya: preamble seperti "Shot with Arri 35" diulang 86 kali di tab Video Prompts. Sekarang: preamble hidup di satu sel saja (B1, B2). Body shot ada di kolom yang bisa diedit. Kalau preamble berubah (misal ganti kamera), semua 17 set otomatis ikut berubah lewat formula. <span class="pill tcc">Single source of truth</span>
+      </div>
+    </div>
+
+    <div class="ev">
+      <div class="when">Folder Video</div>
+      <div class="what">17 folder per-set dibuat di Drive</div>
+      <div class="detail">
+        Struktur: <code>videos/set-01/</code>, <code>videos/set-02/</code>, … <code>videos/set-17/</code>. Semua sudah di-set "anyone with link" supaya bisa dibuka tim tanpa minta akses. Kolom E di tab Video Prompts sudah otomatis diisi link folder masing-masing.
+      </div>
+    </div>
+
+    <div class="ev">
+      <div class="when">HTML Tambahan</div>
+      <div class="what">Skrip dialog episode disusun ulang dalam urutan shot</div>
+      <div class="detail">
+        Semua dialog dari Shotlist (kolom G) ditarik ke satu halaman HTML format screenplay — tampak seperti naskah rapi untuk aktor &amp; sutradara. Bisa dicetak langsung untuk reading session.
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- Yang sekarang bisa dilakukan tim -->
+<section>
+  <h2>Yang Sekarang Bisa Tim Lakukan</h2>
+  <ul>
+    <li><b>Buka galeri HTML</b> sesuai peran: <code>pharaoh_king_gallery.html</code> (tim) · <code>..._CLIENT.html</code> (client review) · <code>..._PRODUCTION.html</code> (crew di lokasi)</li>
+    <li><b>Edit sekali, semua tab ikut terupdate</b> — ubah B1 di tab Video Prompts, semua 17 set ikut berubah otomatis</li>
+    <li><b>Edit body shot di tab Storyboard Prompts kolom C</b> → tab Video Prompts kolom C otomatis ikut update lewat formula lintas-tab</li>
+    <li><b>Lanjut ke tahap video generation</b> — semua folder Drive sudah siap menerima file output per-set</li>
+    <li><b>Cetak skrip dialog</b> langsung dari <code>pharaoh_king_dialogue.html</code> untuk reading session aktor</li>
+  </ul>
+</section>
+
+<!-- Penutup -->
+<section>
+  <h2>Catatan untuk Tim Kreatif</h2>
+  <div class="quote">"Beri masukan apapun di kolom <b>Feedback</b> di tab bible — tidak perlu diformat khusus. Pipeline akan baca, terapkan perubahan, dan tandai hijau saat sudah selesai."</div>
+  <div class="quote">"Kalau mau preamble berbeda untuk satu set tertentu, jangan ubah B1 — buat override di body langsung. Default tetap berlaku untuk set lainnya."</div>
+  <div class="quote">"Galeri client (<code>..._CLIENT.html</code>) bisa langsung dikirim ke client tanpa edit lebih lanjut — sudah bersih dari catatan internal."</div>
+</section>
+
+<footer>
+  Strike! Pharaoh King · Episode 1 — The Isfet Spawn<br>
+  Pre-production pipeline · dearai.com
+</footer>
+
+</div>
+</body>
+</html>

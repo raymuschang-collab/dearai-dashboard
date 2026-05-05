@@ -1,0 +1,280 @@
+{
+  "_comment": "Per-video LATEST badge tracking. Map of {drive_file_id: {timestamp, set, slot}}. fal_vidgen.py appends here when --mark-latest is passed. Gallery script reads this and adds a green LATEST chip badge to each video matching a key. Each new --mark-latest batch CLEARS the previous batch's entries (fresh write, not append).",
+  "_updated": "2026-05-02T02:32:47.578748",
+  "_batch_id": "",
+  "videos": {
+    "1RfXMtuQdZfALnw6vX4nZS8ZRusxyWCQ5": {
+      "timestamp": "2026-05-01T19:18:00.909162",
+      "set": 6,
+      "slot": 1,
+      "iter_used": 2,
+      "no_storyboard": false
+    },
+    "13FRIp8HJpV14piN0a-wQl29evg_x6FAC": {
+      "timestamp": "2026-05-01T19:24:30.612520",
+      "set": 3,
+      "slot": 3,
+      "iter_used": 1,
+      "no_storyboard": false
+    },
+    "1LYH4RpFjoihoE8z930iX9qgdoOTjeYd6": {
+      "timestamp": "2026-05-01T19:25:18.163911",
+      "set": 9,
+      "slot": 3,
+      "iter_used": 2,
+      "no_storyboard": false
+    },
+    "1DJZ2CXUz610nINy9HEFx0nUl5dqjIekp": {
+      "timestamp": "2026-05-01T19:26:00.891174",
+      "set": 6,
+      "slot": 2,
+      "iter_used": 2,
+      "no_storyboard": false
+    },
+    "1xyTD0cbgMcxX2qeEv_HboXHASecwmPd8": {
+      "timestamp": "2026-05-01T19:29:04.934676",
+      "set": 3,
+      "slot": 4,
+      "iter_used": 1,
+      "no_storyboard": false
+    },
+    "1OLsdAIiWJSnrf1IkAsnwlbc3BgH_ft1p": {
+      "timestamp": "2026-05-01T19:32:29.537597",
+      "set": 7,
+      "slot": 3,
+      "iter_used": 1,
+      "no_storyboard": false
+    },
+    "1T70w4xzMeqPIa5WGL-kExEqF4Tadl3pN": {
+      "timestamp": "2026-05-01T19:37:23.554150",
+      "set": 4,
+      "slot": 2,
+      "iter_used": 1,
+      "no_storyboard": false
+    },
+    "1Nnhp_bbIDlyYX13sVd_GoSXyTv5h3pbE": {
+      "timestamp": "2026-05-01T19:40:45.730976",
+      "set": 7,
+      "slot": 4,
+      "iter_used": 1,
+      "no_storyboard": false
+    },
+    "1Uzf0eQBDhClhFRYOJ8aRqBAxabPXaVZE": {
+      "timestamp": "2026-05-01T19:43:01.622984",
+      "set": 4,
+      "slot": 3,
+      "iter_used": 1,
+      "no_storyboard": false
+    },
+    "1_46_QFnJZQnXkjcVHLTJHQafnrXgD_GC": {
+      "timestamp": "2026-05-01T19:43:20.640605",
+      "set": 9,
+      "slot": 4,
+      "iter_used": 2,
+      "no_storyboard": false
+    },
+    "1Q4Tvg_iZIuY_5zPy9quGqhUkFN0r9uCo": {
+      "timestamp": "2026-05-01T19:46:14.571641",
+      "set": 8,
+      "slot": 3,
+      "iter_used": 2,
+      "no_storyboard": false
+    },
+    "1GFjmFSfbiv6rN9RaXrrFiFojD28U3h21": {
+      "timestamp": "2026-05-01T19:47:23.998435",
+      "set": 10,
+      "slot": 3,
+      "iter_used": 1,
+      "no_storyboard": false
+    },
+    "1V1WoAKB81myzhJu24wd0xOEzSRHzEesh": {
+      "timestamp": "2026-05-01T19:48:27.503238",
+      "set": 5,
+      "slot": 1,
+      "iter_used": 2,
+      "no_storyboard": false
+    },
+    "147rS15QQ0dlKm5FDWPn8NOZNtsx1nN26": {
+      "timestamp": "2026-05-01T19:49:37.863394",
+      "set": 8,
+      "slot": 4,
+      "iter_used": 2,
+      "no_storyboard": false
+    },
+    "1ZauiQzZrRnK-AgGx9d0Aa34pitYjEyxj": {
+      "timestamp": "2026-05-01T19:51:44.561518",
+      "set": 10,
+      "slot": 4,
+      "iter_used": 1,
+      "no_storyboard": false
+    },
+    "1Ns6_6lo6kKvr1_lxA_Nsdk65WhWPHd60": {
+      "timestamp": "2026-05-01T19:51:53.262945",
+      "set": 5,
+      "slot": 2,
+      "iter_used": 2,
+      "no_storyboard": false
+    },
+    "1s_ooc6iPGl68RK8_lVQK_Rb9ZJOQHzeD": {
+      "timestamp": "2026-05-01T19:55:47.294237",
+      "set": 11,
+      "slot": 1,
+      "iter_used": 2,
+      "no_storyboard": false
+    },
+    "1ixX7ZCvoIGNFpRkGIb9AgMHO6F2uvzFe": {
+      "timestamp": "2026-05-01T20:36:50.561077",
+      "set": 5,
+      "slot": 3,
+      "iter_used": 2,
+      "no_storyboard": false
+    },
+    "1TMn4eRhSZwpzlGHOguekgt1EVy1oZDr6": {
+      "timestamp": "2026-05-01T20:39:13.713281",
+      "set": 11,
+      "slot": 4,
+      "iter_used": 2,
+      "no_storyboard": false
+    },
+    "13eTrTumLERsuRwFqxJ8GzzqGhq_e9ytZ": {
+      "timestamp": "2026-05-01T20:42:13.846818",
+      "set": 6,
+      "slot": 3,
+      "iter_used": 2,
+      "no_storyboard": false
+    },
+    "1c9lYmQxGXRzNMq7eVndlsckxNKyP1QrW": {
+      "timestamp": "2026-05-02T00:07:18.302868",
+      "set": 3,
+      "slot": 3,
+      "iter_used": 1,
+      "no_storyboard": false
+    },
+    "1P070GgCTtzftkdw4ojh_U-mc0fEkEeaD": {
+      "timestamp": "2026-05-02T00:23:49.798132",
+      "set": 3,
+      "slot": 4,
+      "iter_used": 1,
+      "no_storyboard": false
+    },
+    "1SXKgKItQTEhUi6NMpLvJzDYH7dNdN3on": {
+      "timestamp": "2026-05-02T00:34:35.660759",
+      "set": 10,
+      "slot": 3,
+      "iter_used": 1,
+      "no_storyboard": false
+    },
+    "1E1UhtESbUR2l-_3SMyki8wZ_9bboQCeY": {
+      "timestamp": "2026-05-02T00:36:10.208469",
+      "set": 8,
+      "slot": 3,
+      "iter_used": 2,
+      "no_storyboard": false
+    },
+    "1QsCrvcsM2tYr96J1B2hoSbQbbGyks6ni": {
+      "timestamp": "2026-05-02T00:43:25.079041",
+      "set": 10,
+      "slot": 4,
+      "iter_used": 1,
+      "no_storyboard": false
+    },
+    "1NgXZiT_4ehEoo-I9sNxxVkDq9k5jpvnD": {
+      "timestamp": "2026-05-02T00:49:04.683102",
+      "set": 11,
+      "slot": 1,
+      "iter_used": 2,
+      "no_storyboard": false
+    },
+    "1PHvXjiAjXeKVDCvZqss78S9185Of5ScD": {
+      "timestamp": "2026-05-02T01:34:28.825381",
+      "set": 9,
+      "slot": 1,
+      "iter_used": 1,
+      "no_storyboard": false
+    },
+    "1SSerD8pv-eglspLgYQ2ePUsrGfOygR-l": {
+      "timestamp": "2026-05-02T01:35:43.764270",
+      "set": 5,
+      "slot": 1,
+      "iter_used": 1,
+      "no_storyboard": false
+    },
+    "1H8U00mmU04vVaue5sgWbTA8kvD2BHDY9": {
+      "timestamp": "2026-05-02T01:35:46.306316",
+      "set": 7,
+      "slot": 3,
+      "iter_used": 1,
+      "no_storyboard": false
+    },
+    "11sBA5v0qbebtNUorSabXPgo5cq25s-7A": {
+      "timestamp": "2026-05-02T01:40:16.095787",
+      "set": 7,
+      "slot": 4,
+      "iter_used": 1,
+      "no_storyboard": false
+    },
+    "1rvi8-vYf-jP9-LJAl3sZctoxgBJ_xQ-Q": {
+      "timestamp": "2026-05-02T01:40:43.207029",
+      "set": 5,
+      "slot": 2,
+      "iter_used": 1,
+      "no_storyboard": false
+    },
+    "1TIEevFzE94oQTOAZ9UiPptpuGv8iQ0tz": {
+      "timestamp": "2026-05-02T01:42:16.493071",
+      "set": 9,
+      "slot": 2,
+      "iter_used": 1,
+      "no_storyboard": false
+    },
+    "112YehlYFMo88RHKnUkGBQAr-Fid9LcwW": {
+      "timestamp": "2026-05-02T01:44:40.759916",
+      "set": 6,
+      "slot": 1,
+      "iter_used": 1,
+      "no_storyboard": false
+    },
+    "1suAxi-lt0mmycSl55ZKQ_NJ-Crn6PPTf": {
+      "timestamp": "2026-05-02T01:47:12.603359",
+      "set": 9,
+      "slot": 3,
+      "iter_used": 1,
+      "no_storyboard": false
+    },
+    "1mqo9M_w8mMUC7gs0qTjNmC9AxdLLgjQp": {
+      "timestamp": "2026-05-02T01:49:38.027629",
+      "set": 6,
+      "slot": 2,
+      "iter_used": 1,
+      "no_storyboard": false
+    },
+    "1dKeccIqwWeZ9zZoVzjp9ZUFmvWR9SLze": {
+      "timestamp": "2026-05-02T01:59:59.127200",
+      "set": 9,
+      "slot": 4,
+      "iter_used": 1,
+      "no_storyboard": false
+    },
+    "1ijho_V7nnXnIj91kf18-mFtouUSdZz0i": {
+      "timestamp": "2026-05-02T02:12:48.091666",
+      "set": 8,
+      "slot": 4,
+      "iter_used": 1,
+      "no_storyboard": false
+    },
+    "1yvg08preCNgtY_XMNiiS59WsPLmlFPhA": {
+      "timestamp": "2026-05-02T02:26:58.242496",
+      "set": 6,
+      "slot": 1,
+      "iter_used": 1,
+      "no_storyboard": false
+    },
+    "1QWC6fDIkup6e-Jn3lG4lCME1QcncFrcq": {
+      "timestamp": "2026-05-02T02:32:47.578685",
+      "set": 6,
+      "slot": 2,
+      "iter_used": 1,
+      "no_storyboard": false
+    }
+  }
+}
