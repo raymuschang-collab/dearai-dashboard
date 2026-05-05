@@ -128,14 +128,17 @@ ASSET_LIBRARY_HEADERS_ROW4 = [
 ]
 
 
-def shotlist_q_formula() -> str:
-    """v2.2 Prompt formula for Shotlist!Q. Cell-relative, lives on row 2+.
-    Same shape used by microdrama-shotlist-bahasa skill."""
+def shotlist_q_formula(row: int) -> str:
+    """v2.2 Prompt formula for Shotlist!Q on a specific row. Cell-relative
+    refs auto-adjust if user fills-down. Same shape used by the
+    microdrama-shotlist-bahasa skill. Wrapped in IF(A{row}="","",…) so
+    empty rows resolve to "" instead of garbled string-with-empty-fields."""
+    r = row
     return (
-        '="No music. Dialogue in "&I2&" accent."&CHAR(10)'
-        '&A2&", "&B2&"s, "&C2&", "&D2&", "&F2'
-        '&IF(G2="",IF(J2="","",", ("&J2&")"),", "&G2&IF(J2="",""," ("&J2&")"))'
-        '&IF(K2="",".", ", "&K2&".")'
+        f'=IF(A{r}="","","No music. Dialogue in "&I{r}&" accent."&CHAR(10)'
+        f'&A{r}&", "&B{r}&"s, "&C{r}&", "&D{r}&", "&F{r}'
+        f'&IF(G{r}="",IF(J{r}="","",", ("&J{r}&")"),", "&G{r}&IF(J{r}="",""," ("&J{r}&")"))'
+        f'&IF(K{r}="",".", ", "&K{r}&"."))'
     )
 
 
@@ -289,14 +292,20 @@ def main():
 
     # Live formulas (separate batch with USER_ENTERED so formulas resolve)
     print("\n5/5 Formulas (live)…", flush=True)
+    # Shotlist Q+R — pre-fill formulas on rows 2-101 (100 shots) so when
+    # the microdrama-shotlist skill drops shot data into cols A-O, Q+R
+    # resolve immediately. Each formula is wrapped in IF(A{r}="", "", …)
+    # so empty rows render as "" not as garbled "No music. Dialogue in  accent…".
+    SHOTLIST_FORMULA_ROWS = 100  # bumpable — episodes typically ≤80 shots
+    q_values = [[shotlist_q_formula(r)] for r in range(2, 2 + SHOTLIST_FORMULA_ROWS)]
+    r_values = [[f'=IF(A{r}="","",GOOGLETRANSLATE(Q{r},"en","id"))']
+                 for r in range(2, 2 + SHOTLIST_FORMULA_ROWS)]
     formula_batch = [
-        # Shotlist!Q2 + R2 — placeholder formulas. When script lands the
-        # microdrama-shotlist skill fills cols A-O for many rows; user
-        # then fill-down Q + R.
-        {"range": "Shotlist!Q2", "values": [[shotlist_q_formula()]]},
-        {"range": "Shotlist!R2", "values": [['=GOOGLETRANSLATE(Q2,"en","id")']]},
+        {"range": f"Shotlist!Q2:Q{1 + SHOTLIST_FORMULA_ROWS}", "values": q_values},
+        {"range": f"Shotlist!R2:R{1 + SHOTLIST_FORMULA_ROWS}", "values": r_values},
         # Storyboard Prompts!C11 + D11 + J11 — sample row for set 1.
-        # storyboard_build.py expands these to all sets when an episode ships.
+        # storyboard_build.py extends these formulas to all sets when an
+        # episode ships (one row per 5-shot set).
         {"range": "'Storyboard Prompts'!C11",
          "values": [[storyboard_prompt_formula()]]},
         {"range": "'Storyboard Prompts'!D11",
