@@ -84,6 +84,17 @@ SERIES_CONFIG = {
             "Ep 2 — Dilacak": "1Egissfxhh6rB1GlMFuFJPtVz5J21p--_yuS2ggNN9fk",
         },
     },
+    # Architecture probe — fresh sheet scaffolded by _create_blank_sot.py.
+    # Used to verify that schemas + formulas + dashboard reads stay aligned
+    # with bible/Shotlist/SP changes. Should render an empty dashboard with
+    # all tabs working but zero rows.
+    "blanktest": {
+        "name": "TEST — Blank Architecture Probe",
+        "bible_sheet": "1K2dpI-1VAd3UA4ag3jykkczsvlHqMUzXJXz-SJVK1gs",
+        "episodes": {
+            "Ep 1 — (blank)": "1K2dpI-1VAd3UA4ag3jykkczsvlHqMUzXJXz-SJVK1gs",
+        },
+    },
 }
 ACTIVE_SERIES = os.environ.get("SERIES", "sajangnim")
 if ACTIVE_SERIES not in SERIES_CONFIG:
