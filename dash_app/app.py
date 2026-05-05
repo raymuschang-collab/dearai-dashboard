@@ -239,10 +239,11 @@ def img_cell(src: str, label: str = "", view_url: str = "", aspect: str = "16/9"
                                        "display": "flex", "alignItems": "center",
                                        "justifyContent": "center", "height": "100%"})
         ])
-    img = html.Img(src=src, loading="lazy", style={
-        "width": "100%", "height": "100%",
-        "objectFit": "cover", "display": "block",
-    })
+    # Note: Dash html.Img v4.1.0 doesn't expose `loading` kwarg, so we can't
+    # use native lazy-load here. The smaller-thumb size (w=900) gives most of
+    # the speed win anyway.
+    img = html.Img(src=src, style={"width": "100%", "height": "100%",
+                                   "objectFit": "cover", "display": "block"})
     return html.Div(className="img-cell zoomable",
                     style={"aspectRatio": aspect, "position": "relative",
                            "overflow": "hidden", "borderRadius": "8px",
