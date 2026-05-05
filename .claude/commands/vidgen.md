@@ -1,6 +1,6 @@
 ---
-description: Generate Seedance 2.0 video for a storyboard set via BytePlus ARK API. Auto-resolves bible names → BytePlus asset_ids via Asset Library tab. Subscription-paid via HK company's $1M wallet — $0 marginal until depletion.
-argument-hint: <sheet-id-or-url> --set <N> --slot 1|2 [--duration 4-15] [--resolution 480p|720p|1080p|2K] [--aspect 9:16|16:9|...] [--fast] [--confirm]   |   example: /vidgen <sheet> --set 1 --slot 1 --confirm
+description: Generate Seedance 2.0 video for a storyboard set via BytePlus ARK API. Auto-resolves char/loc bible names → BytePlus asset_ids via Asset Library tab, attaches storyboard pencil iter as composition ref, builds inline Reference identities binding block from CHARACTERS bible. Subscription-paid via HK company's $1M wallet — $0 marginal until depletion.
+argument-hint: <sheet-id-or-url> --set <N> --slot 1|2 [--sb-slot 1|2] [--duration 4-15] [--resolution 480p|720p|1080p] [--aspect 9:16|16:9] [--fast] [--confirm]   |   example: /vidgen <sheet> --set 1 --slot 1 --sb-slot 1 --confirm
 ---
 
 User wants to generate a video cut for a storyboard set via Seedance 2.0 on BytePlus.
@@ -10,8 +10,8 @@ Their request: `$ARGUMENTS`
 ## Provider locked: BytePlus ARK Seedance 2.0
 - Endpoint: `ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks` (Singapore region)
 - Auth: `BYTEPLUS_ARK_API_KEY` from `.env` (Bearer token)
-- Models: `doubao-seedance-2-0-260128` (standard) | `doubao-seedance-2-0-fast-260128` (--fast)
-- Wallet: HK parent company prepaid; subaccount `dearai`
+- Models: `dreamina-seedance-2-0-260128` (standard) | `dreamina-seedance-2-0-fast-260128` (--fast)
+- Wallet: HK parent company prepaid; subaccount `dearai`; project `D.AI`
 - fal.ai is REMOVED. FLORA is REMOVED. BytePlus is the single path.
 
 ## Action — run directly, no dry-run
@@ -20,54 +20,152 @@ Parse `$ARGUMENTS` — extract sheet ID, set #, slot, optional flags.
 
 ```bash
 cd "/Users/raymuschang/Desktop/Shotlist Workflows"
-python3 byteplus_vidgen.py --sheet "<sheet>" --set <N> --slot <1|2> [other flags]
+python3 byteplus_vidgen.py --sheet "<sheet>" --set <N> --slot <1|2> --sb-slot <1|2> [other flags]
 ```
 
 If user passes `--confirm`, the script prints detected refs + prompt, waits [y/N] before submitting. **Use this gate liberally** — it's the cheapest line of defense against ref bleed and bad prompts.
 
+The dashboard's per-set Generate V1 / V2 buttons fire 2 parallel jobs each, mapping `--sb-slot` to which storyboard iter is the composition anchor:
+- Click V1 → SB iter 1 (col G) → 2 jobs (output_slot 1+2 written to SP!M+!N)
+- Click V2 → SB iter 2 (col H) → 2 jobs
+
 ## How it actually works (under the hood)
 
-1. Read `Storyboard Prompts!C<10+set_num>` body
-2. Walk Asset Library tab, find bible entries mentioned in body where Status="Uploaded"
-3. Compose prompt: video globals (B1+B2 of Video Prompts) + realism anchor + 9:16 directive + body
-4. Submit task to BytePlus ARK with content array: text prompt + asset_ids as `image_reference` (role="subject")
-5. Poll `/contents/generations/tasks/{id}` every 15s until `succeeded`
-6. Download MP4 from results URL (24-hour expiry — must be fast)
-7. Upload to Drive `videos/set-NN/`, archive prior file
-8. Write URL to `Storyboard Prompts!L<row>` (slot 1) or `M<row>` (slot 2)
-9. Update Asset Library `Last Used` (col L) for each detected asset
-10. Append to `.byteplus_expense.json` for cumulative spend tally
+### 1. Read inputs from the sheet
 
-## Asset Library lookup is the new ref system
+Body comes from **`Shotlist!Q`** (NOT Storyboard Prompts!C — that's the pencil-art prompt, separate concern). For set N, concatenate Q-formula output for shots `(N-1)*5+1`..`N*5`.
 
-Old fal.ai pattern: scan body, pull iter URLs from each bible's iter-1 col, pass as image refs. Brittle.
+Globals come from **Video Prompts** tab:
+- `B1` — camera global (e.g. "Shot with Arri 35.")
+- `B2` — audio/dialogue global (trilingual directive for Sajangnim)
+- `B3` — setting global
 
-New BytePlus pattern: scan body, look up Asset Library tab → get asset_codes → pass as references to Seedance. Single source of truth, less drift.
+### 2. Detect refs from Asset Library
 
-The Asset Library tab is required. If it doesn't exist or is empty for the show, run `/asset-library <sheet> --seed-from-bibles` first, then `/byteplus-upload <sheet>` to populate asset codes.
+`detect_bible_refs(body, sh)` walks `Asset Library!A5:L500` finding rows where:
+- Status = `Uploaded`
+- Asset Code is set
+- Name (or its split-word for chars, or alias for locations) matches body text
 
-## Cost expectations
+Sorted **CHARACTERS first, LOCATIONS second** (priority for the 6-ref cap).
 
-| Resolution × duration | Standard tier | Fast tier (--fast) |
-|---|---|---|
-| 720p × 8s | ~$0.64 | ~$0.32 |
-| 1080p × 15s | ~$1.98 | ~$0.99 |
-| 2K × 15s | ~$3.00 | ~$1.50 |
+**Multiple Asset Library rows can share the same canonical Name** — e.g. `PARK MIN-JUN` appears as both an `Image` row (still photo) and a `Video` row (face loop). Both get attached. Dedup is by `asset_code`, not by name.
 
-vs the old fal.ai $4.50/15s/1080p — **3× cheaper at standard tier, 6× cheaper at fast.**
+### 3. Pull the storyboard pencil ref
 
-## Final report
+Read `Storyboard Prompts!G{10+set}` (sb-slot 1) or `H{10+set}` (sb-slot 2). Convert from Drive `/view` URL → `https://lh3.googleusercontent.com/d/<id>=w2048` direct binary URL. (BytePlus rejects `/view` URLs as `InvalidParameter.UnsupportedImageFormat`.)
 
-One block: set #, slot, refs detected, BytePlus task_id, Drive URL, sheet cell written, estimated cost.
+### 4. Build content[] payload
 
-## Authentication
+```json
+{
+  "model": "dreamina-seedance-2-0-260128",
+  "content": [
+    {"type": "text", "text": "<assembled prompt — see §5>"},
+    {"type": "image_url", "image_url": {"url": "https://lh3.googleusercontent.com/d/<sb-iter>=w2048"}, "role": "reference_image"},
+    {"type": "image_url", "image_url": {"url": "asset://asset-..."}, "role": "reference_image"},
+    {"type": "video_url", "video_url": {"url": "asset://asset-..."}, "role": "reference_video"},
+    {"type": "audio_url", "audio_url": {"url": "asset://asset-..."}, "role": "reference_audio"}
+  ],
+  "ratio": "9:16",
+  "duration": 15,
+  "resolution": "720p",
+  "watermark": false
+}
+```
 
-- `auth.py` for Drive + Sheets (token.json valid)
-- `BYTEPLUS_ARK_API_KEY` in `.env`
-- `BYTEPLUS_ACCESS_KEY` + `BYTEPLUS_SECRET_KEY` only needed for asset library upload (separate command)
+**CRITICAL — `asset://` is the ONLY format that bypasses face moderation.**
+- `asset://asset-<id>` → 200, moderation bypassed
+- bare `asset-<id>` → 400 InvalidParameter
+- TOS URL from `GetAsset` (`https://ark-media-asset-...volces.com/...`) → 400 PrivacyInformation moderation reject
 
-## Don't ask, just do
+The TOS URL works for asset INSPECTION but fails as a content[] ref because BytePlus content moderation scans all plain HTTPS URLs. Never resolve `asset://`. Pass through verbatim.
 
-User invoked the slash explicitly. Skip diff/confirm. If args are malformed (no set #, no sheet), ask once. Otherwise fire.
+**Cap at 6 refs.** Past that Seedance 2.0 dilutes identity. Storyboard sits at #1, then chars (with image+video pairs together), then locations.
 
-If a ref is missing (no Asset Library entries for detected names), proceed text-only — flag inline but don't block.
+### 5. Prompt assembly
+
+```
+<camera global>
+Follow the storyboard reference for composition, framing, and blocking on every shot.
+Reference identities:
+- Reference image #1 = STORYBOARD pencil sketch — composition anchor for camera angle, blocking, depth.
+- Reference image #2 = TARA ANJANI — Junior chef, 29, white chef coat...
+- Reference image #3 = LEE JOON-HO — Owner & exec chef, 37, executive chef whites...
+- Reference image #4 = PARK MIN-JUN — Sous chef, 33, sous chef whites...
+- Reference video #5 = PARK MIN-JUN face loop — use this to anchor PARK MIN-JUN's identity in every shot where PARK MIN-JUN appears. Wardrobe and attire come from the still PARK MIN-JUN reference image.
+- Reference audio #6 = PARK MIN-JUN voice sample — use this voice for ALL dialogue spoken by PARK MIN-JUN.
+- Reference image #7 = Hanbyeol Bistro Kitchen (location / background reference)
+<audio/dialogue global>
+<setting global>
+Documentary editorial photography aesthetic, natural skin texture...
+VERTICAL 9:16 drama format. The video should follow these shots in sequence:
+<5-shot body from Shotlist!Q>
+```
+
+The `Reference identities:` block (fix B) is **auto-built from CHARACTERS bible at submit time** using each row's Role / Age / Wardrobe / Personality. Without this block, Seedance scrambles identities (face matched to wrong character). With it, identity binds correctly.
+
+### 6. Submit + poll
+
+`POST {ARK_BASE}/contents/generations/tasks` → returns `{"id": "cgt-..."}`. Poll `GET .../tasks/<id>` every 15s. Status flow: `queued` → `in_progress` → `succeeded` (or `failed`/`expired`/`cancelled`). Typical wall time at 720p/15s: 90-180s.
+
+### 7. Drive upload + sheet writeback
+
+- Download MP4 from `result.results.video_url` (24h Drive expiry)
+- Upload to `<show>/videos/set-NN/video-iteration-{slot}-{resolution}-{duration}s.mp4`
+- Archive any same-name existing file → `set-NN/archive/{ts}_<filename>`
+- Set anyone-with-link reader on new file
+- Write Drive view URL to **`Storyboard Prompts!M{row}`** (slot 1) or **`!N{row}`** (slot 2) — NOT L (L is Location SOT)
+
+`SLOT_TO_COL = {1: "M", 2: "N"}` — locked.
+
+### 8. Asset Library bookkeeping
+
+Update `Asset Library!I` (Used In Eps) + `!L` (Last Used) for each ref's row.
+
+### 9. Cost log
+
+Append to `.byteplus_expense.json` (rough estimate: 720p ≈ $0.08/sec; 15s ≈ $1.20). Real billing on BytePlus dashboard is in CNY 毫 (0.0001元) — divide raw number by 10,000 then ÷ 7.2 for USD.
+
+## Asset library — what to upload, what to skip
+
+Only **CHARACTERS** and **LOCATIONS** need BytePlus asset library entries (they trigger face moderation as plain HTTPS URLs without the `asset://` bypass).
+
+**Skip uploading:** COSTUME, PROPS, EFFECTS — pass to vidgen as plain HTTPS Drive URLs. No moderation issue.
+
+**Per character, ideally:**
+- Image still (clean studio neutral with full attire) — locks wardrobe
+- 2-15s face video (silent, slight head turns, neutral lighting) — locks face identity
+- 2-15s voice clip (clean speech sample) — locks voice timbre/accent
+
+All three rows in Asset Library use the same canonical Name (e.g. `PARK MIN-JUN`). `detect_bible_refs` attaches all three to any shot mentioning the character.
+
+## URL format reference
+
+| Use case | URL pattern |
+|---|---|
+| Storyboard pencil iter (composition ref) | `https://lh3.googleusercontent.com/d/<id>=w2048` |
+| Character/location asset (bypass face mod) | `asset://asset-<id>` |
+| Voice / audio asset | `asset://asset-<id>` |
+| Lazy-load thumbnail (dashboard) | `https://lh3.googleusercontent.com/d/<id>=w900` |
+| Dashboard inline video player | `https://drive.google.com/file/d/<id>/preview` (iframe) |
+
+Drive `/view?usp=drivesdk` URLs are HTML viewer pages and rejected by BytePlus.
+TOS signed URLs from `GetAsset` work for inspection only — moderated when submitted.
+
+## Spend ballpark
+
+- 720p / 5s ≈ $0.40 USD per gen
+- 720p / 15s ≈ $1.20 USD per gen (current default)
+- 1080p / 15s ≈ $1.98 USD per gen (defer until model proven on 720p)
+- HK wallet had $1M credit; ~$15 used as of 2026-05-05 evening session
+
+Per-click cost (V1 or V2 button): 2× single-gen since each click fires 2 parallel jobs.
+
+## When things break
+
+- **InvalidParameter.UnsupportedImageFormat on `image_url`** → Drive `/view` URL leaked into refs. Convert to `lh3.googleusercontent.com/d/<id>=w2048`.
+- **InputImageSensitiveContentDetected.PrivacyInformation** → asset got resolved to TOS URL somewhere. Use raw `asset://` only.
+- **Identity scrambled** (Min-jun face on Joon-ho's wardrobe) → check the Reference identities block is being built; if it is and still scrambling, drop other-character refs from this set's gen (reduce ref pool).
+- **Submit silently dropped** → check `submit_seedance_task` for skip clauses on URL scheme. Plain HTTPS for storyboards/non-face refs is fine; only TOS URLs (which contain real-person photos) trigger moderation.
+- **Body empty error** → `Shotlist!Q` formulas not populated for that set. Check Q is a live formula (`=...`) not pasted text.

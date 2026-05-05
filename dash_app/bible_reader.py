@@ -368,8 +368,11 @@ def _read_storyboards_impl(sheet_id: str, bible_sheet_id: str | None = None) -> 
             "vp_global_audio_id": vp_global_audio_id,
             "vp_global_setting_id": vp_global_setting_id,
             "sb_iters": [
-                {"label": "V1", "thumb": thumb(sb1, 1400), "view": view(sb1)} if sb1 else None,
-                {"label": "V2", "thumb": thumb(sb2, 1400), "view": view(sb2)} if sb2 else None,
+                # Storyboard tile — w=900 is plenty for the 333px-wide column;
+                # bigger is just slower Drive fetch + bigger paint. Lightbox
+                # bumps to w=2048 on click via assets/zoom.js.
+                {"label": "V1", "thumb": thumb(sb1, 900), "view": view(sb1)} if sb1 else None,
+                {"label": "V2", "thumb": thumb(sb2, 900), "view": view(sb2)} if sb2 else None,
             ],
             "videos": videos,
         })

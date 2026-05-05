@@ -108,6 +108,7 @@ def main():
         bible_tab = row[tab_i]
         code = row[code_i]
         src = row[url_i]
+        atype = (row[type_i] or "").strip().lower()  # character/scene/video/voice/audio
         status = row[status_i]
         if bible_tab not in ("CHARACTERS", "LOCATIONS"):
             continue
@@ -118,7 +119,7 @@ def main():
             continue
         if status not in ("Pending", "", "Failed"):
             continue
-        pending.append((ridx, name, bible_tab, src))
+        pending.append((ridx, name, bible_tab, src, atype))
 
     if not pending:
         print("No pending CHARACTERS or LOCATIONS rows to upload.", flush=True)
@@ -130,17 +131,29 @@ def main():
 
     successes = []
     failures = []
-    for ridx, name, bible_tab, src in pending:
+    for ridx, name, bible_tab, src, atype in pending:
         fid = drive_id(src)
         if not fid:
             print(f"  ✗ row {ridx} {name}: bad Drive URL '{src[:60]}'", flush=True)
             failures.append((ridx, name, "bad-drive-url"))
             continue
-        url = lh3_url(fid)
-        print(f"\n[row {ridx}] {name} ({bible_tab})", flush=True)
+        # Decide asset type for BytePlus + the source URL pattern.
+        # Asset Library!E "voice"/"audio" → Audio (Drive uc?export=download)
+        # "video" → Video (same direct-download URL)
+        # default (character/scene/etc.) → Image (lh3 binary URL)
+        if atype in ("voice", "audio"):
+            bp_type = "Audio"
+            url = f"https://drive.google.com/uc?export=download&id={fid}"
+        elif atype == "video":
+            bp_type = "Video"
+            url = f"https://drive.google.com/uc?export=download&id={fid}"
+        else:
+            bp_type = "Image"
+            url = lh3_url(fid)
+        print(f"\n[row {ridx}] {name} ({bible_tab}/{atype or '—'} → {bp_type})", flush=True)
         print(f"  url = {url}", flush=True)
         try:
-            aid = bp.create_asset(group_id, url, "Image", name=name)
+            aid = bp.create_asset(group_id, url, bp_type, name=name)
             print(f"  → asset_id = {aid}, polling for Active...", flush=True)
             result = bp.poll_asset(aid, timeout=300)
             ts = datetime.now(timezone.utc).strftime("%m/%d/%Y %H:%M:%S")

@@ -282,10 +282,18 @@ def submit_seedance_task(prompt: str, ref_urls: list[dict], aspect_ratio: str = 
             print(f"  ⚠ ref limit ({MAX_REFS}) hit — dropping {url[:60]}…")
             continue
         accepted_refs.append(ref)
-        if ref.get("type") == "video":
+        rtype = ref.get("type", "")
+        if rtype == "video":
             content.append({"type": "video_url",
                             "video_url": {"url": url},
                             "role": "reference_video"})
+        elif rtype == "audio":
+            # Voice ref — Seedance/Dreamina clones this voice for any
+            # dialogue spoken by the bound character (binding established
+            # in the prompt's Reference identities block).
+            content.append({"type": "audio_url",
+                            "audio_url": {"url": url},
+                            "role": "reference_audio"})
         else:
             content.append({"type": "image_url",
                             "image_url": {"url": url},
@@ -466,12 +474,21 @@ def main():
             print(f"  + source URL ({asset_type or 'image'}): {url[:60]}…")
         else:
             continue
-        is_video = (asset_type == "video"
-                    or url.lower().endswith((".mp4", ".mov", ".webm")))
+        # Asset Library!E carries a CATEGORY ("character"/"scene"/"video"/
+        # "voice"/"audio"/...). Map it to the actual MEDIA type Seedance
+        # expects in content[]: video / audio / image (default).
+        if asset_type == "video" or url.lower().endswith((".mp4", ".mov", ".webm")):
+            media = "video"
+        elif asset_type in ("audio", "voice") or url.lower().endswith((".mp3", ".wav", ".m4a")):
+            media = "audio"
+        else:
+            media = "image"
         ref_urls.append({
-            "type": "video" if is_video else "image",
+            "type": media,
             "url": url,
-            "role": "reference_video" if is_video else "reference_image",
+            "role": {"video": "reference_video",
+                     "audio": "reference_audio",
+                     "image": "reference_image"}[media],
         })
 
     # Build prompt
@@ -479,12 +496,80 @@ def main():
     # the storyboard as the canonical layout anchor BEFORE the per-shot body.
     sb_directive = ("Follow the storyboard reference for composition, framing, "
                     "and blocking on every shot." if sb_url else "")
+
+    # Reference-identity binding block — auto-built from CHARACTERS bible.
+    # Without explicit ref→character mapping Seedance can scramble identities
+    # (face matched to wrong character). Numbered to align with the
+    # `image_url`/`video_url` order in content[]: storyboard is #1, then each
+    # subsequent ref gets #2, #3, …. Locations are skipped — only chars need
+    # this binding because identity confusion is the failure mode.
+    id_binding_lines = []
+    if ref_urls:
+        try:
+            char_rows = sh.worksheet("CHARACTERS").get_all_records()
+            char_by_name = {r.get("Name", "").strip(): r for r in char_rows
+                             if r.get("Name")}
+        except Exception:
+            char_by_name = {}
+        ref_ix = 1  # storyboard is #1 (or 0 if no SB); refs follow
+        if sb_url:
+            id_binding_lines.append(f"- Reference image #{ref_ix} = STORYBOARD pencil sketch — composition anchor for camera angle, blocking, depth.")
+            ref_ix += 1
+        for r in refs:
+            name = r.get("name", "")
+            tab = r.get("bible_tab", "")
+            atype = (r.get("asset_type") or "").lower()
+            # Asset Library!E stores a CATEGORY ("character"/"scene"/"video"
+            # /"voice"/"prop"/etc.). For the prompt-binding label we want
+            # the MEDIA type — "image" / "video" / "audio" — to match
+            # Seedance's content[] `type` field exactly.
+            if atype == "video":
+                media = "video"
+            elif atype in ("audio", "voice"):
+                media = "audio"
+            else:
+                media = "image"
+            label = f"Reference {media} #{ref_ix}"
+            if tab == "CHARACTERS":
+                bible_row = char_by_name.get(name, {})
+                desc_parts = [
+                    bible_row.get("Role / Archetype") or bible_row.get("Role", ""),
+                    bible_row.get("Age", ""),
+                    bible_row.get("Wardrobe", ""),
+                    bible_row.get("Personality", ""),
+                ]
+                desc = ", ".join(str(p).strip() for p in desc_parts
+                                  if p and str(p).strip())
+                if media == "video":
+                    id_binding_lines.append(
+                        f"- {label} = {name} face loop — use this to anchor {name}'s "
+                        f"identity in every shot where {name} appears. Wardrobe "
+                        f"and attire come from the still {name} reference image.")
+                elif media == "audio":
+                    id_binding_lines.append(
+                        f"- {label} = {name} voice sample — use this voice for ALL "
+                        f"dialogue spoken by {name}. Match the timbre, accent, and "
+                        f"cadence in the sample. Other characters' dialogue uses "
+                        f"their own voice references or default voices.")
+                else:
+                    id_binding_lines.append(
+                        f"- {label} = {name}" + (f" — {desc}" if desc else ""))
+            elif tab == "LOCATIONS":
+                id_binding_lines.append(
+                    f"- {label} = {name} (location / background reference)")
+            else:
+                id_binding_lines.append(f"- {label} = {name} ({tab})")
+            ref_ix += 1
+    id_binding = ("Reference identities:\n" + "\n".join(id_binding_lines)
+                   if id_binding_lines else "")
+
     realism = ("Documentary editorial photography aesthetic, natural skin texture, "
                "Kodak Portra 400 color science, no airbrushing, no game-engine rendering. "
                "Subtle film grain. Muted desaturated palette. Natural lighting only.")
     format_directive = f"VERTICAL {args.aspect} drama format. The video should follow these shots in sequence:"
     prompt = "\n".join([s for s in [
-        global_camera, sb_directive, global_audio, global_setting,
+        global_camera, sb_directive, id_binding,
+        global_audio, global_setting,
         realism, format_directive, body
     ] if s])
 
