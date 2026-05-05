@@ -8,18 +8,33 @@ Running log of production-side issues, conventions, and asks for the team. Add n
 
 ## 2026-05-05 — open issues + asks for the team
 
-### 1. Logo on chef uniforms — RESOLVED 2026-05-06 (path B)
+### 1. Logo on chef uniforms — PARTIALLY RESOLVED 2026-05-06 (prompt side fixed; photos still trigger bleed)
 
 **Original problem:** Hanbyeol embroidered crest + name tags caused recurring inconsistency. Seedance also bled binding-block text directly into the chef coat label area.
 
-**Resolution path B taken:** stripped literal-text triggers from CHARACTERS bible Wardrobe fields:
-- TARA: `name tag on chest reading 'TARA — JUNIOR'` → `plain white front with no markings or text or embroidery`
-- JOON-HO: `Hanbyeol embroidered crest on chest` → `plain white front with no markings or text or embroidery`
-- MIN-JUN, BU ENDANG, GALIH: were already clean
+**Done — prompt-side fixes:**
+- Stripped literal-text triggers from CHARACTERS bible Wardrobe fields (TARA: `name tag on chest reading 'TARA — JUNIOR'` → plain; JOON-HO: `Hanbyeol embroidered crest on chest` → plain)
+- Added explicit "no markings or text or embroidery" directive to all character Wardrobe entries
+- Going-forward convention: avoid "name tag", "embroidered", "label reading", "crest", "logo on chest", or any quoted text strings in CHARACTERS bible Wardrobe column
 
-**Why path B over A:** Seedance models routinely fail on small embroidered text — even with a baked-in global directive, the rendering would be inconsistent across shots. Removing the logo entirely is cheaper to maintain and prevents text-bleed (where prompt verbiage like "name tag" gets rendered as actual fabric printing).
+**REMAINING — needs team action:** Even with prompt cleaned, Seedance still renders garbled text on the chest because the **reference photos themselves show the chef coat with the Hanbyeol logo**. The model picks up the visual feature from the iter-1 image and hallucinates similar shape/text on output. Verified 2026-05-06: gen still produces gibberish embroidery on coats.
 
-**Going forward:** any new character added to CHARACTERS bible should describe wardrobe abstractly. Avoid: "name tag", "embroidered", "label reading", "crest", "logo on chest", or any quoted text strings. Use color/cut/material terms only.
+**Ask for the team:** redo character + costume reference photos with **completely plain white chef coats** — no Hanbyeol crest, no name tag, no piping, no embroidery, no logo of any kind. Just clean double-breasted whites in studio neutral lighting.
+
+Files needed (re-upload via `_upload_to_byteplus_v2.py` — old asset codes get overwritten):
+- TARA: clean front, no name tag
+- LEE JOON-HO: clean front, no Hanbyeol crest
+- PARK MIN-JUN: clean front
+- BU ENDANG: clean front
+- GALIH: clean front (line cook style ok, just no logo)
+- COSTUME bible "Chef Uniform" entries: same — plain white only
+
+Once new clean photos land:
+1. Replace iter-1 images in CHARACTERS / COSTUME bibles (Drive)
+2. Re-run `_upload_to_byteplus_v2.py` (deletes old asset codes, uploads clean ones)
+3. Vidgen automatically picks up the new asset:// URLs
+
+Until then: every gen will have some level of garbled fake-logo on the chest. Workable for early review, not for client-facing cuts.
 
 ### 2. More face videos per character
 
