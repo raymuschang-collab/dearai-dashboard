@@ -1,0 +1,19 @@
+# Production deps for the Dash dashboard on Render.
+# Pinned to versions verified locally on 2026-05-06.
+
+# --- Web app ---
+dash==4.1.0
+gunicorn==23.0.0
+
+# --- Google Sheets / Drive ---
+gspread==6.2.1
+google-auth==2.42.0
+google-auth-oauthlib==1.2.1
+google-api-python-client==2.184.0
+
+# --- HTTP / config ---
+requests==2.32.5
+python-dotenv==1.1.1
+
+# --- Plotly (Dash transitive but pinned for stability) ---
+plotly==6.7.0

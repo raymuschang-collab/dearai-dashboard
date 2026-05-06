@@ -2,9 +2,11 @@
 .env
 .env.*
 token.json
+client_secret.json
 credentials.json
 *-credentials.json
 service-account*.json
+*.svc-account.json
 
 # --- Local logs / state ---
 .byteplus_expense.json

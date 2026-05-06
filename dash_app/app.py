@@ -176,6 +176,8 @@ def run_bg(cmd: list[str], job_id: str):
 # -------- App init -------------------------------------------------------
 app = Dash(__name__, title="DearAI — Production Dashboard",
            suppress_callback_exceptions=True)
+# Exposed for gunicorn — Render's Procfile binds `dash_app.app:server`.
+server = app.server
 app.index_string = """<!DOCTYPE html>
 <html><head>
 <title>{%title%}</title>
@@ -1441,5 +1443,9 @@ br.start_background_refresh(
 
 
 if __name__ == "__main__":
-    print(f"\n→ DearAI Production Dashboard: http://127.0.0.1:8050\n")
-    app.run(debug=False, host="127.0.0.1", port=8050)
+    # Local dev only. Render uses Procfile + gunicorn against `server` above.
+    # PORT env honored either way (default 8050 locally; Render injects $PORT).
+    port = int(os.environ.get("PORT", 8050))
+    host = os.environ.get("HOST", "127.0.0.1")
+    print(f"\n→ DearAI Production Dashboard: http://{host}:{port}\n")
+    app.run(debug=False, host=host, port=port)
