@@ -244,6 +244,15 @@ def _debug_jobs():
     return jsonify({"count": len(out), "jobs": out})
 
 
+@server.route("/debug/refresh")
+def _debug_refresh():
+    """Flush all bible_reader caches without needing the dashboard ↻ button.
+    Use when sheet edits aren't surfacing because of the 10-min TTL."""
+    from flask import jsonify
+    br.invalidate_all_caches()
+    return jsonify({"ok": True, "msg": "all bible_reader caches invalidated"})
+
+
 @server.route("/debug/higgs")
 def _debug_higgs():
     """Run `higgs auth token` and `higgs version` and report exit codes +
