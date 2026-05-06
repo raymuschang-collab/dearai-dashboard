@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 """
-Generate stick-figure storyboards via fal.ai nano-banana-2 for every Pending
-set in the Storyboard Prompts tab. Two iterations per set; uploads to the
-matching Drive folder, sets sharing to anyone-with-link reader, writes URLs
-back to the sheet.
+Generate stick-figure storyboards via Higgsfield CLI (gpt_image_2) for every
+Pending set in the Storyboard Prompts tab. Two iterations per set; uploads
+to the matching Drive folder, sets sharing to anyone-with-link reader, writes
+URLs back to the sheet.
+
+(Provider history: this script was originally fal.ai nano-banana-2; switched
+to Higgsfield gpt_image_2 — see MODEL constant below — for $0 marginal cost
+under the team's Higgsfield MCP. The CLI binary lives at ~/.npm-global/bin/higgs;
+install with `npm install -g @higgsfield/cli` if missing.)
 
 Idempotent — sets with Status="Done" are skipped unless --force is passed.
 A failed run leaves Status="Failed" + the error in column I; re-running will
