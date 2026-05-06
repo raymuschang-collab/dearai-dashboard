@@ -42,6 +42,41 @@ PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 sys.path.insert(0, str(Path(__file__).parent))
 
+
+def _bootstrap_higgs_credentials():
+    """Materialize ~/.config/higgsfield/credentials.json from the
+    HIGGSFIELD_CREDENTIALS_JSON env var, so the Higgsfield CLI shells
+    fired by storyboard_generate.py / character_generate.py / higgs_gen.py
+    can authenticate on Render's ephemeral filesystem.
+
+    No-op locally: when the env var is unset (dev machines), the file
+    written by `higgs auth login` already exists and is left alone.
+
+    Idempotent — only writes if the file is missing or out of sync."""
+    creds_json = os.environ.get("HIGGSFIELD_CREDENTIALS_JSON", "").strip()
+    if not creds_json:
+        return
+    try:
+        json.loads(creds_json)  # validate shape before writing
+    except json.JSONDecodeError as e:
+        print(f"[bootstrap] HIGGSFIELD_CREDENTIALS_JSON is set but not valid JSON: {e}")
+        return
+    creds_dir = Path.home() / ".config" / "higgsfield"
+    creds_file = creds_dir / "credentials.json"
+    try:
+        if creds_file.exists() and creds_file.read_text().strip() == creds_json:
+            return  # already in sync
+        creds_dir.mkdir(parents=True, exist_ok=True)
+        creds_file.write_text(creds_json)
+        creds_file.chmod(0o600)
+        print(f"[bootstrap] wrote Higgsfield credentials to {creds_file}")
+    except Exception as e:
+        print(f"[bootstrap] failed to write Higgsfield credentials: {e}")
+
+
+_bootstrap_higgs_credentials()
+
+
 import dash
 from dash import Dash, dcc, html, Input, Output, State, no_update, dash_table, ALL, MATCH
 import plotly.graph_objects as go
