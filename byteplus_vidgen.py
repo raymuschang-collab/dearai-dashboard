@@ -171,7 +171,14 @@ def detect_bible_refs(body: str, sh) -> list[dict]:
     # Dedup by asset_code — NOT by name. A canonical can appear in multiple
     # Asset Library rows (e.g. PARK MIN-JUN with both a still photo and a
     # video face-loop ref); we want all of them attached when matched.
-    seen_codes = set()
+    #
+    # Drive-URL fallback: when a row has no asset_code (BytePlus upload
+    # failed or hasn't run yet), fall back to source_url. The downstream
+    # ref-builder at line ~491 already has the per-row fallback logic;
+    # we just need to NOT pre-filter such rows out here.
+    seen_codes = set()           # dedup keys for rows WITH asset_code
+    seen_fallback = set()        # dedup keys for rows WITHOUT asset_code
+                                 #   (name, type, source_url)
     loc_aliases = _build_location_aliases(sh)
 
     for r in rows:
@@ -182,8 +189,18 @@ def detect_bible_refs(body: str, sh) -> list[dict]:
         source_url = r[3].strip() if len(r) > 3 else ""
         asset_type = r[4].strip().lower() if len(r) > 4 else ""
         status = r[5].strip() if len(r) > 5 else ""
-        if status != "Uploaded" or not asset_code: continue
-        if asset_code in seen_codes: continue
+        # Hard skip: explicitly retired rows (we mark old/orphan refs as
+        # "Replaced" so the lookup ignores them) and rows with no usable URL.
+        if status.lower() == "replaced":
+            continue
+        if not asset_code and not source_url:
+            continue
+        # Dedup
+        if asset_code:
+            if asset_code in seen_codes: continue
+        else:
+            fb_key = (name, asset_type, source_url)
+            if fb_key in seen_fallback: continue
 
         matched = False
         # 1. Whole canonical name
@@ -204,7 +221,10 @@ def detect_bible_refs(body: str, sh) -> list[dict]:
                     break
 
         if matched:
-            seen_codes.add(asset_code)
+            if asset_code:
+                seen_codes.add(asset_code)
+            else:
+                seen_fallback.add((name, asset_type, source_url))
             detected.append({
                 "name": name,
                 "bible_tab": bible_tab,
