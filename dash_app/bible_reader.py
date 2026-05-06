@@ -265,6 +265,28 @@ def start_background_refresh(get_active_sheet_id, bible_sheet_id):
     print(f"[bg-refresh] started — warming caches every {_BG_REFRESH_INTERVAL}s")
 
 
+_SHOT_RANGE_RE = re.compile(r"^\s*(\d+)\s*[-–—]\s*(\d+)\s*$")
+
+
+def _parse_shot_range(s: str, set_n: int) -> tuple[int, int]:
+    """Parse 'N-M' string into (first, last) inclusive shot numbers. Falls
+    back to uniform-5 layout when the range is empty/malformed so legacy
+    sheets that don't fill col B still render."""
+    if s:
+        m = _SHOT_RANGE_RE.match(s)
+        if m:
+            a, b = int(m.group(1)), int(m.group(2))
+            if a <= b:
+                return a, b
+        # Single-shot variant ("4")
+        s_clean = s.strip()
+        if s_clean.isdigit():
+            n = int(s_clean)
+            return n, n
+    # Fallback: uniform 5-shot layout
+    return (set_n - 1) * 5 + 1, set_n * 5
+
+
 def _read_storyboards_impl(sheet_id: str, bible_sheet_id: str | None = None) -> list[dict]:
     """Per-set rich data for the dashboard's Storyboards tab.
 
@@ -367,12 +389,16 @@ def _read_storyboards_impl(sheet_id: str, bible_sheet_id: str | None = None) -> 
         shot_range = r[1]
         if not shot_range and not (r[2] or "").strip():
             continue
-        # ---- BODY: assembled from Shotlist col Q for the 5 shots in this set.
+        # ---- BODY: assembled from Shotlist col Q for the shots in this set.
         # Col Q is the per-shot Video Prompt formula — clean of storyboard
-        # preamble (no pencil-on-paper text). Each shot becomes a paragraph. ----
+        # preamble (no pencil-on-paper text). Each shot becomes a paragraph.
+        #
+        # Sets are NON-UNIFORM in some episodes (e.g. Ep 1 has set 1=shots 1-3,
+        # set 2=shots 4-7). Parse the shot-range string ("1-3", "4-7") to slice
+        # the right shots; fall back to (i*5+1, (i+1)*5) for legacy uniform sets
+        # where the range column is empty. ----
         set_n = i + 1
-        first_shot = (set_n - 1) * 5 + 1
-        last_shot = set_n * 5
+        first_shot, last_shot = _parse_shot_range(shot_range, set_n)
         slice_bodies = shot_bodies[first_shot - 1: last_shot]
         body_parts_en = [b for b, _ in slice_bodies if (b or "").strip()]
         body_parts_id = [b for _, b in slice_bodies if (b or "").strip()]

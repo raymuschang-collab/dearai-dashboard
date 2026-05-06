@@ -144,13 +144,22 @@ def shotlist_q_formula(row: int) -> str:
 
 def storyboard_prompt_formula() -> str:
     """Storyboard Prompts!C formula — assembles globals B1-B8 + 5 shots' Q from
-    Shotlist via INDIRECT. Lives on row 11+ (set 1 = row 11)."""
+    Shotlist via INDIRECT. Lives on row 11+ (set 1 = row 11).
+
+    Math: set N at SP row 10+N references Shotlist rows ((N-1)*5+2)..(N*5+1)
+    i.e. shots ((N-1)*5+1)..(N*5). For ROW=10+N, offset 2..6 maps via
+    (ROW()-11)*5+offset → Shotlist row 2..6 for set 1 (shots 1..5).
+
+    The 5 IF() parts must be concatenated via TEXTJOIN — Sheets does NOT
+    accept comma-separated top-level expressions; the previous version's
+    `,`.join(parts) was emitting `#ERROR!` everywhere. Use TEXTJOIN's
+    variadic-args form so the parts become arguments, not raw concat."""
     parts = []
     for offset in range(2, 7):
         parts.append(
-            f'IF(INDIRECT("Shotlist!A"&((ROW()-10)*5+{offset}))<>"",'
-            f'"Shot "&INDIRECT("Shotlist!A"&((ROW()-10)*5+{offset}))&": "'
-            f'&INDIRECT("Shotlist!Q"&((ROW()-10)*5+{offset})),"")'
+            f'IF(INDIRECT("Shotlist!A"&((ROW()-11)*5+{offset}))<>"",'
+            f'"Shot "&INDIRECT("Shotlist!A"&((ROW()-11)*5+{offset}))&": "'
+            f'&INDIRECT("Shotlist!Q"&((ROW()-11)*5+{offset})),"")'
         )
     body = ",".join(parts)
     return (
@@ -161,21 +170,25 @@ def storyboard_prompt_formula() -> str:
         '&$B$5&CHAR(10)'
         '&$B$6&CHAR(10)'
         '&$B$7&CHAR(10)'
-        '&$B$8&CHAR(10)&CHAR(10)&'
-        + body
+        '&$B$8&CHAR(10)&CHAR(10)'
+        f'&TEXTJOIN(CHAR(10)&CHAR(10),TRUE,{body})'
     )
 
 
 def storyboard_body_formula() -> str:
     """Storyboard Prompts!J — per-set body (concat of 5 shots' Q from Shotlist),
-    used by vidgen as the prompt body. Different from C: no globals, just shots."""
+    used by vidgen as the prompt body. Different from C: no globals, just shots.
+
+    Same row-math fix as storyboard_prompt_formula(): set N at SP row 10+N
+    references Shotlist rows ((N-1)*5+2)..(N*5+1). Uses TEXTJOIN to combine
+    the 5 IF() parts (raw `,`.join was producing #ERROR!)."""
     parts = []
     for offset in range(2, 7):
         parts.append(
-            f'IF(INDIRECT("Shotlist!A"&((ROW()-10)*5+{offset}))<>"",'
-            f'INDIRECT("Shotlist!Q"&((ROW()-10)*5+{offset})),"")'
+            f'IF(INDIRECT("Shotlist!A"&((ROW()-11)*5+{offset}))<>"",'
+            f'INDIRECT("Shotlist!Q"&((ROW()-11)*5+{offset})),"")'
         )
-    return '=' + '&CHAR(10)&CHAR(10)&'.join(parts)
+    return f'=TEXTJOIN(CHAR(10)&CHAR(10),TRUE,{",".join(parts)})'
 
 
 def main():
