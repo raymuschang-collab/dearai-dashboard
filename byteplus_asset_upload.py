@@ -54,7 +54,26 @@ def _resolve_auth():
             return get_credentials
     raise SystemExit("Could not find auth.py")
 
-get_credentials = _resolve_auth()
+_get_credentials_fn = None
+
+
+def get_credentials():
+    """Lazy Google auth resolver for dashboard-fired asset uploads.
+
+    auth.py raises SystemExit for CLI setup errors. Keep that from becoming an
+    import/page-load failure, and surface missing/malformed GOOGLE_SVC_ACCOUNT_JSON
+    or GOOGLE_USER_TOKEN_JSON as a normal job error instead.
+    """
+    global _get_credentials_fn
+    if _get_credentials_fn is None:
+        try:
+            _get_credentials_fn = _resolve_auth()
+        except SystemExit as e:
+            raise RuntimeError(f"Google credentials unavailable: {e}") from None
+    try:
+        return _get_credentials_fn()
+    except SystemExit as e:
+        raise RuntimeError(f"Google credentials unavailable: {e}") from None
 
 ARK_API_KEY = os.getenv("BYTEPLUS_ARK_API_KEY")
 BP_AK = os.getenv("BYTEPLUS_ACCESS_KEY")

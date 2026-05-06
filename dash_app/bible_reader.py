@@ -53,7 +53,15 @@ def _gspread():
     import warnings; warnings.filterwarnings("ignore")
     import gspread
     from auth import get_credentials
-    return gspread.authorize(get_credentials())
+    try:
+        creds = get_credentials()
+    except SystemExit as e:
+        # Page-load guard: auth.py uses SystemExit for CLI setup errors. In the
+        # dashboard that bypasses callback `except Exception` handlers and turns
+        # a missing/malformed GOOGLE_SVC_ACCOUNT_JSON or GOOGLE_USER_TOKEN_JSON
+        # into a broken initial page load, so convert it to a renderable error.
+        raise RuntimeError(f"Google credentials unavailable: {e}") from None
+    return gspread.authorize(creds)
 
 
 def open_sheet(sheet_id: str):
