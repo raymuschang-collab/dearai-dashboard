@@ -26,9 +26,7 @@ import re
 import sys
 import time
 
-import fal_client
 import gspread
-import httpx
 import requests
 
 import higgs_gen
@@ -109,6 +107,13 @@ def get_or_create_folder(drive, parent_id: str, name: str) -> str:
 
 
 def generate_image_fal(prompt: str, aspect: str) -> bytes:
+    try:
+        import fal_client
+    except ImportError as e:
+        raise RuntimeError(
+            "fal-client is not installed. Use --provider reve-direct or add "
+            "fal-client to requirements.txt."
+        ) from e
     result = fal_client.subscribe(
         FAL_MODEL,
         arguments={
@@ -131,7 +136,7 @@ def generate_image_reve_direct(prompt: str, aspect: str) -> bytes:
     api_key = os.getenv("REVE_API_KEY")
     if not api_key:
         raise RuntimeError("REVE_API_KEY not set in .env")
-    r = httpx.post(
+    r = requests.post(
         REVE_DIRECT_ENDPOINT,
         json={"prompt": prompt, "aspect_ratio": aspect},
         headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},

@@ -16,13 +16,25 @@ from __future__ import annotations
 import builtins as _b
 import json
 import os
+import shutil
 import subprocess
 import sys
 import time
 
 import requests
 
-HIGGS_BIN = os.path.expanduser("~/.npm-global/bin/higgs")
+
+def resolve_higgs_bin() -> str:
+    configured = os.environ.get("HIGGS_BIN")
+    if configured:
+        return shutil.which(configured) or os.path.expanduser(configured)
+    return (
+        shutil.which("higgs")
+        or os.path.expanduser("~/.npm-global/bin/higgs")
+    )
+
+
+HIGGS_BIN = resolve_higgs_bin()
 
 # Resilient print() — survives a Dash restart killing our stdout pipe mid-job.
 _orig_print = _b.print

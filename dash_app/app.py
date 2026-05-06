@@ -50,6 +50,7 @@ import bible_reader as br
 
 EXPENSE_LOG = PROJECT_ROOT / ".byteplus_expense.json"
 JOBS_LOG = PROJECT_ROOT / ".dash_jobs.json"
+PYTHON_BIN = sys.executable
 
 # ===== Series config =====================================================
 # One dashboard = one series. Within a series, multiple episodes.
@@ -558,12 +559,12 @@ def _bulk_run(sheet_id: str, kind: str):
         BULK_STATE["current"] = current_label
         job_id = str(uuid.uuid4())[:8]
         if kind == "storyboard":
-            cmd = ["python3", "storyboard_generate.py",
+            cmd = [PYTHON_BIN, "storyboard_generate.py",
                    "--sheet", sheet_id, "--set", str(set_n), "--force"]
             label = f"sb-gen set{set_n}"
             kind_tag = "storyboard"
         else:
-            cmd = ["python3", "byteplus_vidgen.py",
+            cmd = [PYTHON_BIN, "byteplus_vidgen.py",
                    "--sheet", sheet_id, "--set", str(set_n), "--slot", str(slot),
                    "--resolution", "720p", "--duration", "15"]
             label = f"vidgen set{set_n} slot{slot}"
@@ -1074,7 +1075,7 @@ def fire_regen_bible(n_clicks, btn_id):
     if bible not in BIBLE_REGEN_ROUTING:
         return f"unknown bible: {bible}"
     script, arg_template = BIBLE_REGEN_ROUTING[bible]
-    cmd = ["python3", script, "--sheet", BIBLE_SHEET, "--force"]
+    cmd = [PYTHON_BIN, script, "--sheet", BIBLE_SHEET, "--force"]
     for a in arg_template:
         cmd.append(a.format(key=key))
     job_id = str(uuid.uuid4())[:8]
@@ -1235,7 +1236,7 @@ def fire_storyboard_for_set(n_clicks_list, ids_list):
     sheet_id = btn_id["sheet"]
     set_n = btn_id["set"]
     job_id = str(uuid.uuid4())[:8]
-    cmd = ["python3", "storyboard_generate.py", "--sheet", sheet_id, "--set", str(set_n), "--force"]
+    cmd = [PYTHON_BIN, "storyboard_generate.py", "--sheet", sheet_id, "--set", str(set_n), "--force"]
     append_job({"id": job_id, "label": f"sb-gen set{set_n}", "status": "queued",
                 "started": datetime.now(timezone.utc).isoformat(),
                 "log": "", "cmd": " ".join(cmd), "kind": "storyboard",
@@ -1270,7 +1271,7 @@ def fire_video_for_set(n_clicks_list, ids_list):
     fired = []
     for output_slot in (1, 2):
         job_id = str(uuid.uuid4())[:8]
-        cmd = ["python3", "byteplus_vidgen.py",
+        cmd = [PYTHON_BIN, "byteplus_vidgen.py",
                "--sheet", sheet_id, "--set", str(set_n),
                "--slot", str(output_slot),
                "--sb-slot", str(sb_slot),

@@ -28,6 +28,7 @@ import io
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -70,7 +71,19 @@ DEFAULT_ASPECT = "16:9"  # landscape storyboard page (5 stick-figure panels)
 DEFAULT_RESOLUTION = "1k"
 DEFAULT_QUALITY = "high"
 ITERATIONS = 2
-HIGGS_BIN = os.path.expanduser("~/.npm-global/bin/higgs")
+
+
+def resolve_higgs_bin() -> str:
+    configured = os.environ.get("HIGGS_BIN")
+    if configured:
+        return shutil.which(configured) or os.path.expanduser(configured)
+    return (
+        shutil.which("higgs")
+        or os.path.expanduser("~/.npm-global/bin/higgs")
+    )
+
+
+HIGGS_BIN = resolve_higgs_bin()
 
 SHEETS_URL_RE = re.compile(r"/spreadsheets/d/([a-zA-Z0-9_-]+)")
 
