@@ -121,25 +121,55 @@ def _location_aliases_from_bible(sh) -> dict[str, str]:
 import threading
 import time as _t
 
-_TTL = 60.0  # seconds — a single Sheets read serves all clients in this window
-_BG_REFRESH_INTERVAL = 45.0  # seconds — shorter than TTL so cache stays warm
+# TTL deliberately long: Sheets API caps reads at 60/min/user. With 2 gunicorn
+# workers sharing one OAuth token, multiple bible reads per refresh, and the
+# bg-warmer adding pressure, we must keep cache hits high. 10-minute TTL is
+# safe for the production show data which only changes when the team edits
+# the SOT (and they hit ↻ Refresh manually after).
+_TTL = 600.0  # 10 min
+_BG_REFRESH_INTERVAL = 180.0  # 3 min — much wider than before to cut quota
+_QUOTA_BACKOFF = 60.0  # after a 429, hold off bg-warmer for 60s
 
 # storyboards keyed by (sheet_id, bible_sheet_id); other readers keyed by sheet_id
 _cache_storage: dict[str, dict] = {}
 _cache_lock = threading.Lock()
+# Track last 429 timestamp globally so the bg-warmer can pause after a quota hit.
+_last_quota_hit = 0.0
+
+
+def _is_quota_error(e: Exception) -> bool:
+    """Detect Sheets-API 429 'Quota exceeded' errors so callers can fall back
+    to stale cache rather than surface a crash to the user."""
+    msg = str(e)
+    return "429" in msg and "Quota exceeded" in msg
 
 
 def _cached_read(name: str, key, fetch_fn):
     """Generic TTL cache. `name` is a unique resource label (e.g. 'storyboards'),
     `key` is hashable identifier (sheet_id or tuple), `fetch_fn` is the slow Sheets
-    fetcher. Thread-safe."""
+    fetcher. Thread-safe.
+
+    Quota resilience: on 429 ('Quota exceeded'), return the last known cache
+    value even if it is older than _TTL. Better stale data than a broken UI."""
+    global _last_quota_hit
     with _cache_lock:
         bucket = _cache_storage.setdefault(name, {})
         entry = bucket.get(key)
         if entry and (_t.time() - entry[0]) < _TTL:
             return entry[1]
     # release lock during slow read
-    result = fetch_fn()
+    try:
+        result = fetch_fn()
+    except Exception as e:
+        if _is_quota_error(e):
+            _last_quota_hit = _t.time()
+            with _cache_lock:
+                stale = _cache_storage.get(name, {}).get(key)
+            if stale:
+                print(f"[bible_reader] 429 quota — serving stale cache for {name}:{key}")
+                return stale[1]
+            print(f"[bible_reader] 429 quota and no cache available for {name}:{key}")
+        raise
     with _cache_lock:
         _cache_storage.setdefault(name, {})[key] = (_t.time(), result)
     return result
@@ -193,20 +223,32 @@ def start_background_refresh(get_active_sheet_id, bible_sheet_id):
 
     def _loop():
         while True:
+            # If we recently hit a 429, sit out one full _QUOTA_BACKOFF window
+            # to let the per-minute quota reset before warming again.
+            since_quota = _t.time() - _last_quota_hit
+            if since_quota < _QUOTA_BACKOFF:
+                _t.sleep(_QUOTA_BACKOFF - since_quota)
+                continue
             try:
                 sid = get_active_sheet_id()
                 if sid:
                     # Warm the storyboards cache (the most-polled resource).
                     read_storyboards(sid, bible_sheet_id=bible_sheet_id,
                                      bypass_cache=False)
-                    # Warm bible caches for the SERIES bible sheet.
+                    # Warm bible caches for the SERIES bible sheet. Spaced
+                    # with 1s gaps so the warm-up itself doesn't burst into
+                    # the per-minute quota.
                     bsid = bible_sheet_id or sid
-                    read_characters(bsid)
-                    read_locations(bsid)
-                    read_costumes(bsid)
-                    read_props(bsid)
-                    read_effects(bsid)
-                    read_asset_library(bsid)
+                    for fn in (read_characters, read_locations, read_costumes,
+                               read_props, read_effects, read_asset_library):
+                        try:
+                            fn(bsid)
+                        except Exception as e:
+                            if _is_quota_error(e):
+                                print(f"[bg-refresh] 429 during {fn.__name__}; backing off")
+                                break
+                            raise
+                        _t.sleep(1.0)
             except Exception as e:
                 print(f"[bg-refresh] warmer error: {e}")
             _t.sleep(_BG_REFRESH_INTERVAL)
@@ -234,61 +276,65 @@ def _read_storyboards_impl(sheet_id: str, bible_sheet_id: str | None = None) -> 
     bible_sh = open_sheet(bible_sheet_id) if bible_sheet_id and bible_sheet_id != sheet_id else sh
     loc_aliases = _location_aliases_from_bible(bible_sh)
 
-    # ---- Pull Video Prompts globals (camera, audio, setting) ----
+    # All four ranges below live on the same spreadsheet — collapse them into
+    # ONE Sheets API call via values_batchGet to stay under the 60/min/user
+    # quota. Was 4 round-trips, now 1.
+    try:
+        batch = sh.values_batch_get(
+            ranges=[
+                "Video Prompts!A1:B6",
+                "Shotlist!A2:R200",
+                "Storyboard Prompts!A10:Z10",
+                "Storyboard Prompts!A11:Z100",
+            ],
+            params={"valueRenderOption": "FORMATTED_VALUE"},
+        )
+        ranges = batch.get("valueRanges", [])
+    except Exception:
+        ranges = [{}, {}, {}, {}]
+
+    def _vals(idx):
+        return ranges[idx].get("values", []) if idx < len(ranges) else []
+
+    # ---- Video Prompts globals (camera, audio, setting + Bahasa) ----
     vp_global_camera = ""
     vp_global_audio = ""
     vp_global_setting = ""
     vp_global_camera_id = ""
     vp_global_audio_id = ""
     vp_global_setting_id = ""
-    try:
-        vp_ws = sh.worksheet("Video Prompts")
-        gvals = vp_ws.get("A1:B6", value_render_option="FORMATTED_VALUE")
-        for r in gvals:
-            r = (r + ["", ""])[:2]
-            label = (r[0] or "").strip().lower()
-            val = r[1] or ""
-            if label == "camera global":
-                vp_global_camera = val
-            elif label == "audio/dialogue global":
-                vp_global_audio = val
-            elif label == "setting global":
-                vp_global_setting = val
-            elif label == "bahasa camera":
-                vp_global_camera_id = val
-            elif label == "bahasa audio/dialogue":
-                vp_global_audio_id = val
-            elif label == "bahasa setting":
-                vp_global_setting_id = val
-    except Exception:
-        pass
+    for r in _vals(0):
+        r = (r + ["", ""])[:2]
+        label = (r[0] or "").strip().lower()
+        val = r[1] or ""
+        if label == "camera global":
+            vp_global_camera = val
+        elif label == "audio/dialogue global":
+            vp_global_audio = val
+        elif label == "setting global":
+            vp_global_setting = val
+        elif label == "bahasa camera":
+            vp_global_camera_id = val
+        elif label == "bahasa audio/dialogue":
+            vp_global_audio_id = val
+        elif label == "bahasa setting":
+            vp_global_setting_id = val
 
-    # ---- Pull body content directly from Shotlist col Q (per-shot Video Prompt
-    # formula). This is the SOT for per-shot text and never contains storyboard
-    # preamble. Q resolves to: "No music. Dialogue in <accent> accent.\n
-    # <#>, <dur>s, <type>, <camera>, <description>, <dialogue> (<microexp>), <sfx>."
-    # We use the resolved value, not the formula. ----
-    shot_bodies = []   # (body, bahasa) per shot, ordered shot 1..N
-    try:
-        sl_ws = sh.worksheet("Shotlist")
-        sl_rows = sl_ws.get("A2:R200", value_render_option="FORMATTED_VALUE")
-        for r in sl_rows:
-            r = (r + [""] * 18)[:18]
-            shot_num_str = (r[0] or "").strip()
-            if not shot_num_str.isdigit():
-                continue
-            body = r[16] or ""   # col Q — Prompt
-            bahasa = r[17] or ""  # col R — Bahasa Prompt
-            shot_bodies.append((body, bahasa))
-    except Exception:
-        pass
+    # ---- Shotlist col Q (Prompt) + col R (Bahasa) per-shot bodies ----
+    shot_bodies = []
+    for r in _vals(1):
+        r = (r + [""] * 18)[:18]
+        shot_num_str = (r[0] or "").strip()
+        if not shot_num_str.isdigit():
+            continue
+        body = r[16] or ""
+        bahasa = r[17] or ""
+        shot_bodies.append((body, bahasa))
 
-    try:
-        ws = sh.worksheet("Storyboard Prompts")
-    except Exception:
-        return []
-    # Read header row 10 to find columns by name (schema may vary across shows)
-    hdr_rows = ws.get("A10:Z10", value_render_option="FORMATTED_VALUE")
+    # ---- Storyboard Prompts header (row 10) → column-name → index map ----
+    hdr_rows = _vals(2)
+    if not hdr_rows:
+        return []  # no SP tab / no header
     hdr = (hdr_rows[0] if hdr_rows else []) + [""] * 26
     hdr_idx = {h.strip().lower(): i for i, h in enumerate(hdr) if h}
 
@@ -306,7 +352,7 @@ def _read_storyboards_impl(sheet_id: str, bible_sheet_id: str | None = None) -> 
     if "video iter 1 url" not in hdr_idx and "location" not in hdr_idx:
         vid1_col, vid2_col = 11, 12
 
-    raw = ws.get("A11:Z100", value_render_option="FORMATTED_VALUE")
+    raw = _vals(3)
     out = []
     for i, r in enumerate(raw):
         r = (r + [""] * 26)[:26]
