@@ -506,41 +506,38 @@ def render_html(data: dict) -> str:
 </html>'''
 
 
-def main():
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--sheet",   default=DEFAULT_SHEET)
-    ap.add_argument("--show",    default=DEFAULT_SHOW)
-    ap.add_argument("--episode", default=DEFAULT_EPISODE)
-    ap.add_argument("--output",  default=DEFAULT_OUTPUT)
-    args = ap.parse_args()
+def build_html(sheet_id: str, show: str, episode: str, verbose: bool = False) -> str:
+    """Read a sheet end-to-end and return the rendered gallery HTML as a string.
 
-    print(f"→ reading sheet {args.sheet}")
+    Used both by the CLI (main) and by the Dash app's live /gallery route.
+    Reusable from any caller — pure function, no side effects on disk."""
+    def log(msg):
+        if verbose:
+            print(msg)
+
     gc = gspread.authorize(get_credentials())
-    sh = gc.open_by_key(args.sheet)
+    sh = gc.open_by_key(sheet_id)
 
-    print("  • characters")
+    log("  • characters")
     characters = read_characters(sh)
-    print(f"    {len(characters)} chars")
-    print("  • locations")
+    log(f"    {len(characters)} chars")
+    log("  • locations")
     locations = read_locations(sh)
-    print(f"    {len(locations)} locs")
-    print("  • costume / props / effects")
+    log(f"    {len(locations)} locs")
+    log("  • costume / props / effects")
     costume = read_simple_bible(sh, "COSTUME")
     props = read_simple_bible(sh, "PROPS")
     effects = read_simple_bible(sh, "EFFECTS")
-    print(f"    {len(costume)} costume · {len(props)} props · {len(effects)} effects")
-    print("  • storyboards")
+    log(f"    {len(costume)} costume · {len(props)} props · {len(effects)} effects")
+    log("  • storyboards")
     storyboards = read_storyboards(sh)
-    print(f"    {len(storyboards)} sets")
-    print("  • video globals")
+    log(f"    {len(storyboards)} sets")
+    log("  • video globals")
     video_globals = read_video_globals(sh)
-    print(f"    camera={'✓' if video_globals.get('camera') else '—'} "
-          f"audio={'✓' if video_globals.get('audio') else '—'} "
-          f"setting={'✓' if video_globals.get('setting') else '—'}")
 
     data = {
-        "show": args.show,
-        "episode": args.episode,
+        "show": show,
+        "episode": episode,
         "stats": {
             "characters": len(characters),
             "locations": len(locations),
@@ -557,8 +554,19 @@ def main():
         "storyboards": storyboards,
         "video_globals": video_globals,
     }
+    return render_html(data)
 
-    html_doc = render_html(data)
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--sheet",   default=DEFAULT_SHEET)
+    ap.add_argument("--show",    default=DEFAULT_SHOW)
+    ap.add_argument("--episode", default=DEFAULT_EPISODE)
+    ap.add_argument("--output",  default=DEFAULT_OUTPUT)
+    args = ap.parse_args()
+
+    print(f"→ reading sheet {args.sheet}")
+    html_doc = build_html(args.sheet, args.show, args.episode, verbose=True)
     with open(args.output, "w", encoding="utf-8") as f:
         f.write(html_doc)
     print(f"\n✓ wrote {args.output} ({len(html_doc) // 1024} KB)")

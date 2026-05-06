@@ -244,15 +244,99 @@ def _debug_jobs():
     return jsonify({"count": len(out), "jobs": out})
 
 
+# Live galleries — known names → (sheet_id, show, episode_title).
+# Adding a new ep = one line here + push. /gallery/<name> reads this map and
+# builds the HTML on demand from the SOT (5-min in-memory cache for speed).
+GALLERY_REGISTRY = {
+    "sajangnim_ep01": (
+        "1iygU-7XAwhVKykkTYXHAqwBh0wD1d7Zk2s6OGfnLXCc",
+        "Diam Diam Aku Cinta Sajangnim",
+        "Episode 1 — Pelarian Pertama",
+    ),
+    "sajangnim_ep02": (
+        "1DlnYVqa_6S4ogcaBEtjoWw5tBjrB7wPHjkMFPR5fad4",
+        "Diam Diam Aku Cinta Sajangnim",
+        "Episode 2 — Garam Jadi Gula",
+    ),
+    "sajangnim_ep03": (
+        "10wcCajzknstf79pvUs9UuS28ayvVG7k_SPe8KLqyy9I",
+        "Diam Diam Aku Cinta Sajangnim",
+        "Episode 3 — Kalau Aku Pergi (PAYWALL)",
+    ),
+    "sajangnim_ep04": (
+        "1khTYtHShiI1z0caqouZUQW3eZKnihScxIG7IQo3l3w4",
+        "Diam Diam Aku Cinta Sajangnim",
+        "Episode 4 — Pukul Lima Pagi",
+    ),
+    "sajangnim_ep05": (
+        "1_lm-ztYiZKHODRzg0g_N3Ms6HC0Mb8WANjRblVWnnfg",
+        "Diam Diam Aku Cinta Sajangnim",
+        "Episode 5 — Mata yang Mengamati",
+    ),
+    "sajangnim_ep06": (
+        "1ZIYUMH_o6PpN1-KDiEiBRT6NZcp1uO6EjEt7L13pQFI",
+        "Diam Diam Aku Cinta Sajangnim",
+        "Episode 6 — Sajangnim Sudah Tahu (FINALE)",
+    ),
+}
+
+# In-memory cache for live galleries: name → (timestamp, html_string).
+# 5-min TTL so rapid hits don't burn Sheets quota; team edit + refresh sees
+# changes within 5 min (or hit /debug/refresh to force fresh).
+_GALLERY_TTL = 300.0
+_gallery_cache: dict = {}
+_gallery_cache_lock = threading.Lock()
+
+
 @server.route("/gallery/<name>")
 def _gallery(name):
-    """Serve a static review gallery HTML built by build_gallery.py.
-    Files are committed in repo root (e.g. sajangnim_ep01_gallery.html).
-    URL pattern: /gallery/sajangnim_ep01 → loads sajangnim_ep01_gallery.html.
-    Team-shareable; no auth (URL is private to the team via the dashboard
-    link — add Cloudflare Access if you ever need to harden)."""
-    from flask import send_file, abort
-    safe = "".join(c for c in name if c.isalnum() or c in "_-")  # path safety
+    """Live-build a review gallery from the SOT on demand.
+
+    Lookup order:
+      1. GALLERY_REGISTRY → live-build via build_gallery.build_html
+         (5-min cache to absorb rapid hits)
+      2. Static file fallback (e.g. sajangnim_ep01_gallery.html in repo root)
+         for any name that's not in the registry.
+
+    Errors during live build fall back to the static snapshot if it exists,
+    or return a clear error page."""
+    import time as _t
+    from flask import send_file, abort, Response
+    safe = "".join(c for c in name if c.isalnum() or c in "_-")
+
+    # Live-build path
+    if safe in GALLERY_REGISTRY:
+        sheet_id, show, episode = GALLERY_REGISTRY[safe]
+        now = _t.time()
+        with _gallery_cache_lock:
+            cached = _gallery_cache.get(safe)
+            if cached and (now - cached[0]) < _GALLERY_TTL:
+                return Response(cached[1], mimetype="text/html")
+        # Build fresh
+        try:
+            from build_gallery import build_html
+            html_doc = build_html(sheet_id, show, episode, verbose=False)
+            with _gallery_cache_lock:
+                _gallery_cache[safe] = (now, html_doc)
+            return Response(html_doc, mimetype="text/html")
+        except Exception as e:
+            # Live build failed — try last-known cache value (even if expired)
+            with _gallery_cache_lock:
+                stale = _gallery_cache.get(safe)
+            if stale:
+                print(f"[gallery] live build failed for {safe} ({e}); serving stale cache ({(now - stale[0]) // 60:.0f} min old)")
+                return Response(stale[1], mimetype="text/html")
+            # No cache — try static fallback
+            static_path = PROJECT_ROOT / f"{safe}_gallery.html"
+            if static_path.exists():
+                print(f"[gallery] live + cache failed for {safe}; serving static snapshot")
+                return send_file(static_path, mimetype="text/html")
+            return Response(
+                f"<h1>Gallery error</h1><p>{name}: {e}</p>",
+                status=500, mimetype="text/html",
+            )
+
+    # Static file fallback (for galleries not in registry)
     candidates = [
         PROJECT_ROOT / f"{safe}_gallery.html",
         PROJECT_ROOT / f"{safe}.html",
@@ -261,7 +345,18 @@ def _gallery(name):
         if p.exists():
             return send_file(p, mimetype="text/html")
     abort(404, description=f"No gallery found for {safe}. Available: " +
-          ", ".join(p.stem.replace("_gallery", "") for p in PROJECT_ROOT.glob("*_gallery.html")))
+          ", ".join(GALLERY_REGISTRY.keys()))
+
+
+@server.route("/gallery/<name>/refresh")
+def _gallery_refresh(name):
+    """Force-flush the cached HTML for a single gallery. Use after sheet edits
+    if 5-min TTL is too slow. Just hit the URL once; redirect back to gallery."""
+    from flask import redirect
+    safe = "".join(c for c in name if c.isalnum() or c in "_-")
+    with _gallery_cache_lock:
+        _gallery_cache.pop(safe, None)
+    return redirect(f"/gallery/{safe}", code=302)
 
 
 @server.route("/debug/refresh")
