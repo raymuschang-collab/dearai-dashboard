@@ -354,7 +354,9 @@ def render_html(data: dict) -> str:
   nav.toc {{
     position: sticky; top: 0; z-index: 10;
     background: white; border-bottom: 1px solid var(--line);
-    padding: 0 40px; display: flex; gap: 0; flex-wrap: wrap;
+    padding: 0 40px;
+    display: flex; gap: 0; flex-wrap: wrap;
+    justify-content: center;
   }}
   nav.toc .tab {{
     background: none; border: 0; border-bottom: 2px solid transparent;
