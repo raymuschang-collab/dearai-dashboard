@@ -1,20 +1,27 @@
 """Auth resolver — picks the right credential path for the runtime.
 
-Two paths, in priority order:
+Three paths, in priority order:
 
-1. **Service account JSON** (production / Render).
+1. **Service account JSON** (production / Render, when org policy allows).
    Set env var `GOOGLE_SVC_ACCOUNT_JSON` to the FULL JSON of the service-account
    key. The key authenticates as `<svc>@<project>.iam.gserviceaccount.com`.
    Each show's bible + episode sheets must be shared with that email as Editor.
 
-2. **OAuth user token** (local dev).
+1b. **OAuth user token via env var** (production fallback when (1) is blocked
+   by `iam.disableServiceAccountKeyCreation` org policy).
+   Set env var `GOOGLE_USER_TOKEN_JSON` to the contents of your local
+   `token.json`. Same OAuth identity that works locally; refresh token works
+   indefinitely until manually revoked. Less auditable than a service account
+   but unblocks deploy when svc keys aren't allowed.
+
+2. **OAuth user token from disk** (local dev).
    Reads `token.json` (already authorized) or runs the InstalledAppFlow against
    `client_secret.json`, opening a browser to authorize. Writes `token.json`
    on success.
 
 Same `SCOPES` either way: spreadsheets + drive.
 
-Both paths return a `google.auth.credentials.Credentials` instance that
+All three paths return a `google.auth.credentials.Credentials` instance that
 gspread + the Drive client both accept.
 """
 import json
@@ -42,7 +49,7 @@ def get_credentials():
     two paths (Credentials vs ServiceAccountCredentials) but both implement
     the same interface gspread/google-api-python-client need."""
 
-    # Path 1 — service account (production).
+    # Path 1 — service account (production, when org policy allows).
     svc_json = os.environ.get("GOOGLE_SVC_ACCOUNT_JSON", "").strip()
     if svc_json:
         try:
@@ -56,6 +63,26 @@ def get_credentials():
         return ServiceAccountCredentials.from_service_account_info(
             info, scopes=SCOPES,
         )
+
+    # Path 1b — OAuth user token via env var (production fallback when the
+    # GCP org policy disables service account keys, e.g. Workspace orgs with
+    # iam.disableServiceAccountKeyCreation). Paste the contents of your
+    # local token.json into GOOGLE_USER_TOKEN_JSON. The refresh token works
+    # indefinitely until manually revoked. Less auditable than a service
+    # account but functional, and identical to the local-dev code path.
+    user_json = os.environ.get("GOOGLE_USER_TOKEN_JSON", "").strip()
+    if user_json:
+        try:
+            info = json.loads(user_json)
+        except json.JSONDecodeError as e:
+            raise SystemExit(
+                f"GOOGLE_USER_TOKEN_JSON is set but isn't valid JSON: {e}\n"
+                "Paste the entire contents of your local token.json file."
+            )
+        creds = Credentials.from_authorized_user_info(info, SCOPES)
+        if creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        return creds
 
     # Path 2 — OAuth user creds (local dev).
     creds: Credentials | None = None
