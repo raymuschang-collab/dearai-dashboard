@@ -258,12 +258,28 @@ def _debug_env():
             out[k] = v
         elif any(s in k.upper() for s in ("KEY", "TOKEN", "SECRET", "JSON", "CREDENTIAL")):
             out[k] = f"<set, {len(v)} chars>" if v else "<empty>"
-    # also report whether the higgs binary exists at the expected path
-    higgs_bin = os.environ.get("HIGGS_BIN", "") or os.path.expanduser("~/npm-global/bin/higgs")
-    out["_higgs_bin_resolved"] = higgs_bin
-    out["_higgs_bin_exists"] = os.path.exists(higgs_bin)
+    # Probe every reasonable place the higgs binary might live + which-style
+    # PATH lookup. With the build → runtime container split on Render, we
+    # need to know which path actually has the binary at runtime.
+    import shutil
+    candidate_paths = [
+        os.environ.get("HIGGS_BIN", ""),
+        "/opt/render/project/src/.npm-global/bin/higgs",
+        "/opt/render/project/src/node_modules/.bin/higgs",
+        os.path.expanduser("~/npm-global/bin/higgs"),
+        os.path.expanduser("~/.npm-global/bin/higgs"),
+        os.path.expanduser("~/.local/bin/higgs"),
+    ]
+    out["_higgs_bin_candidates"] = {p: os.path.exists(p) for p in candidate_paths if p}
+    out["_higgs_bin_on_path"] = shutil.which("higgs") or "<not on PATH>"
     out["_higgs_creds_exists"] = (Path.home() / ".config" / "higgsfield" / "credentials.json").exists()
+    out["_home"] = str(Path.home())
     out["_python_executable"] = sys.executable
+    # Also list /opt/render/project/src so we can see if .npm-global/ is even there
+    try:
+        out["_project_root_listing"] = sorted(os.listdir("/opt/render/project/src"))[:30]
+    except Exception as e:
+        out["_project_root_listing"] = f"err: {e}"
     return jsonify(out)
 app.index_string = """<!DOCTYPE html>
 <html><head>
