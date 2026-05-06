@@ -690,15 +690,25 @@ def update_recent_jobs(_n):
 
 
 def _sb_iter_inner(it: dict | None, sheet_id: str, set_n: int, slot: int):
-    """Inner children of a single SB iter block — gets swapped on live refresh."""
+    """Inner children of a single SB iter block — gets swapped on live refresh.
+    Empty state: a labeled placeholder so Pending sets still show context — the
+    prompt body, location, and shot range render in adjacent columns regardless
+    of whether the storyboard image has been generated yet."""
     if it:
         thumb_div = img_cell(it["thumb"], it["label"], it["view"], aspect="16/9")
     else:
         thumb_div = html.Div(style={
-            "aspectRatio": "16/9", "background": "#e3e3e3", "borderRadius": "8px",
-            "display": "flex", "alignItems": "center", "justifyContent": "center",
-            "color": "#a0a0a0", "fontStyle": "italic", "fontSize": "12px",
-        }, children=f"V{slot} (pending)")
+            "aspectRatio": "16/9", "background": "#f5f5f5",
+            "border": "1px dashed #d0d0d0", "borderRadius": "8px",
+            "display": "flex", "flexDirection": "column",
+            "alignItems": "center", "justifyContent": "center",
+            "color": "#999", "fontSize": "11px", "letterSpacing": "0.4px",
+            "textTransform": "uppercase",
+        }, children=[
+            html.Div(f"Iter {slot}", style={"fontWeight": 600}),
+            html.Div("pending", style={"fontSize": "10px", "marginTop": "4px",
+                                        "color": "#b0b0b0", "fontStyle": "italic"}),
+        ])
     return [
         thumb_div,
         html.Button(
@@ -795,9 +805,12 @@ def sb_refresh(sheet_id, _tick):
         sb_count = sum(1 for i in s["sb_iters"] if i)
         vid_count = sum(1 for v in s["videos"] if v)
 
-        # LEFT: prompt body in a white "lifted" card with EN/Bahasa toggle
-        en_text = s["body"] or "(no prompt)"
-        bahasa_text = s.get("body_bahasa") or "(no Bahasa version)"
+        # LEFT: prompt body in a white "lifted" card with EN/Bahasa toggle.
+        # Body falls back to a useful placeholder so Pending sets still render
+        # the prompt-card structure (range, location, body) even when no
+        # storyboard image has been generated.
+        en_text = s["body"] or f"(prompt body not yet generated for shots {s['shots'] or '—'})"
+        bahasa_text = s.get("body_bahasa") or "(Bahasa version pending)"
         has_bahasa = bool(s.get("body_bahasa"))
         left_col = html.Div(style={"display": "flex", "flexDirection": "column", "gap": "12px"},
                             children=[
@@ -897,6 +910,24 @@ def sb_refresh(sheet_id, _tick):
                             "alignItems": "center", "marginBottom": "18px"}, children=[
                 html.H3(f"Set {s['set']} · shots {s['shots'] or '—'}"),
                 html.Div(className="meta", children=[
+                    # Status chip — Done / Pending / Failed surfaced from SP col F
+                    # so the team can see at-a-glance which sets need work.
+                    html.Span(
+                        (s.get("status") or "Pending").upper(),
+                        className="chip",
+                        style={
+                            "background": (
+                                "#e8f5e9" if (s.get("status") or "").lower() == "done"
+                                else "#fff3e0" if (s.get("status") or "").lower() == "failed"
+                                else "#f5f5f5"
+                            ),
+                            "color": (
+                                "#2e7d32" if (s.get("status") or "").lower() == "done"
+                                else "#e65100" if (s.get("status") or "").lower() == "failed"
+                                else "#666"
+                            ),
+                        },
+                    ),
                     html.Span(f"{sb_count}/2 SB", className="chip"),
                     html.Span(f"{vid_count}/2 VID", className="chip"),
                 ]),

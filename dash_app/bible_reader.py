@@ -295,6 +295,7 @@ def _read_storyboards_impl(sheet_id: str, bible_sheet_id: str | None = None) -> 
     def col(name: str, fallback: int) -> int:
         return hdr_idx.get(name.lower(), fallback)
 
+    status_col = col("status", 5)
     sb1_col   = col("iter 1 url", 6)
     sb2_col   = col("iter 2 url", 7)
     loc_col   = col("location", 11)
@@ -358,6 +359,7 @@ def _read_storyboards_impl(sheet_id: str, bible_sheet_id: str | None = None) -> 
         out.append({
             "set": set_n,
             "shots": shot_range,
+            "status": (r[status_col] or "").strip(),
             "body": body,
             "body_bahasa": body_bahasa,
             "location": location,
