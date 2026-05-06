@@ -244,6 +244,46 @@ def _debug_jobs():
     return jsonify({"count": len(out), "jobs": out})
 
 
+@server.route("/debug/higgs")
+def _debug_higgs():
+    """Run `higgs auth token` and `higgs version` and report exit codes +
+    output. Use this to figure out why the CLI auth check fails for
+    storyboard / bible regen subprocesses even when credentials.json
+    is on disk."""
+    from flask import jsonify
+    import shutil
+    import subprocess as _sp
+    higgs = (
+        os.environ.get("HIGGS_BIN")
+        or shutil.which("higgs")
+        or "/opt/render/project/src/.npm-global/bin/higgs"
+    )
+    out = {"higgs_bin": higgs, "exists": os.path.exists(higgs)}
+    creds_path = Path.home() / ".config" / "higgsfield" / "credentials.json"
+    out["creds_path"] = str(creds_path)
+    out["creds_exists"] = creds_path.exists()
+    if creds_path.exists():
+        try:
+            raw = creds_path.read_text().strip()
+            out["creds_size"] = len(raw)
+            out["creds_keys"] = list(json.loads(raw).keys())
+        except Exception as e:
+            out["creds_parse_err"] = str(e)
+    if not out["exists"]:
+        return jsonify(out)
+    for cmd in (["version"], ["auth", "token"], ["workspace", "list"]):
+        try:
+            r = _sp.run([higgs, *cmd], capture_output=True, text=True, timeout=10)
+            out[f"_higgs_{'_'.join(cmd)}"] = {
+                "rc": r.returncode,
+                "stdout": (r.stdout or "")[-400:],
+                "stderr": (r.stderr or "")[-400:],
+            }
+        except Exception as e:
+            out[f"_higgs_{'_'.join(cmd)}"] = {"err": str(e)}
+    return jsonify(out)
+
+
 @server.route("/debug/env")
 def _debug_env():
     """Return non-secret env state so we can verify Render config drift —
