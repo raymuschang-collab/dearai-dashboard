@@ -293,7 +293,8 @@ def main():
     drive = build("drive", "v3", credentials=creds)
 
     sheet_id = parse_sheet_id(args.sheet)
-    sh = gc.open_by_key(sheet_id)
+    from sheets_retry import with_429_retry
+    sh = with_429_retry(lambda: gc.open_by_key(sheet_id))
     print(f"Sheet: {sh.title}")
     print(f"Aspect: {args.aspect}  Resolution: {args.resolution}  Iterations/set: {ITERATIONS}")
 
