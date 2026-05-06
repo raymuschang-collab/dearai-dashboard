@@ -214,6 +214,57 @@ app = Dash(__name__, title="DearAI — Production Dashboard",
            suppress_callback_exceptions=True)
 # Exposed for gunicorn — Render's Procfile binds `dash_app.app:server`.
 server = app.server
+
+
+# Debug route — returns recent failed-job logs as JSON so production
+# regressions can be diagnosed without shell access. Read-only, no auth
+# required (the dashboard URL is already private to the team). Strip if
+# you ever expose the URL beyond the team.
+@server.route("/debug/jobs")
+def _debug_jobs():
+    from flask import jsonify, request
+    n = int(request.args.get("n", 10))
+    only = request.args.get("only", "failed")  # "failed" | "all"
+    data = load_jobs()
+    jobs = data.get("jobs", [])
+    if only == "failed":
+        jobs = [j for j in jobs if j.get("status") == "failed"]
+    out = []
+    for j in jobs[:n]:
+        out.append({
+            "id": j.get("id"),
+            "kind": j.get("kind"),
+            "label": j.get("label"),
+            "status": j.get("status"),
+            "started": j.get("started"),
+            "ended": j.get("ended"),
+            "cmd": j.get("cmd"),
+            "log": j.get("log") or "",
+        })
+    return jsonify({"count": len(out), "jobs": out})
+
+
+@server.route("/debug/env")
+def _debug_env():
+    """Return non-secret env state so we can verify Render config drift —
+    presence flags only, never the values themselves for keys that look
+    like secrets."""
+    from flask import jsonify
+    SAFE_KEYS = {"SERIES", "PORT", "PYTHON_VERSION", "RENDER", "RENDER_SERVICE_NAME",
+                 "HIGGS_BIN", "PATH"}
+    out = {}
+    for k, v in os.environ.items():
+        if k in SAFE_KEYS:
+            out[k] = v
+        elif any(s in k.upper() for s in ("KEY", "TOKEN", "SECRET", "JSON", "CREDENTIAL")):
+            out[k] = f"<set, {len(v)} chars>" if v else "<empty>"
+    # also report whether the higgs binary exists at the expected path
+    higgs_bin = os.environ.get("HIGGS_BIN", "") or os.path.expanduser("~/npm-global/bin/higgs")
+    out["_higgs_bin_resolved"] = higgs_bin
+    out["_higgs_bin_exists"] = os.path.exists(higgs_bin)
+    out["_higgs_creds_exists"] = (Path.home() / ".config" / "higgsfield" / "credentials.json").exists()
+    out["_python_executable"] = sys.executable
+    return jsonify(out)
 app.index_string = """<!DOCTYPE html>
 <html><head>
 <title>{%title%}</title>
