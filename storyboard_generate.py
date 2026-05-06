@@ -74,13 +74,29 @@ ITERATIONS = 2
 
 
 def resolve_higgs_bin() -> str:
+    """Find the higgs CLI binary. Order:
+      1. $HIGGS_BIN env var (explicit override)
+      2. Render's project-local install path (where build.sh puts it)
+      3. PATH lookup
+      4. Local-dev defaults under $HOME (Mac/Linux dev machines)
+    """
     configured = os.environ.get("HIGGS_BIN")
     if configured:
         return shutil.which(configured) or os.path.expanduser(configured)
-    return (
-        shutil.which("higgs")
-        or os.path.expanduser("~/.npm-global/bin/higgs")
-    )
+    # Render: build.sh installs into the repo checkout (only path that
+    # survives the build → runtime container handoff).
+    render_path = "/opt/render/project/src/.npm-global/bin/higgs"
+    if os.path.exists(render_path):
+        return render_path
+    on_path = shutil.which("higgs")
+    if on_path:
+        return on_path
+    # Local dev fallbacks
+    for p in ("~/.npm-global/bin/higgs", "~/npm-global/bin/higgs"):
+        expanded = os.path.expanduser(p)
+        if os.path.exists(expanded):
+            return expanded
+    return os.path.expanduser("~/.npm-global/bin/higgs")
 
 
 HIGGS_BIN = resolve_higgs_bin()
