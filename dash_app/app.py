@@ -244,6 +244,26 @@ def _debug_jobs():
     return jsonify({"count": len(out), "jobs": out})
 
 
+@server.route("/gallery/<name>")
+def _gallery(name):
+    """Serve a static review gallery HTML built by build_gallery.py.
+    Files are committed in repo root (e.g. sajangnim_ep01_gallery.html).
+    URL pattern: /gallery/sajangnim_ep01 → loads sajangnim_ep01_gallery.html.
+    Team-shareable; no auth (URL is private to the team via the dashboard
+    link — add Cloudflare Access if you ever need to harden)."""
+    from flask import send_file, abort
+    safe = "".join(c for c in name if c.isalnum() or c in "_-")  # path safety
+    candidates = [
+        PROJECT_ROOT / f"{safe}_gallery.html",
+        PROJECT_ROOT / f"{safe}.html",
+    ]
+    for p in candidates:
+        if p.exists():
+            return send_file(p, mimetype="text/html")
+    abort(404, description=f"No gallery found for {safe}. Available: " +
+          ", ".join(p.stem.replace("_gallery", "") for p in PROJECT_ROOT.glob("*_gallery.html")))
+
+
 @server.route("/debug/refresh")
 def _debug_refresh():
     """Flush all bible_reader caches without needing the dashboard ↻ button.

@@ -1,0 +1,566 @@
+#!/usr/bin/env python3
+"""
+build_gallery.py — single-page HTML gallery for a v2.2 SOT episode sheet.
+
+Reads from a Google Sheet (CHARACTERS / LOCATIONS / COSTUME / PROPS / EFFECTS /
+Storyboard Prompts / Shotlist) and emits a self-contained HTML viewer that:
+
+  - Has a hero with show + episode + stat counts
+  - Renders character cards with iter1/iter2 thumbs
+  - Renders location cards with shot-size variants
+  - Renders costume / prop / effect cards
+  - Renders per-set storyboard cards: shot range, assembled body,
+    storyboard image iters, video iters (when present)
+
+NO BUTTONS. Pure read-only review surface. Re-run after sheet edits to refresh.
+
+Usage:
+  python3 build_gallery.py \\
+      --sheet 1iygU-7XAwhVKykkTYXHAqwBh0wD1d7Zk2s6OGfnLXCc \\
+      --show "Diam Diam Aku Cinta Sajangnim" \\
+      --episode "Episode 1 — Pelarian Pertama" \\
+      --output sajangnim_ep01_gallery.html
+
+  # Or run with no args — defaults to sajangnim Ep 1.
+
+The output HTML is fully self-contained except for image URLs (lh3.googleusercontent
+CDN — embedded directly so file stays small and Drive perms are respected).
+"""
+from __future__ import annotations
+
+import argparse
+import html
+import json
+import re
+import sys
+
+import gspread
+from auth import get_credentials
+
+
+# ===== Defaults — change these to point at a different episode =====
+DEFAULT_SHEET   = "1iygU-7XAwhVKykkTYXHAqwBh0wD1d7Zk2s6OGfnLXCc"
+DEFAULT_SHOW    = "Diam Diam Aku Cinta Sajangnim"
+DEFAULT_EPISODE = "Episode 1 — Pelarian Pertama"
+DEFAULT_OUTPUT  = "sajangnim_ep01_gallery.html"
+
+
+# ===== Drive URL helpers =====
+def drive_id(url: str | None) -> str | None:
+    if not url:
+        return None
+    m = re.search(r"/file/d/([a-zA-Z0-9_-]+)", url)
+    if m:
+        return m.group(1)
+    m = re.search(r"id=([a-zA-Z0-9_-]+)", url)
+    if m:
+        return m.group(1)
+    return None
+
+
+def thumb(file_id: str | None, w: int = 1000) -> str:
+    return f"https://lh3.googleusercontent.com/d/{file_id}=w{w}" if file_id else ""
+
+
+def view(file_id: str | None) -> str:
+    return f"https://drive.google.com/file/d/{file_id}/view" if file_id else ""
+
+
+def preview(file_id: str | None) -> str:
+    """Embeddable Drive preview URL — works as <iframe src> for inline video."""
+    return f"https://drive.google.com/file/d/{file_id}/preview" if file_id else ""
+
+
+# ===== Sheet readers =====
+def read_characters(sh) -> list[dict]:
+    """CHARACTERS bible — col A=Name, T=Iter1, U=Iter2, V=Status (23-col schema)."""
+    ws = sh.worksheet("CHARACTERS")
+    rows = ws.get_all_records()
+    out = []
+    for r in rows:
+        name = (r.get("Name") or "").strip()
+        if not name:
+            continue
+        i1 = drive_id(r.get("Iter 1 URL (white bg)") or r.get("Iter 1 URL") or "")
+        i2 = drive_id(r.get("Iter 2 URL (white bg)") or r.get("Iter 2 URL") or "")
+        out.append({
+            "name": name,
+            "role": r.get("Role / Archetype", "") or "",
+            "age":  r.get("Age", "") or "",
+            "wardrobe": r.get("Wardrobe", "") or "",
+            "iters": [
+                {"label": "Iter 1", "thumb": thumb(i1), "view": view(i1)} if i1 else None,
+                {"label": "Iter 2", "thumb": thumb(i2), "view": view(i2)} if i2 else None,
+            ],
+        })
+    return out
+
+
+def read_locations(sh) -> list[dict]:
+    """LOCATIONS — col A=Name, B=Shot Size, J=Iter 1, K=Iter 2 (header row 4)."""
+    ws = sh.worksheet("LOCATIONS")
+    raw = ws.get("A5:O100", value_render_option="FORMATTED_VALUE")
+    by_name: dict[str, dict] = {}
+    for r in raw:
+        r = r + [""] * 15
+        name = (r[0] or "").strip()
+        if not name:
+            continue
+        shot_size = r[1] or "wide"
+        iters = []
+        for label, url in [(f"{shot_size} – iter 1", r[9]),
+                           (f"{shot_size} – iter 2", r[10])]:
+            fid = drive_id(url)
+            if fid:
+                iters.append({"label": label, "thumb": thumb(fid), "view": view(fid)})
+        if name not in by_name:
+            by_name[name] = {"name": name, "description": r[3] or "", "iters": []}
+        by_name[name]["iters"].extend(iters)
+    return list(by_name.values())
+
+
+def read_simple_bible(sh, tab: str) -> list[dict]:
+    """COSTUME / PROPS / EFFECTS — col A=Name, B=Worn By, G=Iter1, H=Iter2 (header row 5)."""
+    try:
+        ws = sh.worksheet(tab)
+    except Exception:
+        return []
+    raw = ws.get("A6:K100", value_render_option="FORMATTED_VALUE")
+    out = []
+    for r in raw:
+        r = r + [""] * 11
+        name = (r[0] or "").strip()
+        if not name:
+            continue
+        i1 = drive_id(r[6])
+        i2 = drive_id(r[7])
+        out.append({
+            "name": name,
+            "used_by": r[1] or "",
+            "description": r[2] or "",
+            "iters": [
+                {"label": "Iter 1", "thumb": thumb(i1), "view": view(i1)} if i1 else None,
+                {"label": "Iter 2", "thumb": thumb(i2), "view": view(i2)} if i2 else None,
+            ],
+        })
+    return out
+
+
+def read_video_globals(sh) -> dict:
+    """Video Prompts B1:B6 — globals shown once at top of storyboards section."""
+    try:
+        ws = sh.worksheet("Video Prompts")
+        vals = ws.get("A1:B6", value_render_option="FORMATTED_VALUE")
+    except Exception:
+        return {}
+    out = {}
+    for r in vals:
+        r = r + ["", ""]
+        label = (r[0] or "").strip().lower()
+        out[label] = r[1] or ""
+    return {
+        "camera":  out.get("camera global", ""),
+        "audio":   out.get("audio/dialogue global", ""),
+        "setting": out.get("setting global", ""),
+    }
+
+
+def read_storyboards(sh) -> list[dict]:
+    """Storyboard Prompts (header row 10, data rows 11+).
+    Cols: A=Set#, B=Shot Range, C=Storyboard Prompt, D=Bahasa Prompt,
+    E=Drive Folder, F=Status, G=Iter1, H=Iter2, I=Error,
+    J=Body, K=Bahasa Body, L=Location, M=Video Iter1, N=Video Iter2.
+    """
+    ws = sh.worksheet("Storyboard Prompts")
+    raw = ws.get("A11:N100", value_render_option="FORMATTED_VALUE")
+    out = []
+    for r in raw:
+        r = r + [""] * 14
+        if not r[0].strip().isdigit():
+            continue
+        sb1 = drive_id(r[6])
+        sb2 = drive_id(r[7])
+        v1 = drive_id(r[12])
+        v2 = drive_id(r[13])
+        out.append({
+            "set": int(r[0]),
+            "shots": r[1],
+            "body": r[9],          # SP!J — body-only English
+            "body_bahasa": r[10],   # SP!K
+            "location": r[11],
+            "status": r[5],
+            "sb_iters": [
+                {"label": "Storyboard 1", "thumb": thumb(sb1), "view": view(sb1)} if sb1 else None,
+                {"label": "Storyboard 2", "thumb": thumb(sb2), "view": view(sb2)} if sb2 else None,
+            ],
+            "videos": [
+                {"label": "Video 1", "preview": preview(v1), "view": view(v1)} if v1 else None,
+                {"label": "Video 2", "preview": preview(v2), "view": view(v2)} if v2 else None,
+            ],
+        })
+    return out
+
+
+# ===== HTML rendering =====
+
+def render_card_grid(items: list[dict], kind: str) -> str:
+    """Generic bible card grid — used for chars / locations / costume / props / fx."""
+    cards = []
+    for it in items:
+        iters_html = ""
+        for i in (it.get("iters") or []):
+            if not i:
+                continue
+            iters_html += (
+                f'<a class="thumb" href="{html.escape(i["view"])}" target="_blank">'
+                f'<img src="{html.escape(i["thumb"])}" alt="{html.escape(i["label"])}" loading="lazy">'
+                f'<span class="label">{html.escape(i["label"])}</span>'
+                f'</a>'
+            )
+        if not iters_html:
+            iters_html = '<div class="placeholder">no iter yet</div>'
+        meta_lines = []
+        for k in ("role", "age", "used_by", "description"):
+            if it.get(k):
+                meta_lines.append(f'<div class="meta-line"><b>{k}:</b> {html.escape(str(it[k]))}</div>')
+        cards.append(f'''
+        <div class="card {kind}-card">
+          <div class="card-head"><h4>{html.escape(it["name"])}</h4></div>
+          <div class="card-iters">{iters_html}</div>
+          {"".join(meta_lines)}
+        </div>''')
+    return '<div class="card-grid">' + "".join(cards) + "</div>"
+
+
+def render_set_card(s: dict, video_globals: dict | None = None) -> str:
+    video_globals = video_globals or {}
+    sb_html = ""
+    for sb in s["sb_iters"]:
+        if sb:
+            sb_html += (
+                f'<a class="thumb wide" href="{html.escape(sb["view"])}" target="_blank">'
+                f'<img src="{html.escape(sb["thumb"])}" alt="{html.escape(sb["label"])}" loading="lazy">'
+                f'<span class="label">{html.escape(sb["label"])}</span>'
+                f'</a>'
+            )
+        else:
+            sb_html += '<div class="thumb wide placeholder">storyboard pending</div>'
+
+    vid_html = ""
+    for v in s["videos"]:
+        if v:
+            vid_html += (
+                f'<div class="vid-tile">'
+                f'<iframe src="{html.escape(v["preview"])}" allow="autoplay" loading="lazy"></iframe>'
+                f'<div class="label">{html.escape(v["label"])}</div>'
+                f'</div>'
+            )
+        else:
+            vid_html += '<div class="vid-tile placeholder">video pending</div>'
+
+    # Three-section prompt layout: VIDEO GLOBAL → LOCATION → COMBINED PROMPT.
+    # Globals come from Video Prompts B1/B2/B4 (camera/audio/setting),
+    # rendered the same on every set. Location is per-set (SP!L). Combined
+    # prompt is the body (5 shots from Shotlist!Q via SP!J).
+    global_text = "\n".join([
+        s for s in (video_globals.get("camera"), video_globals.get("audio"),
+                    video_globals.get("setting")) if s
+    ])
+    global_html  = html.escape(global_text or "(globals unset)").replace("\n", "<br>")
+    location_html = html.escape(s["location"] or "Unspecified")
+    body_html     = html.escape(s["body"] or "(body pending)").replace("\n", "<br>")
+
+    prompt_html = f'''
+      <div class="prompt-section">
+        <div class="prompt-label">VIDEO GLOBAL</div>
+        <div class="prompt-body global">{global_html}</div>
+      </div>
+      <div class="prompt-section">
+        <div class="prompt-label">LOCATION</div>
+        <div class="prompt-body location">{location_html}</div>
+      </div>
+      <div class="prompt-section">
+        <div class="prompt-label">COMBINED PROMPT</div>
+        <div class="prompt-body combined">{body_html}</div>
+      </div>'''
+
+    return f'''
+    <div class="set-card">
+      <div class="set-head">
+        <h3>Set {s["set"]} · shots {html.escape(s["shots"] or "—")}</h3>
+        <div class="set-meta">
+          <span class="chip">{html.escape(s["status"] or "Pending")}</span>
+        </div>
+      </div>
+      <div class="set-grid">
+        <div class="set-prompt">{prompt_html}</div>
+        <div class="set-storyboards">{sb_html}</div>
+        <div class="set-videos">{vid_html}</div>
+      </div>
+    </div>'''
+
+
+def render_html(data: dict) -> str:
+    nav = []
+    sections = []
+    section_defs = [
+        ("characters", "Characters", lambda d: render_card_grid(d["characters"], "char")),
+        ("locations",  "Locations",  lambda d: render_card_grid(d["locations"], "loc")),
+        ("costume",    "Costume",    lambda d: render_card_grid(d["costume"], "bib")),
+        ("props",      "Props",      lambda d: render_card_grid(d["props"], "bib")),
+        ("effects",    "Effects",    lambda d: render_card_grid(d["effects"], "bib")),
+        ("storyboards","Storyboards",lambda d: "".join(render_set_card(s, d.get("video_globals")) for s in d["storyboards"])),
+    ]
+    # Default-active tab: Storyboards (the most-viewed section in production review).
+    default_tab = "storyboards"
+    for sid, title, render_fn in section_defs:
+        is_active = " active" if sid == default_tab else ""
+        nav.append(f'<button class="tab{is_active}" data-tab="{sid}">{html.escape(title)}</button>')
+        sections.append(
+            f'<section class="panel{is_active}" id="{sid}"><h2>{html.escape(title)}</h2>{render_fn(data)}</section>'
+        )
+
+    stats = data["stats"]
+    stats_html = " · ".join(f"<b>{v}</b> {k}" for k, v in stats.items() if v)
+
+    return f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>{html.escape(data["show"])} — {html.escape(data["episode"])}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {{
+    --bg: #fafafa; --ink: #1a1a1a; --muted: #888; --line: #e5e5e5;
+    --accent: #c11647; --chip-bg: #f0f0f0;
+  }}
+  * {{ box-sizing: border-box; }}
+  body {{
+    margin: 0; font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.5;
+  }}
+  header.hero {{
+    padding: 50px 40px 30px; border-bottom: 1px solid var(--line);
+    background: white;
+  }}
+  header.hero .show {{
+    color: var(--muted); font-size: 12px;
+    letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 10px;
+  }}
+  header.hero h1 {{ font-size: 34px; font-weight: 700; margin: 0 0 14px; }}
+  header.hero .stats {{ font-size: 13px; color: var(--muted); }}
+  header.hero .stats b {{ color: var(--ink); font-weight: 600; }}
+  nav.toc {{
+    position: sticky; top: 0; z-index: 10;
+    background: white; border-bottom: 1px solid var(--line);
+    padding: 0 40px; display: flex; gap: 0; flex-wrap: wrap;
+  }}
+  nav.toc .tab {{
+    background: none; border: 0; border-bottom: 2px solid transparent;
+    color: var(--muted); font-family: inherit; font-size: 13px; font-weight: 500;
+    padding: 14px 18px; cursor: pointer; transition: all 0.15s;
+  }}
+  nav.toc .tab:hover {{ color: var(--ink); }}
+  nav.toc .tab.active {{
+    color: var(--ink); border-bottom-color: var(--accent); font-weight: 600;
+  }}
+  section.panel {{
+    display: none;
+    padding: 40px; max-width: 1400px; margin: 0 auto;
+  }}
+  section.panel.active {{ display: block; }}
+  section h2 {{
+    font-size: 20px; margin: 0 0 24px; padding-bottom: 8px;
+    border-bottom: 2px solid var(--ink); display: inline-block;
+  }}
+  .card-grid {{
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px;
+  }}
+  .card {{
+    background: white; border: 1px solid var(--line); border-radius: 10px;
+    padding: 14px; display: flex; flex-direction: column; gap: 10px;
+  }}
+  .card-head h4 {{ margin: 0; font-size: 14px; font-weight: 600; }}
+  .card-iters {{ display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }}
+  .thumb {{
+    position: relative; aspect-ratio: 1/1;
+    background: #f0f0f0; border-radius: 6px; overflow: hidden;
+    display: block; text-decoration: none;
+  }}
+  .thumb.wide {{ aspect-ratio: 16/9; }}
+  .thumb img {{ width: 100%; height: 100%; object-fit: cover; }}
+  .thumb .label {{
+    position: absolute; bottom: 4px; left: 4px;
+    background: rgba(0,0,0,0.7); color: white; padding: 2px 6px;
+    font-size: 9px; letter-spacing: 0.05em; text-transform: uppercase;
+    border-radius: 3px;
+  }}
+  .placeholder {{
+    background: #f5f5f5; border: 1px dashed var(--line); border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--muted); font-size: 11px; text-transform: uppercase;
+    aspect-ratio: 1/1;
+  }}
+  .thumb.wide.placeholder {{ aspect-ratio: 16/9; }}
+  .meta-line {{ font-size: 11px; color: var(--muted); }}
+  .meta-line b {{ color: var(--ink); }}
+
+  .set-card {{
+    background: white; border: 1px solid var(--line); border-radius: 12px;
+    padding: 22px; margin-bottom: 22px;
+  }}
+  .set-head {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }}
+  .set-head h3 {{ margin: 0; font-size: 16px; font-weight: 600; }}
+  .set-meta .chip {{
+    display: inline-block; background: var(--chip-bg); color: var(--ink);
+    padding: 3px 9px; font-size: 10px; letter-spacing: 0.04em;
+    text-transform: uppercase; border-radius: 4px; margin-left: 6px;
+  }}
+  .set-grid {{
+    display: grid; grid-template-columns: minmax(260px, 1fr) minmax(320px, 1.4fr) minmax(180px, 0.7fr);
+    gap: 18px; align-items: start;
+  }}
+  .set-body {{
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: #444; line-height: 1.6; white-space: pre-wrap;
+    background: #f8f8f8; padding: 12px; border-radius: 6px;
+    max-height: 500px; overflow-y: auto;
+  }}
+  .set-prompt {{ display: flex; flex-direction: column; gap: 12px; }}
+  .prompt-section {{ display: flex; flex-direction: column; gap: 4px; }}
+  .prompt-label {{
+    font-size: 10px; letter-spacing: 0.12em; font-weight: 600;
+    color: var(--accent); text-transform: uppercase;
+  }}
+  .prompt-body {{
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: #444; line-height: 1.55;
+    background: #f8f8f8; padding: 10px 12px; border-radius: 6px;
+  }}
+  .prompt-body.global {{ background: #f0f4f8; }}
+  .prompt-body.location {{
+    background: #fef7ed; font-weight: 500; color: #7a3a08;
+    font-family: 'Inter', sans-serif; font-size: 12px;
+  }}
+  .prompt-body.combined {{
+    background: #f8f8f8;
+    white-space: pre-wrap;
+    /* No max-height — show all shots without scroll-trap. Long sets just
+       extend the card naturally. */
+  }}
+  .set-storyboards {{ display: flex; flex-direction: column; gap: 10px; }}
+  .set-videos {{ display: flex; flex-direction: column; gap: 10px; }}
+  .vid-tile {{
+    aspect-ratio: 9/16; background: black; border-radius: 6px; overflow: hidden;
+    position: relative;
+  }}
+  .vid-tile iframe {{ width: 100%; height: 100%; border: 0; display: block; }}
+  .vid-tile.placeholder {{
+    background: #f5f5f5; border: 1px dashed var(--line);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--muted); font-size: 10px; text-transform: uppercase;
+  }}
+  .vid-tile .label {{
+    position: absolute; bottom: 4px; left: 4px;
+    background: rgba(0,0,0,0.7); color: white; padding: 2px 6px;
+    font-size: 9px; letter-spacing: 0.05em; text-transform: uppercase;
+    border-radius: 3px; pointer-events: none;
+  }}
+  footer {{
+    text-align: center; color: var(--muted); font-size: 11px;
+    padding: 30px; border-top: 1px solid var(--line); margin-top: 40px;
+  }}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="show">{html.escape(data["show"])}</div>
+  <h1>{html.escape(data["episode"])}</h1>
+  <div class="stats">{stats_html}</div>
+</header>
+<nav class="toc">{"".join(nav)}</nav>
+{"".join(sections)}
+<footer>Production review · regenerate with <code>python3 build_gallery.py</code></footer>
+<script>
+  // Tab switcher — single-section view. Click a tab → hide siblings, show target.
+  // Hash-aware: opens the panel matching the URL hash on load if present.
+  (function() {{
+    const tabs = document.querySelectorAll('nav.toc .tab');
+    const panels = document.querySelectorAll('section.panel');
+    function activate(id) {{
+      tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === id));
+      panels.forEach(p => p.classList.toggle('active', p.id === id));
+      if (history.replaceState) history.replaceState(null, '', '#' + id);
+      window.scrollTo({{top: 0, behavior: 'instant'}});
+    }}
+    tabs.forEach(t => t.addEventListener('click', () => activate(t.dataset.tab)));
+    // Honor URL hash on initial load (so links like #characters open that tab)
+    const hash = location.hash.replace(/^#/, '');
+    if (hash && document.getElementById(hash)) activate(hash);
+  }})();
+</script>
+</body>
+</html>'''
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--sheet",   default=DEFAULT_SHEET)
+    ap.add_argument("--show",    default=DEFAULT_SHOW)
+    ap.add_argument("--episode", default=DEFAULT_EPISODE)
+    ap.add_argument("--output",  default=DEFAULT_OUTPUT)
+    args = ap.parse_args()
+
+    print(f"→ reading sheet {args.sheet}")
+    gc = gspread.authorize(get_credentials())
+    sh = gc.open_by_key(args.sheet)
+
+    print("  • characters")
+    characters = read_characters(sh)
+    print(f"    {len(characters)} chars")
+    print("  • locations")
+    locations = read_locations(sh)
+    print(f"    {len(locations)} locs")
+    print("  • costume / props / effects")
+    costume = read_simple_bible(sh, "COSTUME")
+    props = read_simple_bible(sh, "PROPS")
+    effects = read_simple_bible(sh, "EFFECTS")
+    print(f"    {len(costume)} costume · {len(props)} props · {len(effects)} effects")
+    print("  • storyboards")
+    storyboards = read_storyboards(sh)
+    print(f"    {len(storyboards)} sets")
+    print("  • video globals")
+    video_globals = read_video_globals(sh)
+    print(f"    camera={'✓' if video_globals.get('camera') else '—'} "
+          f"audio={'✓' if video_globals.get('audio') else '—'} "
+          f"setting={'✓' if video_globals.get('setting') else '—'}")
+
+    data = {
+        "show": args.show,
+        "episode": args.episode,
+        "stats": {
+            "characters": len(characters),
+            "locations": len(locations),
+            "costume": len(costume),
+            "props": len(props),
+            "effects": len(effects),
+            "sets": len(storyboards),
+        },
+        "characters": characters,
+        "locations": locations,
+        "costume": costume,
+        "props": props,
+        "effects": effects,
+        "storyboards": storyboards,
+        "video_globals": video_globals,
+    }
+
+    html_doc = render_html(data)
+    with open(args.output, "w", encoding="utf-8") as f:
+        f.write(html_doc)
+    print(f"\n✓ wrote {args.output} ({len(html_doc) // 1024} KB)")
+
+
+if __name__ == "__main__":
+    main()
