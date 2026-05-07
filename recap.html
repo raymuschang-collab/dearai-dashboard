@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DearAI · Production Pipeline Recap · May 7, 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep:    #07111f;
+    --bg-navy:    #0c1a2e;
+    --bg-card:    #142235;
+    --bg-card-2:  #1a2a40;
+    --slate:      #2a3a52;
+    --slate-2:    #3a4a64;
+    --line:       #1e2e44;
+    --ink:        #e8edf5;
+    --muted:      #8a99b3;
+    --cyan:       #22d3ee;
+    --cyan-soft:  #67e8f9;
+    --cyan-glow:  rgba(34, 211, 238, 0.15);
+    --green:      #4ade80;
+    --amber:      #fbbf24;
+    --red:        #f87171;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background:
+      radial-gradient(ellipse at top right, rgba(34, 211, 238, 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at bottom left, rgba(34, 211, 238, 0.05) 0%, transparent 50%),
+      var(--bg-deep);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, sans-serif;
+    line-height: 1.65;
+    min-height: 100vh;
+  }
+  ::selection { background: var(--cyan); color: var(--bg-deep); }
+
+  /* Hero */
+  header.hero {
+    padding: 80px 40px 50px;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, var(--bg-navy) 0%, transparent 100%);
+    position: relative;
+  }
+  header.hero::after {
+    content: '';
+    position: absolute; left: 40px; right: 40px; bottom: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--cyan) 50%, transparent);
+    opacity: 0.4;
+  }
+  .meta-row {
+    display: flex; gap: 12px; align-items: center; margin-bottom: 18px;
+    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--cyan); font-weight: 600;
+  }
+  .meta-row .pulse {
+    width: 8px; height: 8px; background: var(--cyan); border-radius: 50%;
+    box-shadow: 0 0 0 0 var(--cyan-glow);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.7); }
+    70% { box-shadow: 0 0 0 12px rgba(34, 211, 238, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(34, 211, 238, 0); }
+  }
+  header.hero h1 {
+    font-size: 52px; font-weight: 800; margin: 0 0 14px;
+    letter-spacing: -0.02em; line-height: 1.05;
+  }
+  header.hero h1 .accent { color: var(--cyan); }
+  header.hero .subtitle {
+    font-size: 16px; color: var(--muted); max-width: 700px;
+  }
+  header.hero .stats-strip {
+    display: flex; gap: 0; margin-top: 36px; max-width: 700px;
+    border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+    background: rgba(20, 34, 53, 0.5); backdrop-filter: blur(8px);
+  }
+  .stat {
+    flex: 1; padding: 18px 22px;
+    border-right: 1px solid var(--line);
+  }
+  .stat:last-child { border-right: 0; }
+  .stat .num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 28px; font-weight: 600; color: var(--cyan);
+    line-height: 1;
+  }
+  .stat .lbl {
+    font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--muted); margin-top: 6px;
+  }
+
+  /* Section grid */
+  main {
+    padding: 60px 40px 100px;
+    max-width: 1100px; margin: 0 auto;
+    display: grid; gap: 28px;
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 800px) {
+    main { grid-template-columns: 1fr 1fr; }
+    .span-2 { grid-column: span 2; }
+  }
+
+  section.card {
+    background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg-card-2) 100%);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 26px 28px 28px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  section.card:hover {
+    border-color: var(--slate-2);
+    transform: translateY(-2px);
+  }
+  section.card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--cyan), transparent);
+    opacity: 0.6;
+  }
+  section.card .num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; color: var(--cyan); font-weight: 600;
+    letter-spacing: 0.1em; opacity: 0.8;
+    margin-bottom: 8px;
+  }
+  section.card h2 {
+    font-size: 22px; font-weight: 700; margin: 0 0 18px;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+  section.card h2 .em { color: var(--cyan); }
+  section.card .lede {
+    color: var(--muted); font-size: 14px; margin-bottom: 16px;
+  }
+  ul.fixes {
+    list-style: none; padding: 0; margin: 0;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  ul.fixes li {
+    padding-left: 28px; position: relative;
+    font-size: 14px; color: var(--ink);
+  }
+  ul.fixes li::before {
+    content: '✓';
+    position: absolute; left: 0; top: 0;
+    color: var(--cyan); font-weight: 600;
+    font-size: 16px;
+  }
+  ul.fixes li b { color: var(--cyan-soft); font-weight: 600; }
+  ul.fixes li code {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    color: var(--cyan-soft); background: rgba(34, 211, 238, 0.08);
+    padding: 1px 6px; border-radius: 3px;
+  }
+  ul.fixes li .sub {
+    display: block; margin-top: 4px; font-size: 12px;
+    color: var(--muted); line-height: 1.5;
+  }
+
+  .badge {
+    display: inline-block; padding: 4px 10px;
+    background: rgba(34, 211, 238, 0.1); color: var(--cyan);
+    border: 1px solid rgba(34, 211, 238, 0.25);
+    border-radius: 4px;
+    font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-right: 6px;
+  }
+  .badge.amber { color: var(--amber); border-color: rgba(251, 191, 36, 0.25); background: rgba(251, 191, 36, 0.1); }
+  .badge.green { color: var(--green); border-color: rgba(74, 222, 128, 0.25); background: rgba(74, 222, 128, 0.1); }
+
+  /* Highlight box for headlines */
+  .highlight {
+    background: linear-gradient(135deg, rgba(34, 211, 238, 0.08), rgba(34, 211, 238, 0.02));
+    border: 1px solid rgba(34, 211, 238, 0.2);
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin-top: 12px;
+  }
+  .highlight .lbl {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--cyan); font-weight: 600; margin-bottom: 6px;
+  }
+  .highlight .body {
+    font-size: 14px; color: var(--ink);
+  }
+  .highlight code {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    color: var(--cyan-soft);
+  }
+
+  /* Cost box */
+  .cost-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    margin-top: 14px;
+  }
+  .cost-cell {
+    padding: 14px 16px;
+    background: var(--bg-card-2); border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  .cost-cell.before { opacity: 0.65; }
+  .cost-cell.after { border-color: rgba(34, 211, 238, 0.3); }
+  .cost-cell .label {
+    font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 6px;
+  }
+  .cost-cell.after .label { color: var(--cyan); }
+  .cost-cell .val {
+    font-family: 'JetBrains Mono', monospace; font-size: 18px;
+    font-weight: 600;
+  }
+  .cost-cell.after .val { color: var(--cyan-soft); }
+
+  /* Outro */
+  footer.outro {
+    margin: 80px 40px 40px;
+    padding: 50px 40px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(34, 211, 238, 0.04), transparent);
+    text-align: center;
+  }
+  footer.outro h3 {
+    font-size: 24px; font-weight: 700;
+    margin: 0 0 12px;
+    letter-spacing: -0.01em;
+  }
+  footer.outro h3 .em { color: var(--cyan); }
+  footer.outro p {
+    color: var(--muted); font-size: 14px; margin: 0;
+  }
+  footer.outro .links {
+    display: flex; gap: 14px; justify-content: center; margin-top: 22px;
+    flex-wrap: wrap;
+  }
+  footer.outro .links a {
+    display: inline-block; padding: 9px 18px;
+    background: rgba(34, 211, 238, 0.08); color: var(--cyan);
+    border: 1px solid rgba(34, 211, 238, 0.25);
+    border-radius: 6px;
+    font-size: 12px; font-weight: 600;
+    letter-spacing: 0.04em; text-transform: uppercase;
+    text-decoration: none;
+    transition: all 0.15s;
+  }
+  footer.outro .links a:hover {
+    background: var(--cyan); color: var(--bg-deep);
+    border-color: var(--cyan);
+  }
+
+  .signoff {
+    text-align: center; padding: 30px 40px 60px;
+    color: var(--muted); font-size: 11px;
+    letter-spacing: 0.06em;
+  }
+  .signoff code {
+    font-family: 'JetBrains Mono', monospace; color: var(--cyan-soft);
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="meta-row">
+    <span class="pulse"></span>
+    Production Pipeline · May 7, 2026
+  </div>
+  <h1>Today we shipped <span class="accent">a CMS</span>,<br>fixed <span class="accent">vidgen identity</span>, and<br>locked the <span class="accent">login wall</span>.</h1>
+  <div class="subtitle">Twelve commits. Four major systems landed. The team can self-serve new projects, scripts auto-shotlist (almost), and every V1/V2 click now bunches characters and survives Render redeploys.</div>
+  <div class="stats-strip">
+    <div class="stat"><div class="num">12</div><div class="lbl">Commits Pushed</div></div>
+    <div class="stat"><div class="num">4</div><div class="lbl">CMS Foundations</div></div>
+    <div class="stat"><div class="num">5</div><div class="lbl">Vidgen Bugs Fixed</div></div>
+    <div class="stat"><div class="num">3</div><div class="lbl">Auth Layers Live</div></div>
+  </div>
+</header>
+
+<main>
+
+  <!-- 1. CMS Foundation -->
+  <section class="card span-2">
+    <div class="num">01 · CMS</div>
+    <h2>Multi-project <span class="em">CMS foundation</span> — projects sheet → live registry → landing page → blank-SOT scaffold</h2>
+    <div class="lede">Sajangnim was hardcoded into the dashboard. Now it's just one row in a Google Sheet your producers can edit. Adding a new show is one click — no engineer in the loop.</div>
+    <ul class="fixes">
+      <li><b>Master Projects sheet</b> — 12-column source of truth (slug, title, type, status, bible_sheet_id, drive_folder_id, parent_show, owner, created, script_url, shotlist_status, notes). Pre-seeded with sajangnim.</li>
+      <li><b>Dynamic registry</b> — <code>read_projects()</code> reads the sheet on every request (60s cache), auto-discovers episode sheets from each show's Drive folder by name pattern. Old hardcoded <code>GALLERY_REGISTRY</code> retired.</li>
+      <li><b>/projects landing page</b> — grid view of all projects with type chips (Series / POC / Concept / Client), status badges, episode counts, owner emails. Filter chips at top.</li>
+      <li><b>/api/new-project endpoint</b> — accepts title + type + slug, runs <code>_create_blank_sot.py</code> in a background thread, appends a master row, flushes the cache. Producers will fire this from a modal in CMS commit 5.</li>
+      <li><b>+ Add cover</b> — click the dashed placeholder on any project card → file picker → upload → 16:9 cover image lives at <code>&lt;show&gt;/cover.{jpg,png,webp}</code> on Drive, anyone-with-link.</li>
+    </ul>
+    <div class="highlight">
+      <div class="lbl">What's next (queued for tonight)</div>
+      <div class="body">Commits 5-8: + New Project modal · script upload (PDF / Word / Google Doc) · Anthropic Opus auto-shotlist (review gate) · Approve button → ingest pipeline.</div>
+    </div>
+  </section>
+
+  <!-- 2. Vidgen Reliability -->
+  <section class="card span-2">
+    <div class="num">02 · VIDGEN</div>
+    <h2>Vidgen identity faithfulness + <span class="em">no more orphan zombies</span></h2>
+    <div class="lede">Five real bugs in one batched commit. The chars-don't-match issue from this afternoon, plus the false "watcher gave up after 90 polls" red banners, plus the storyboard jobs that kept getting orphaned by my own deploys.</div>
+    <ul class="fixes">
+      <li><b>Char-grouped refs</b> — all PARK MIN-JUN refs bunched, all TARA refs bunched. Sort: image (attire/hair) → video (face) → audio (voice). Deterministic per click.</li>
+      <li><b>Hair binding</b> — image binding now says "wardrobe, attire, AND HAIR come from the still X reference image" (was just "wardrobe and attire"). Closes the hair-drift gap.</li>
+      <li><b>Subprocess detach</b> — <code>start_new_session=True</code> on every <code>Popen</code>. Render redeploys SIGTERM gunicorn but the running storyboard / vidgen subprocess survives and completes its sheet writeback. No more "stuck on Generating" zombies.</li>
+      <li><b>Watcher pagination</b> — gallery JS now polls <code>/debug/jobs?n=200&only=all</code>. Was hitting the default <code>only=failed</code> which filtered out successful jobs entirely — that's why every successful gen showed "watcher gave up after 90 polls". Real cause, finally found.</li>
+      <li><b>480p / 15s / 9:16 default</b> — dropped from 1080p. ~62% cheaper per V1+V2 click while iterating. CLI flag still works for 1080p delivery cuts.</li>
+    </ul>
+    <div class="cost-grid">
+      <div class="cost-cell before">
+        <div class="label">Before · per V1+V2 click</div>
+        <div class="val">~$2.00</div>
+      </div>
+      <div class="cost-cell after">
+        <div class="label">After · per V1+V2 click</div>
+        <div class="val">~$0.75</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Auth -->
+  <section class="card">
+    <div class="num">03 · AUTH</div>
+    <h2><span class="em">Google OAuth</span> live · door is locked</h2>
+    <div class="lede">No more anonymous access. No one can hit your APIs to drain BytePlus credits.</div>
+    <ul class="fixes">
+      <li><b>Authlib middleware</b> — every request gated unless <code>session.user_email</code> is on the allowlist. <code>/api/*</code> returns 401 JSON; browsers redirect to <code>/login</code> → Google sign-in.</li>
+      <li><b>OAuth client created</b> in GCP Console, redirect URIs registered, secret saved to Render.</li>
+      <li><b>App published to production</b> (out of Testing mode) — anyone with a Google account can REACH the consent screen; my server-side allowlist does the real gating.</li>
+      <li><b>Allowlist live</b>: <code>dearai.com</code>, <code>dear.ai</code>, plus 3 individual emails.</li>
+    </ul>
+  </section>
+
+  <!-- 4. Upload Asset -->
+  <section class="card">
+    <div class="num">04 · ASSETS</div>
+    <h2><span class="em">Upload Asset</span> button on every bible tab</h2>
+    <div class="lede">No more sharing BytePlus keys. Producers self-serve via the dashboard.</div>
+    <ul class="fixes">
+      <li><b>"+ Upload Asset"</b> on every bible tab in the gallery (Characters / Locations / Costume / Props / Effects).</li>
+      <li><b>Combobox name field</b> — dropdown of existing canonical bible names so producers pick (no typo ghosts), but new names still typeable.</li>
+      <li><b>Server pipeline</b> — file → Drive → BytePlus <code>CreateAsset</code> → poll until Active → row in Asset Library tab. Uploader email logged for audit.</li>
+      <li><b>Image thumbs everywhere</b> — Asset Library 55 entries, all rows show actual image previews now (was 25 with letter placeholders).</li>
+    </ul>
+  </section>
+
+  <!-- 5. Gallery Quality of Life -->
+  <section class="card">
+    <div class="num">05 · GALLERY</div>
+    <h2>Review-surface <span class="em">quality of life</span></h2>
+    <div class="lede">Small things that compound when 4 people open the gallery 30× per day.</div>
+    <ul class="fixes">
+      <li><b>Storyboards is now the first tab</b> (was 6th — bibles are reference, storyboards are the work).</li>
+      <li><b>Lightbox</b> — click a storyboard image → expanded modal, esc / click-out / × to close.</li>
+      <li><b>Episode picker</b> — dropdown next to the refresh button. All sibling episodes one click away.</li>
+      <li><b>Dark mode toggle</b> — persists in localStorage, honors <code>prefers-color-scheme</code> on first visit. Storyboard whites get brightness-dropped at night.</li>
+      <li><b>Live · 30s cache chip</b> + manual ↻ Refresh in hero so the team always knows the freshness state.</li>
+    </ul>
+  </section>
+
+  <!-- 6. Reliability -->
+  <section class="card">
+    <div class="num">06 · RELIABILITY</div>
+    <h2><span class="em">502 → 200</span> across all 6 episodes</h2>
+    <div class="lede">Episodes 2-6 had been bouncing 500s for hours this morning. Root-caused twice; fixed properly the second time.</div>
+    <ul class="fixes">
+      <li><b>Bibles route to ep01 sheet</b> — eps 2-6 don't have their own CHARACTERS / LOCATIONS / etc. tabs (those live at series level). Build was crashing with <code>KeyError: 'CHARACTERS'</code>.</li>
+      <li><b>Module-level bible cache (10-min TTL)</b> — eps 2-6 each used to do 8 sheet reads × 6 eps = 48 reads in 30s, blowing the 60-reads/min Sheets quota. Now ep01 warms cache once, eps 2-6 share it.</li>
+      <li><b>Graceful tab fallback</b> — missing tabs return <code>[]</code> instead of crashing.</li>
+    </ul>
+  </section>
+
+</main>
+
+<footer class="outro">
+  <h3>And a <span class="em">stack of stuff queued for tonight</span></h3>
+  <p>CMS commits 5-8 (modal + script upload + Anthropic auto-shotlist + approve gate). The microdrama-shotlist skill baked into the repo. Maybe a stale-job detector as belt-and-suspenders. By tomorrow morning standup: producers can spin up a new project from a script in 2-5 minutes, end-to-end.</p>
+  <div class="links">
+    <a href="/projects">→ Project list</a>
+    <a href="/gallery/sajangnim_ep01">→ Sajangnim Ep 1</a>
+    <a href="https://docs.google.com/spreadsheets/d/1J-x4b4hshrX3wdMItboQJzcjKkAff_jnKEiIKjpy0g0" target="_blank">→ Master sheet</a>
+  </div>
+</footer>
+
+<div class="signoff">
+  <code>git log --since="2026-05-07" | wc -l</code> · 12 commits · 1 great afternoon
+</div>
+
+</body>
+</html>

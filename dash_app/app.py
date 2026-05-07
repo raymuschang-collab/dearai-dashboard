@@ -704,6 +704,15 @@ _gallery_cache: dict = {}
 _gallery_cache_lock = threading.Lock()
 
 
+@server.route("/recap")
+def _recap_page():
+    """One-off recap page for May 7, 2026 — what we shipped that day.
+    Auth-gated like every other route (your team only)."""
+    from flask import send_from_directory
+    return send_from_directory(str(PROJECT_ROOT), "recap.html",
+                                mimetype="text/html")
+
+
 @server.route("/projects")
 def _projects_landing():
     """CMS landing page — grid of all projects from the master sheet.
