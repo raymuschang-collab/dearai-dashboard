@@ -232,6 +232,21 @@ def detect_bible_refs(body: str, sh) -> list[dict]:
                 "source_url": source_url,
                 "asset_type": asset_type,  # "image" / "video" — vidgen uses for role
             })
+    # Group refs so all of one character's assets are bunched together.
+    # Sort key:
+    #   1. bible_tab order: CHARACTERS first, then LOCATIONS, then other bibles.
+    #   2. within CHARACTERS: by name (alphabetical, deterministic).
+    #   3. within same name: image (locks attire/hair) → video (locks face)
+    #      → audio (locks voice). Same intra-character order every time so the
+    #      prompt's binding numbers (#2, #3, …) stay consistent set-to-set.
+    _BIBLE_ORDER = {"CHARACTERS": 0, "LOCATIONS": 1, "COSTUME": 2,
+                     "PROPS": 3, "EFFECTS": 4}
+    _MEDIA_ORDER = {"image": 0, "video": 1, "audio": 2, "voice": 2}
+    detected.sort(key=lambda r: (
+        _BIBLE_ORDER.get(r["bible_tab"], 99),
+        r["name"].lower(),
+        _MEDIA_ORDER.get((r.get("asset_type") or "").lower(), 99),
+    ))
     return detected
 
 
@@ -609,8 +624,8 @@ def main():
                 if media == "video":
                     id_binding_lines.append(
                         f"- {label} = {name} face loop — use this to anchor {name}'s "
-                        f"identity in every shot where {name} appears. Wardrobe "
-                        f"and attire come from the still {name} reference image.")
+                        f"identity in every shot where {name} appears. Wardrobe, "
+                        f"attire, and hair come from the still {name} reference image.")
                 elif media == "audio":
                     id_binding_lines.append(
                         f"- {label} = {name} voice sample — use this voice for ALL "

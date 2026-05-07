@@ -192,9 +192,17 @@ def fmt_ts(s) -> str:
 def run_bg(cmd: list[str], job_id: str):
     update_job(job_id, status="running")
     try:
+        # `start_new_session=True` detaches the subprocess from gunicorn's
+        # process group on Linux/macOS. When Render redeploys and SIGTERMs
+        # gunicorn workers, the running storyboard / vidgen subprocess
+        # SURVIVES instead of getting orphaned mid-flight. The subprocess's
+        # internal `_safe_print` already absorbs the lost stdout pipe, and
+        # its sheet writeback completes regardless of the parent's death.
+        # Eliminates the "stuck on Generating" + "iter1 uploaded but no
+        # writeback" zombie state we kept hitting today.
         proc = subprocess.Popen(cmd, cwd=str(PROJECT_ROOT),
                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                text=True, bufsize=1)
+                                text=True, bufsize=1, start_new_session=True)
         log_lines = []
         for line in proc.stdout:
             log_lines.append(line.rstrip())

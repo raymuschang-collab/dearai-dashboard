@@ -1080,7 +1080,9 @@ def render_html(data: dict, gallery_name: str = "") -> str:
         return;
       }}
       try {{
-        const r = await fetch('/debug/jobs', {{cache: 'no-store'}});
+        // n=200 so jobs don't fall off /debug/jobs's default top-10 list
+        // when the team fires multiple things during the 12-min watch window.
+        const r = await fetch('/debug/jobs?n=200&only=all', {{cache: 'no-store'}});
         const data = await r.json();
         const byId = {{}};
         for (const j of (data.jobs || [])) byId[j.id] = j;
