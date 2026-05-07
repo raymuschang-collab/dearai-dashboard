@@ -397,22 +397,24 @@ def render_asset_library(assets: list[dict]) -> str:
                 f'<a href="{html.escape(a["source_url"])}" target="_blank" class="al-srclink">view</a>'
                 if a["source_url"] else "<span class='muted'>—</span>"
             )
-            # Tiny thumbnail icon — extracts Drive file_id from source_url and
-            # uses lh3.googleusercontent CDN. Renders as 40×40 inline-block;
-            # placeholder block of same size keeps row alignment when missing
-            # (e.g. video assets that don't render as image thumbs in Drive).
-            thumb_fid = drive_id(a["source_url"]) if a["source_url"] else None
-            if thumb_fid and (a["type"] or "").lower() == "image":
+            # Tiny thumbnail — `thumb_url` is precomputed in build_html with
+            # source_url first, then a name+bible_tab cross-reference into
+            # CHARACTERS / LOCATIONS / COSTUME / PROPS / EFFECTS so Asset
+            # Library rows with empty source_url cells still get an image.
+            # The same lh3.googleusercontent endpoint serves poster frames
+            # for video files, so type=video also renders cleanly.
+            thumb_url = a.get("thumb_url") or ""
+            link_target = a["source_url"] or "#"
+            if thumb_url:
                 thumb_html = (
-                    f'<a href="{html.escape(a["source_url"])}" target="_blank" class="al-thumb">'
-                    f'<img src="{thumb(thumb_fid, 80)}" alt="{html.escape(a["name"])}" loading="lazy">'
+                    f'<a href="{html.escape(link_target)}" target="_blank" class="al-thumb">'
+                    f'<img src="{html.escape(thumb_url)}" alt="{html.escape(a["name"])}" loading="lazy" '
+                    f'onerror="this.parentElement.classList.add(\'placeholder\');this.replaceWith(document.createTextNode(\'{html.escape((a["name"][:1] or "?").upper())}\'))">'
                     f'</a>'
                 )
             else:
-                # Placeholder for non-image assets (videos, missing) — first
-                # letter of name in a coloured block keeps the row aligned.
                 initial = (a["name"][:1] or "?").upper()
-                thumb_html = f'<span class="al-thumb placeholder" title="no image preview">{html.escape(initial)}</span>'
+                thumb_html = f'<span class="al-thumb placeholder" title="no thumbnail available">{html.escape(initial)}</span>'
             rows.append(f'''
               <tr>
                 <td class="al-thumb-cell">{thumb_html}</td>
@@ -1136,6 +1138,36 @@ def build_html(sheet_id: str, show: str, episode: str,
     props = bible_data["props"]
     effects = bible_data["effects"]
     asset_library = bible_data["asset_library"]
+
+    # Thumb backfill — Asset Library rows without a populated source_url cell
+    # still have an underlying bible entry with a Drive thumb. Cross-reference
+    # by lower-cased name within the matching bible_tab so every row gets an
+    # actual image preview instead of a letter placeholder.
+    bible_thumbs: dict[tuple[str, str], str] = {}
+    def _index(items: list[dict], tab_aliases: tuple[str, ...]):
+        for it in items or []:
+            for itr in it.get("iters") or []:
+                if itr and itr.get("thumb"):
+                    for tab in tab_aliases:
+                        bible_thumbs[(tab, it["name"].strip().lower())] = itr["thumb"]
+                    break  # first iter wins
+    _index(characters, ("characters",))
+    _index(locations,  ("locations",))
+    _index(costume,    ("costume",))
+    _index(props,      ("props",))
+    _index(effects,    ("effects",))
+    for a in asset_library:
+        if a.get("thumb_url"):
+            continue
+        # Try source_url first
+        fid = drive_id(a.get("source_url") or "")
+        if fid:
+            a["thumb_url"] = thumb(fid, 80)
+            continue
+        # Fall back to bible cross-reference by (tab, name)
+        tab_key = (a.get("bible_tab") or "").strip().lower()
+        name_key = (a.get("name") or "").strip().lower()
+        a["thumb_url"] = bible_thumbs.get((tab_key, name_key), "")
 
     log("  • storyboards")
     storyboards = read_storyboards(sh)
