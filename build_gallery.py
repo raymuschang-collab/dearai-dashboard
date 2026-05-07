@@ -235,7 +235,8 @@ def render_card_grid(items: list[dict], kind: str) -> str:
 def render_set_card(s: dict, video_globals: dict | None = None) -> str:
     video_globals = video_globals or {}
     sb_html = ""
-    for sb in s["sb_iters"]:
+    for idx, sb in enumerate(s["sb_iters"], start=1):
+        # Storyboard image (or placeholder)
         if sb:
             sb_html += (
                 f'<a class="thumb wide" href="{html.escape(sb["view"])}" target="_blank">'
@@ -245,6 +246,11 @@ def render_set_card(s: dict, video_globals: dict | None = None) -> str:
             )
         else:
             sb_html += '<div class="thumb wide placeholder">storyboard pending</div>'
+        # Generate V<n> button — fires BytePlus Seedance 2.0 with this SB as ref
+        sb_html += (
+            f'<button class="gen-btn vid" data-set="{s["set"]}" data-slot="{idx}" '
+            f'onclick="fireVidgen({s["set"]}, {idx}, this)">Generate V{idx}</button>'
+        )
 
     vid_html = ""
     for v in s["videos"]:
@@ -518,28 +524,25 @@ def render_html(data: dict) -> str:
     if (hash && document.getElementById(hash)) activate(hash);
   }})();
 
-  // Storyboard gen button — fires set + globals + location through the
-  // existing /api/storyboard endpoint (which spawns storyboard_generate.py
-  // with --set N --force). Higgsfield gpt_image_2 takes ~3-7 min for both
-  // iters; refresh the gallery after to see the new panels.
-  async function fireStoryboard(setN, btn) {{
-    const galleryName = location.pathname.split('/').filter(s => s).pop();
+  // Generic gen-button handler — fires the named API endpoint and cycles
+  // button state. Used by both fireStoryboard (storyboard panels) and
+  // fireVidgen (BytePlus Seedance 2 video clips).
+  async function _fireGen(endpoint, body, btn, queueMins) {{
     const orig = btn.textContent;
     btn.disabled = true;
     btn.textContent = 'Firing…';
     btn.classList.remove('success', 'error');
     try {{
-      const r = await fetch('/api/storyboard', {{
+      const r = await fetch(endpoint, {{
         method: 'POST',
         headers: {{'Content-Type': 'application/json'}},
-        body: JSON.stringify({{set: setN, gallery: galleryName}}),
+        body: JSON.stringify(body),
       }});
       const data = await r.json();
       if (r.ok && data.ok) {{
         btn.classList.add('success');
-        btn.textContent = `Queued · ${{data.job_id}} · refresh in ~5 min`;
-        // Re-enable after 5 min so user can fire again if needed
-        setTimeout(() => {{ btn.disabled = false; btn.textContent = orig; btn.classList.remove('success'); }}, 5 * 60 * 1000);
+        btn.textContent = `Queued · ${{data.job_id}} · refresh in ~${{queueMins}} min`;
+        setTimeout(() => {{ btn.disabled = false; btn.textContent = orig; btn.classList.remove('success'); }}, queueMins * 60 * 1000);
       }} else {{
         btn.classList.add('error');
         btn.textContent = 'Failed: ' + (data.error || 'unknown');
@@ -550,6 +553,20 @@ def render_html(data: dict) -> str:
       btn.textContent = 'Error: ' + e.message;
       setTimeout(() => {{ btn.disabled = false; btn.textContent = orig; btn.classList.remove('error'); }}, 8000);
     }}
+  }}
+
+  // Storyboard gen — Higgsfield gpt_image_2, ~5 min for 2 iters
+  function fireStoryboard(setN, btn) {{
+    const gallery = location.pathname.split('/').filter(s => s).pop();
+    return _fireGen('/api/storyboard', {{set: setN, gallery: gallery}}, btn, 5);
+  }}
+
+  // Vidgen V1/V2 — BytePlus Seedance 2.0, ~3-5 min per slot. Pulls the
+  // matching storyboard iter (slot 1 → SP!G/G; slot 2 → SP!H/H) as the
+  // visual reference, plus video globals + per-shot bodies as the prompt.
+  function fireVidgen(setN, slot, btn) {{
+    const gallery = location.pathname.split('/').filter(s => s).pop();
+    return _fireGen('/api/vidgen', {{set: setN, slot: slot, gallery: gallery}}, btn, 5);
   }}
 </script>
 </body>

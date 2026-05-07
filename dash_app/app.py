@@ -389,6 +389,54 @@ def _api_storyboard():
     })
 
 
+@server.route("/api/vidgen", methods=["POST"])
+def _api_vidgen():
+    """Fire byteplus_vidgen.py for one set's V1 or V2 video iteration.
+    Body: {"set": <N>, "slot": 1|2, "gallery": "sajangnim_ep01"}.
+    Returns {"ok": true, "job_id": "...", "message": "..."}.
+
+    Slot 1 → uses Storyboard Iter 1 as visual ref + writes video to SP!M (Video Iter 1)
+    Slot 2 → uses Storyboard Iter 2 as visual ref + writes video to SP!N (Video Iter 2)
+
+    Backed by BytePlus Seedance 2.0 via byteplus_vidgen.py (the existing
+    pipeline with asset:// scheme for char refs to bypass moderation)."""
+    from flask import request, jsonify
+    body = request.get_json(silent=True) or {}
+    set_n = body.get("set")
+    slot = body.get("slot")
+    gallery = body.get("gallery", "")
+    if not isinstance(set_n, int) or set_n < 1:
+        return jsonify({"ok": False, "error": "missing or invalid 'set'"}), 400
+    if slot not in (1, 2):
+        return jsonify({"ok": False, "error": "slot must be 1 or 2"}), 400
+    if gallery not in GALLERY_REGISTRY:
+        return jsonify({"ok": False,
+                         "error": f"unknown gallery '{gallery}'"}), 400
+    sheet_id, _show, _ep = GALLERY_REGISTRY[gallery]
+    job_id = uuid.uuid4().hex[:8]
+    cmd = [PYTHON_BIN, "byteplus_vidgen.py",
+           "--sheet", sheet_id, "--set", str(set_n),
+           "--slot", str(slot), "--confirm"]
+    append_job({
+        "id": job_id,
+        "label": f"vidgen {gallery} set{set_n} V{slot}",
+        "status": "queued",
+        "started": datetime.now(timezone.utc).isoformat(),
+        "log": "",
+        "cmd": " ".join(cmd),
+        "kind": "vidgen",
+        "set": set_n,
+        "slot": slot,
+        "sheet": sheet_id,
+    })
+    threading.Thread(target=run_bg, args=(cmd, job_id), daemon=True).start()
+    return jsonify({
+        "ok": True,
+        "job_id": job_id,
+        "message": f"Queued V{slot} for {gallery} set {set_n}; check Drive in ~5 min."
+    })
+
+
 @server.route("/gallery/<name>/refresh")
 def _gallery_refresh(name):
     """Force-flush the cached HTML for a single gallery. Use after sheet edits
