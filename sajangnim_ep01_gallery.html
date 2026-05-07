@@ -332,6 +332,70 @@
   }
   #lightbox .lb-close:hover { background: var(--accent); color: white; border-color: var(--accent); }
 
+  /* Bible-section header — h2 + Upload button on one row */
+  .panel-head {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 24px;
+  }
+  .panel-head h2 { margin-bottom: 0; }
+  .upload-btn {
+    background: var(--card-bg); color: var(--ink);
+    border: 1px solid var(--ink); border-radius: 6px;
+    font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 9px 16px; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .upload-btn:hover { background: var(--ink); color: var(--card-bg); }
+  /* Upload modal — same overlay pattern as lightbox but smaller, form-shaped */
+  #upload-modal {
+    display: none;
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(0, 0, 0, 0.85);
+    align-items: center; justify-content: center;
+  }
+  #upload-modal.open { display: flex; }
+  #upload-modal .ul-frame {
+    position: relative;
+    width: min(440px, 90vw);
+    background: var(--card-bg); color: var(--ink);
+    border-radius: 10px;
+    padding: 28px 28px 22px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  }
+  #upload-modal h3 {
+    margin: 0 0 18px; font-size: 16px; font-weight: 600;
+    border-bottom: 2px solid var(--ink); padding-bottom: 8px; display: inline-block;
+  }
+  .ul-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .ul-lbl {
+    flex: 0 0 70px; font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted);
+  }
+  .ul-row input[type=text], .ul-row select, .ul-row input[type=file] {
+    flex: 1; padding: 8px 10px;
+    background: var(--soft-bg); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 4px;
+    font: inherit; font-size: 12px;
+  }
+  .ul-row input[readonly] { color: var(--muted); cursor: default; }
+  .ul-actions {
+    display: flex; justify-content: flex-end; gap: 10px;
+    margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line);
+  }
+  .ul-cancel {
+    background: none; border: 1px solid var(--line);
+    color: var(--muted); border-radius: 4px;
+    font: inherit; font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    padding: 9px 16px; cursor: pointer;
+  }
+  .ul-cancel:hover { color: var(--ink); border-color: var(--ink); }
+  .ul-error {
+    color: var(--accent); font-size: 12px; margin-top: 10px;
+    min-height: 16px;
+  }
+
   footer {
     text-align: center; color: var(--muted); font-size: 11px;
     padding: 30px; border-top: 1px solid var(--line); margin-top: 40px;
@@ -356,6 +420,43 @@
     </div>
   </div>
 </div>
+<!-- Upload Asset modal — opened by the "+ Upload Asset" button on each
+     bible tab. Single shared modal; bible_tab is pre-filled per click.
+     Submit fires /api/upload-asset (multipart) → returns job_id → existing
+     watchJobs() polls /debug/jobs and reloads the gallery on Active. -->
+<div id="upload-modal" onclick="closeUploadIfBackdrop(event)">
+  <div class="ul-frame">
+    <button class="lb-close" type="button" onclick="closeUploadModal()" aria-label="Close">×</button>
+    <h3 id="ul-title">Upload Asset</h3>
+    <form id="ul-form" onsubmit="submitUpload(event)">
+      <label class="ul-row">
+        <span class="ul-lbl">Bible</span>
+        <input type="text" name="bible_tab" id="ul-bible" readonly required>
+      </label>
+      <label class="ul-row">
+        <span class="ul-lbl">Name</span>
+        <input type="text" name="name" id="ul-name" required
+               placeholder="e.g. TARA Variant 5 / Walk-in cooler / Bronze spear">
+      </label>
+      <label class="ul-row">
+        <span class="ul-lbl">Type</span>
+        <select name="asset_type" id="ul-type" required>
+          <option value="Image" selected>Image</option>
+          <option value="Video">Video</option>
+        </select>
+      </label>
+      <label class="ul-row">
+        <span class="ul-lbl">File</span>
+        <input type="file" name="file" id="ul-file" accept="image/*,video/*" required>
+      </label>
+      <div class="ul-actions">
+        <button type="button" class="ul-cancel" onclick="closeUploadModal()">Cancel</button>
+        <button type="submit" id="ul-submit" class="gen-btn">Upload</button>
+      </div>
+      <div id="ul-error" class="ul-error"></div>
+    </form>
+  </div>
+</div>
 <header class="hero">
   <div class="live-row"><span class="live-chip">LIVE · 30s cache</span><a class="refresh" href="/gallery/sajangnim_ep01/refresh" title="Force-flush server cache + reload (default 30s TTL)">↻ Refresh</a><button id="dark-toggle" class="refresh" type="button" title="Toggle dark / light mode (saved in localStorage)" onclick="toggleDarkMode()">🌙</button><span id="user-chip" data-email="__GALLERY_USER_EMAIL__" title="Logged in as __GALLERY_USER_EMAIL__"></span><a class="refresh" href="/auth/logout" title="Sign out of this Google account">Log out</a></div>
   <div class="show">Diam Diam Aku Cinta Sajangnim</div>
@@ -363,7 +464,7 @@
   <div class="stats"><b>6</b> characters · <b>8</b> locations · <b>8</b> costume · <b>16</b> props · <b>8</b> effects · <b>12</b> sets</div>
 </header>
 <nav class="toc"><button class="tab active" data-tab="storyboards">Storyboards</button><button class="tab" data-tab="characters">Characters</button><button class="tab" data-tab="locations">Locations</button><button class="tab" data-tab="costume">Costume</button><button class="tab" data-tab="props">Props</button><button class="tab" data-tab="effects">Effects</button><button class="tab" data-tab="assets">Asset Library</button></nav>
-<section class="panel active" id="storyboards"><h2>Storyboards</h2>
+<section class="panel active" id="storyboards"><div class="panel-head"><h2>Storyboards</h2></div>
     <div class="set-card" data-set="1">
       <div class="set-head">
         <h3>Set 1 · shots 1-3</h3>
@@ -564,7 +665,7 @@
       <div class="set-head">
         <h3>Set 8 · shots 34-38</h3>
         <div class="set-meta">
-          <span class="chip">Generating</span>
+          <span class="chip">Done</span>
         </div>
       </div>
       <div class="set-grid">
@@ -584,7 +685,7 @@
       <button class="gen-btn" data-set="8" onclick="fireStoryboard(8, this)">
         Generate Storyboard
       </button></div>
-        <div class="set-storyboards"><a class="thumb wide lb-trigger" href="https://drive.google.com/file/d/1YCtEW5DpOQz91uDvJSHImtxSLLPLQDLQ/view" data-lb-src="https://lh3.googleusercontent.com/d/1YCtEW5DpOQz91uDvJSHImtxSLLPLQDLQ=w2400" data-lb-label="Set 8 · Storyboard 1" data-lb-view="https://drive.google.com/file/d/1YCtEW5DpOQz91uDvJSHImtxSLLPLQDLQ/view" onclick="openLightbox(this); return false;"><img src="https://lh3.googleusercontent.com/d/1YCtEW5DpOQz91uDvJSHImtxSLLPLQDLQ=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><button class="gen-btn vid" data-set="8" data-slot="1" onclick="fireVidgen(8, 1, this)">Generate V1</button><a class="thumb wide lb-trigger" href="https://drive.google.com/file/d/1gBx6lwRdDfzyNtfH1R8-QZHvUFoLx8C_/view" data-lb-src="https://lh3.googleusercontent.com/d/1gBx6lwRdDfzyNtfH1R8-QZHvUFoLx8C_=w2400" data-lb-label="Set 8 · Storyboard 2" data-lb-view="https://drive.google.com/file/d/1gBx6lwRdDfzyNtfH1R8-QZHvUFoLx8C_/view" onclick="openLightbox(this); return false;"><img src="https://lh3.googleusercontent.com/d/1gBx6lwRdDfzyNtfH1R8-QZHvUFoLx8C_=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a><button class="gen-btn vid" data-set="8" data-slot="2" onclick="fireVidgen(8, 2, this)">Generate V2</button></div>
+        <div class="set-storyboards"><a class="thumb wide lb-trigger" href="https://drive.google.com/file/d/1YCtEW5DpOQz91uDvJSHImtxSLLPLQDLQ/view" data-lb-src="https://lh3.googleusercontent.com/d/1YCtEW5DpOQz91uDvJSHImtxSLLPLQDLQ=w2400" data-lb-label="Set 8 · Storyboard 1" data-lb-view="https://drive.google.com/file/d/1YCtEW5DpOQz91uDvJSHImtxSLLPLQDLQ/view" onclick="openLightbox(this); return false;"><img src="https://lh3.googleusercontent.com/d/1YCtEW5DpOQz91uDvJSHImtxSLLPLQDLQ=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><button class="gen-btn vid" data-set="8" data-slot="1" onclick="fireVidgen(8, 1, this)">Generate V1</button><a class="thumb wide lb-trigger" href="https://drive.google.com/file/d/139E7Rjd_OmdFZHsBT25MCN2ziLXp_O1O/view" data-lb-src="https://lh3.googleusercontent.com/d/139E7Rjd_OmdFZHsBT25MCN2ziLXp_O1O=w2400" data-lb-label="Set 8 · Storyboard 2" data-lb-view="https://drive.google.com/file/d/139E7Rjd_OmdFZHsBT25MCN2ziLXp_O1O/view" onclick="openLightbox(this); return false;"><img src="https://lh3.googleusercontent.com/d/139E7Rjd_OmdFZHsBT25MCN2ziLXp_O1O=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a><button class="gen-btn vid" data-set="8" data-slot="2" onclick="fireVidgen(8, 2, this)">Generate V2</button></div>
         <div class="set-videos"><div class="vid-tile placeholder">video pending</div><div class="vid-tile placeholder">video pending</div></div>
       </div>
     </div>
@@ -699,7 +800,7 @@
         <div class="set-storyboards"><a class="thumb wide lb-trigger" href="https://drive.google.com/file/d/1xWNcXe7GN_7g2Y22crUvbXOR05kcxt27/view" data-lb-src="https://lh3.googleusercontent.com/d/1xWNcXe7GN_7g2Y22crUvbXOR05kcxt27=w2400" data-lb-label="Set 12 · Storyboard 1" data-lb-view="https://drive.google.com/file/d/1xWNcXe7GN_7g2Y22crUvbXOR05kcxt27/view" onclick="openLightbox(this); return false;"><img src="https://lh3.googleusercontent.com/d/1xWNcXe7GN_7g2Y22crUvbXOR05kcxt27=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><button class="gen-btn vid" data-set="12" data-slot="1" onclick="fireVidgen(12, 1, this)">Generate V1</button><a class="thumb wide lb-trigger" href="https://drive.google.com/file/d/1maoUUhGeCRDna6JdOhv7ycUch3eGddy0/view" data-lb-src="https://lh3.googleusercontent.com/d/1maoUUhGeCRDna6JdOhv7ycUch3eGddy0=w2400" data-lb-label="Set 12 · Storyboard 2" data-lb-view="https://drive.google.com/file/d/1maoUUhGeCRDna6JdOhv7ycUch3eGddy0/view" onclick="openLightbox(this); return false;"><img src="https://lh3.googleusercontent.com/d/1maoUUhGeCRDna6JdOhv7ycUch3eGddy0=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a><button class="gen-btn vid" data-set="12" data-slot="2" onclick="fireVidgen(12, 2, this)">Generate V2</button></div>
         <div class="set-videos"><div class="vid-tile placeholder">video pending</div><div class="vid-tile placeholder">video pending</div></div>
       </div>
-    </div></section><section class="panel" id="characters"><h2>Characters</h2><div class="card-grid">
+    </div></section><section class="panel" id="characters"><div class="panel-head"><h2>Characters</h2><button class="upload-btn" type="button" onclick="openUploadModal('CHARACTERS')">+ Upload Asset</button></div><div class="card-grid">
         <div class="card char-card">
           <div class="card-head"><h4>TARA ANJANI</h4></div>
           <div class="card-iters"><a class="thumb" href="https://drive.google.com/file/d/1f1qIK8wQp-g0vhycnIg6uM_sH1VdxwxS/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1f1qIK8wQp-g0vhycnIg6uM_sH1VdxwxS=w1000" alt="Iter 1" loading="lazy"><span class="label">Iter 1</span></a><a class="thumb" href="https://drive.google.com/file/d/1qL-tEznQoZZP19vcWzHHNsojGa8EfJpy/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1qL-tEznQoZZP19vcWzHHNsojGa8EfJpy=w1000" alt="Iter 2" loading="lazy"><span class="label">Iter 2</span></a></div>
@@ -729,7 +830,7 @@
           <div class="card-head"><h4>MANAGER</h4></div>
           <div class="card-iters"><a class="thumb" href="https://drive.google.com/file/d/1vIBeHrAIcpoBKtM4jlKmKtDBtQTRClFH/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1vIBeHrAIcpoBKtM4jlKmKtDBtQTRClFH=w1000" alt="Iter 1" loading="lazy"><span class="label">Iter 1</span></a></div>
           
-        </div></div></section><section class="panel" id="locations"><h2>Locations</h2><div class="card-grid">
+        </div></div></section><section class="panel" id="locations"><div class="panel-head"><h2>Locations</h2><button class="upload-btn" type="button" onclick="openUploadModal('LOCATIONS')">+ Upload Asset</button></div><div class="card-grid">
         <div class="card loc-card">
           <div class="card-head"><h4>Hanbyeol Bistro Kitchen</h4></div>
           <div class="card-iters"><a class="thumb" href="https://drive.google.com/file/d/10wivkLHQMHUrouoTx9Kml9CV9lWnWpYX/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/10wivkLHQMHUrouoTx9Kml9CV9lWnWpYX=w1000" alt="wide – iter 1" loading="lazy"><span class="label">wide – iter 1</span></a><a class="thumb" href="https://drive.google.com/file/d/15FaCcZWwLJKUL9iOXNuLOCbc-lk8xfOB/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/15FaCcZWwLJKUL9iOXNuLOCbc-lk8xfOB=w1000" alt="wide – iter 2" loading="lazy"><span class="label">wide – iter 2</span></a></div>
@@ -742,7 +843,7 @@
         </div>
         <div class="card loc-card">
           <div class="card-head"><h4>Walk-In Cooler</h4></div>
-          <div class="card-iters"><a class="thumb" href="https://drive.google.com/file/d/1KW8noitwBzsnYboQ47HF0wbTANCZDm8e/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1KW8noitwBzsnYboQ47HF0wbTANCZDm8e=w1000" alt="wide – iter 1" loading="lazy"><span class="label">wide – iter 1</span></a><a class="thumb" href="https://drive.google.com/file/d/1h2IeWMVi-AZlGIFklwW4yTfb3EtfAR1h/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1h2IeWMVi-AZlGIFklwW4yTfb3EtfAR1h=w1000" alt="wide – iter 2" loading="lazy"><span class="label">wide – iter 2</span></a></div>
+          <div class="card-iters"><a class="thumb" href="https://drive.google.com/file/d/1Fok18M7a7X1z1Y72Tpcl0DRBVTqYBzYi/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1Fok18M7a7X1z1Y72Tpcl0DRBVTqYBzYi=w1000" alt="wide – iter 1" loading="lazy"><span class="label">wide – iter 1</span></a><a class="thumb" href="https://drive.google.com/file/d/1MpTCwUu70keAqeGN5oWyTKvxOZfUwz1E/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1MpTCwUu70keAqeGN5oWyTKvxOZfUwz1E=w1000" alt="wide – iter 2" loading="lazy"><span class="label">wide – iter 2</span></a></div>
           <div class="meta-line"><b>description:</b> Spacious walk-in chiller — wide enough for two people to move around comfortably, long corridor feel. Practical, lived-in restaurant kitchen aesthetic — same visual world as the adjacent storage room. Stainless steel wire racks lining both walls: hanging short ribs, banchan tubs, chilled fish, vegetable crates. On the LEFT side wall: a heavy thick stainless steel walk-in cooler door with a small circular porthole window and a horizontal bar lever handle, door slightly ajar. Black rubber anti-slip mat on the floor. On the nearest rack at eye level: two medium-sized round plastic food containers — the kind one person can easily carry with both hands — each with a large easy-peel white rectangular sticker label: one reads &#x27;KIMCHI — 5 MONTHS&#x27;, the other reads &#x27;KIMCHI — 1 WEEK&#x27;. Labels are flat, smooth, and peelable. Thin visible breath fog drifting in cold air.</div>
         </div>
         <div class="card loc-card">
@@ -769,7 +870,7 @@
           <div class="card-head"><h4>Hanbyeol Pass Station</h4></div>
           <div class="card-iters"><a class="thumb" href="https://drive.google.com/file/d/198Eim35295y-4ww25mzEZPndhXmUQJW5/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/198Eim35295y-4ww25mzEZPndhXmUQJW5=w1000" alt="detail – iter 1" loading="lazy"><span class="label">detail – iter 1</span></a></div>
           <div class="meta-line"><b>description:</b> The pass — final plating station. Heat lamps overhead casting amber wash. Plates lined up, garnish jars, pass mike, ticket rail with chits.</div>
-        </div></div></section><section class="panel" id="costume"><h2>Costume</h2><div class="card-grid">
+        </div></div></section><section class="panel" id="costume"><div class="panel-head"><h2>Costume</h2><button class="upload-btn" type="button" onclick="openUploadModal('COSTUME')">+ Upload Asset</button></div><div class="card-grid">
         <div class="card bib-card">
           <div class="card-head"><h4>White junior chef coat (Tara EP01)</h4></div>
           <div class="card-iters"><a class="thumb" href="https://drive.google.com/file/d/1rw44irAWN9Nc9y6Hx4cFYKUSr6yUXo4A/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1rw44irAWN9Nc9y6Hx4cFYKUSr6yUXo4A=w1000" alt="Iter 1" loading="lazy"><span class="label">Iter 1</span></a></div>
@@ -809,7 +910,7 @@
           <div class="card-head"><h4>Joon-ho&#x27;s casual (alley scene)</h4></div>
           <div class="card-iters"><a class="thumb" href="https://drive.google.com/file/d/1xAiDcJO-0AFKElnZOZ7xzoMZxEkREsCi/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1xAiDcJO-0AFKElnZOZ7xzoMZxEkREsCi=w1000" alt="Iter 1" loading="lazy"><span class="label">Iter 1</span></a></div>
           <div class="meta-line"><b>used_by:</b> JOON-HO</div><div class="meta-line"><b>description:</b> White chef coat removed and draped over Tara&#x27;s shoulders. Underneath: simple gray cotton tee, dark trousers</div>
-        </div></div></section><section class="panel" id="props"><h2>Props</h2><div class="card-grid">
+        </div></div></section><section class="panel" id="props"><div class="panel-head"><h2>Props</h2><button class="upload-btn" type="button" onclick="openUploadModal('PROPS')">+ Upload Asset</button></div><div class="card-grid">
         <div class="card bib-card">
           <div class="card-head"><h4>Chef&#x27;s knife</h4></div>
           <div class="card-iters"><a class="thumb" href="https://drive.google.com/file/d/1OZw8VznzMQlrFoTmkzcIfAGpwmUOestZ/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1OZw8VznzMQlrFoTmkzcIfAGpwmUOestZ=w1000" alt="Iter 1" loading="lazy"><span class="label">Iter 1</span></a></div>
@@ -889,7 +990,7 @@
           <div class="card-head"><h4>Hanbyeol Logo (brand mark)</h4></div>
           <div class="card-iters"><a class="thumb" href="https://drive.google.com/file/d/1a3MW4RgsplZayR18SP1JKBHFhO3Ca4Nz/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1a3MW4RgsplZayR18SP1JKBHFhO3Ca4Nz=w1000" alt="Iter 1" loading="lazy"><span class="label">Iter 1</span></a></div>
           <div class="meta-line"><b>used_by:</b> Brand / signage / packaging</div><div class="meta-line"><b>description:</b> Hanbyeol restaurant brand mark / logo. Hand-designed, used on chef coats, signage, takeout boxes, business cards, menu covers.</div>
-        </div></div></section><section class="panel" id="effects"><h2>Effects</h2><div class="card-grid">
+        </div></div></section><section class="panel" id="effects"><div class="panel-head"><h2>Effects</h2><button class="upload-btn" type="button" onclick="openUploadModal('EFFECTS')">+ Upload Asset</button></div><div class="card-grid">
         <div class="card bib-card">
           <div class="card-head"><h4>Kitchen steam</h4></div>
           <div class="card-iters"><a class="thumb" href="https://drive.google.com/file/d/1tPQHC4_Bw6NXe7VXoGlxkdcLVedN8Vxg/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1tPQHC4_Bw6NXe7VXoGlxkdcLVedN8Vxg=w1000" alt="Iter 1" loading="lazy"><span class="label">Iter 1</span></a></div>
@@ -929,7 +1030,7 @@
           <div class="card-head"><h4>Cooler breath</h4></div>
           <div class="card-iters"><a class="thumb" href="https://drive.google.com/file/d/1C6_2mJ24uFcWn6WC687X-5Rf06L8ed2x/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1C6_2mJ24uFcWn6WC687X-5Rf06L8ed2x=w1000" alt="Iter 1" loading="lazy"><span class="label">Iter 1</span></a></div>
           <div class="meta-line"><b>used_by:</b> Walk-In Cooler</div><div class="meta-line"><b>description:</b> Visible breath fog from characters inside the walk-in cooler</div>
-        </div></div></section><section class="panel" id="assets"><h2>Asset Library</h2>
+        </div></div></section><section class="panel" id="assets"><div class="panel-head"><h2>Asset Library</h2></div>
           <div class="al-group">
             <h3 class="al-group-title">LOCATIONS <span class="al-count">(8)</span></h3>
             <table class="al-table">
@@ -1493,7 +1594,8 @@
         for (const id of Array.from(remaining)) {
           const j = byId[id];
           if (!j) continue;
-          if (j.status === 'succeeded') remaining.delete(id);
+          // run_bg writes "done"; some other paths write "succeeded" — accept both.
+          if (j.status === 'done' || j.status === 'succeeded') remaining.delete(id);
           else if (j.status === 'failed' || j.status === 'errored') {
             remaining.delete(id);
             failed.push(id);
@@ -1613,6 +1715,62 @@
     else on = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
     applyDarkMode(on);
   })();
+
+  // ===== Upload Asset modal =====
+  // Open from any bible tab's "+ Upload Asset" button. The bible tab name
+  // is pre-filled from the click; user picks file + name + type. Submit
+  // multipart-fetch /api/upload-asset → returns job_id → watchJobs reloads
+  // gallery on Active. The bible read cache is flushed server-side so the
+  // new row shows up on the auto-refresh.
+  function openUploadModal(bibleTab) {
+    const m = document.getElementById('upload-modal');
+    document.getElementById('ul-bible').value = bibleTab;
+    document.getElementById('ul-name').value = '';
+    document.getElementById('ul-file').value = '';
+    document.getElementById('ul-error').textContent = '';
+    document.getElementById('ul-submit').disabled = false;
+    document.getElementById('ul-submit').textContent = 'Upload';
+    m.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => document.getElementById('ul-name').focus(), 50);
+  }
+  function closeUploadModal() {
+    document.getElementById('upload-modal').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  function closeUploadIfBackdrop(e) {
+    if (e.target.id === 'upload-modal') closeUploadModal();
+  }
+  async function submitUpload(ev) {
+    ev.preventDefault();
+    const form = document.getElementById('ul-form');
+    const errEl = document.getElementById('ul-error');
+    const submitBtn = document.getElementById('ul-submit');
+    errEl.textContent = '';
+    const fd = new FormData(form);
+    const gallery = location.pathname.split('/').filter(s => s).pop();
+    fd.append('gallery', gallery);
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Uploading…';
+    try {
+      const r = await fetch('/api/upload-asset', {method: 'POST', body: fd});
+      const data = await r.json();
+      if (r.ok && data.ok) {
+        const name = fd.get('name');
+        const tab = fd.get('bible_tab');
+        closeUploadModal();
+        watchJobs([data.job_id], `Upload ${tab}/${name}`);
+      } else {
+        errEl.textContent = 'Failed: ' + (data.error || ('HTTP ' + r.status));
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Upload';
+      }
+    } catch (e) {
+      errEl.textContent = 'Error: ' + e.message;
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Upload';
+    }
+  }
 
   // Storyboard gen — fal.ai gpt-image-2, ~2-3 min for 2 iters
   function fireStoryboard(setN, btn) {

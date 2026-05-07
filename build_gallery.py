@@ -287,6 +287,17 @@ def render_card_grid(items: list[dict], kind: str) -> str:
     return '<div class="card-grid">' + "".join(cards) + "</div>"
 
 
+# Maps the section-id (storyboards/characters/...) → BytePlus bible tab name.
+# Used by the Upload Asset button to pre-fill the modal's bible_tab field.
+_SECTION_TO_BIBLE = {
+    "characters": "CHARACTERS",
+    "locations":  "LOCATIONS",
+    "costume":    "COSTUME",
+    "props":      "PROPS",
+    "effects":    "EFFECTS",
+}
+
+
 def render_set_card(s: dict, video_globals: dict | None = None) -> str:
     video_globals = video_globals or {}
     sb_html = ""
@@ -458,8 +469,20 @@ def render_html(data: dict, gallery_name: str = "") -> str:
     for sid, title, render_fn in section_defs:
         is_active = " active" if sid == default_tab else ""
         nav.append(f'<button class="tab{is_active}" data-tab="{sid}">{html.escape(title)}</button>')
+        # Bible tabs get a "+ Upload Asset" button next to the heading. The
+        # button opens a shared modal pre-filled with this bible_tab so the
+        # user only picks file + name. Server-side route writes a row to
+        # Asset Library + waits for BytePlus Active before refresh.
+        bible_tab = _SECTION_TO_BIBLE.get(sid, "")
+        upload_btn = (
+            f'<button class="upload-btn" type="button" '
+            f'onclick="openUploadModal(\'{html.escape(bible_tab)}\')">+ Upload Asset</button>'
+            if bible_tab and gallery_name else ""
+        )
         sections.append(
-            f'<section class="panel{is_active}" id="{sid}"><h2>{html.escape(title)}</h2>{render_fn(data)}</section>'
+            f'<section class="panel{is_active}" id="{sid}">'
+            f'<div class="panel-head"><h2>{html.escape(title)}</h2>{upload_btn}</div>'
+            f'{render_fn(data)}</section>'
         )
 
     stats = data["stats"]
@@ -848,6 +871,70 @@ def render_html(data: dict, gallery_name: str = "") -> str:
   }}
   #lightbox .lb-close:hover {{ background: var(--accent); color: white; border-color: var(--accent); }}
 
+  /* Bible-section header — h2 + Upload button on one row */
+  .panel-head {{
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 24px;
+  }}
+  .panel-head h2 {{ margin-bottom: 0; }}
+  .upload-btn {{
+    background: var(--card-bg); color: var(--ink);
+    border: 1px solid var(--ink); border-radius: 6px;
+    font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 9px 16px; cursor: pointer;
+    transition: all 0.15s;
+  }}
+  .upload-btn:hover {{ background: var(--ink); color: var(--card-bg); }}
+  /* Upload modal — same overlay pattern as lightbox but smaller, form-shaped */
+  #upload-modal {{
+    display: none;
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(0, 0, 0, 0.85);
+    align-items: center; justify-content: center;
+  }}
+  #upload-modal.open {{ display: flex; }}
+  #upload-modal .ul-frame {{
+    position: relative;
+    width: min(440px, 90vw);
+    background: var(--card-bg); color: var(--ink);
+    border-radius: 10px;
+    padding: 28px 28px 22px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  }}
+  #upload-modal h3 {{
+    margin: 0 0 18px; font-size: 16px; font-weight: 600;
+    border-bottom: 2px solid var(--ink); padding-bottom: 8px; display: inline-block;
+  }}
+  .ul-row {{ display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }}
+  .ul-lbl {{
+    flex: 0 0 70px; font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted);
+  }}
+  .ul-row input[type=text], .ul-row select, .ul-row input[type=file] {{
+    flex: 1; padding: 8px 10px;
+    background: var(--soft-bg); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 4px;
+    font: inherit; font-size: 12px;
+  }}
+  .ul-row input[readonly] {{ color: var(--muted); cursor: default; }}
+  .ul-actions {{
+    display: flex; justify-content: flex-end; gap: 10px;
+    margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line);
+  }}
+  .ul-cancel {{
+    background: none; border: 1px solid var(--line);
+    color: var(--muted); border-radius: 4px;
+    font: inherit; font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    padding: 9px 16px; cursor: pointer;
+  }}
+  .ul-cancel:hover {{ color: var(--ink); border-color: var(--ink); }}
+  .ul-error {{
+    color: var(--accent); font-size: 12px; margin-top: 10px;
+    min-height: 16px;
+  }}
+
   footer {{
     text-align: center; color: var(--muted); font-size: 11px;
     padding: 30px; border-top: 1px solid var(--line); margin-top: 40px;
@@ -870,6 +957,43 @@ def render_html(data: dict, gallery_name: str = "") -> str:
       <span id="lb-label"></span>
       <a id="lb-view" href="#" target="_blank" class="lb-view-link">View original on Drive ↗</a>
     </div>
+  </div>
+</div>
+<!-- Upload Asset modal — opened by the "+ Upload Asset" button on each
+     bible tab. Single shared modal; bible_tab is pre-filled per click.
+     Submit fires /api/upload-asset (multipart) → returns job_id → existing
+     watchJobs() polls /debug/jobs and reloads the gallery on Active. -->
+<div id="upload-modal" onclick="closeUploadIfBackdrop(event)">
+  <div class="ul-frame">
+    <button class="lb-close" type="button" onclick="closeUploadModal()" aria-label="Close">×</button>
+    <h3 id="ul-title">Upload Asset</h3>
+    <form id="ul-form" onsubmit="submitUpload(event)">
+      <label class="ul-row">
+        <span class="ul-lbl">Bible</span>
+        <input type="text" name="bible_tab" id="ul-bible" readonly required>
+      </label>
+      <label class="ul-row">
+        <span class="ul-lbl">Name</span>
+        <input type="text" name="name" id="ul-name" required
+               placeholder="e.g. TARA Variant 5 / Walk-in cooler / Bronze spear">
+      </label>
+      <label class="ul-row">
+        <span class="ul-lbl">Type</span>
+        <select name="asset_type" id="ul-type" required>
+          <option value="Image" selected>Image</option>
+          <option value="Video">Video</option>
+        </select>
+      </label>
+      <label class="ul-row">
+        <span class="ul-lbl">File</span>
+        <input type="file" name="file" id="ul-file" accept="image/*,video/*" required>
+      </label>
+      <div class="ul-actions">
+        <button type="button" class="ul-cancel" onclick="closeUploadModal()">Cancel</button>
+        <button type="submit" id="ul-submit" class="gen-btn">Upload</button>
+      </div>
+      <div id="ul-error" class="ul-error"></div>
+    </form>
   </div>
 </div>
 <header class="hero">
@@ -948,7 +1072,8 @@ def render_html(data: dict, gallery_name: str = "") -> str:
         for (const id of Array.from(remaining)) {{
           const j = byId[id];
           if (!j) continue;
-          if (j.status === 'succeeded') remaining.delete(id);
+          // run_bg writes "done"; some other paths write "succeeded" — accept both.
+          if (j.status === 'done' || j.status === 'succeeded') remaining.delete(id);
           else if (j.status === 'failed' || j.status === 'errored') {{
             remaining.delete(id);
             failed.push(id);
@@ -1068,6 +1193,62 @@ def render_html(data: dict, gallery_name: str = "") -> str:
     else on = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
     applyDarkMode(on);
   }})();
+
+  // ===== Upload Asset modal =====
+  // Open from any bible tab's "+ Upload Asset" button. The bible tab name
+  // is pre-filled from the click; user picks file + name + type. Submit
+  // multipart-fetch /api/upload-asset → returns job_id → watchJobs reloads
+  // gallery on Active. The bible read cache is flushed server-side so the
+  // new row shows up on the auto-refresh.
+  function openUploadModal(bibleTab) {{
+    const m = document.getElementById('upload-modal');
+    document.getElementById('ul-bible').value = bibleTab;
+    document.getElementById('ul-name').value = '';
+    document.getElementById('ul-file').value = '';
+    document.getElementById('ul-error').textContent = '';
+    document.getElementById('ul-submit').disabled = false;
+    document.getElementById('ul-submit').textContent = 'Upload';
+    m.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => document.getElementById('ul-name').focus(), 50);
+  }}
+  function closeUploadModal() {{
+    document.getElementById('upload-modal').classList.remove('open');
+    document.body.style.overflow = '';
+  }}
+  function closeUploadIfBackdrop(e) {{
+    if (e.target.id === 'upload-modal') closeUploadModal();
+  }}
+  async function submitUpload(ev) {{
+    ev.preventDefault();
+    const form = document.getElementById('ul-form');
+    const errEl = document.getElementById('ul-error');
+    const submitBtn = document.getElementById('ul-submit');
+    errEl.textContent = '';
+    const fd = new FormData(form);
+    const gallery = location.pathname.split('/').filter(s => s).pop();
+    fd.append('gallery', gallery);
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Uploading…';
+    try {{
+      const r = await fetch('/api/upload-asset', {{method: 'POST', body: fd}});
+      const data = await r.json();
+      if (r.ok && data.ok) {{
+        const name = fd.get('name');
+        const tab = fd.get('bible_tab');
+        closeUploadModal();
+        watchJobs([data.job_id], `Upload ${{tab}}/${{name}}`);
+      }} else {{
+        errEl.textContent = 'Failed: ' + (data.error || ('HTTP ' + r.status));
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Upload';
+      }}
+    }} catch (e) {{
+      errEl.textContent = 'Error: ' + e.message;
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Upload';
+    }}
+  }}
 
   // Storyboard gen — fal.ai gpt-image-2, ~2-3 min for 2 iters
   function fireStoryboard(setN, btn) {{

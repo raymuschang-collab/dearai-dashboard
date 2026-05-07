@@ -659,6 +659,206 @@ def _api_vidgen():
     })
 
 
+@server.route("/api/upload-asset", methods=["POST"])
+def _api_upload_asset():
+    """Accept a multipart file upload from the gallery's Upload Asset modal,
+    push it to Drive (anyone-with-link reader), submit to BytePlus CreateAsset,
+    poll until Active, and append a row to the Asset Library tab on the
+    series-level bible sheet so the gallery picks it up on next refresh.
+
+    Body (multipart/form-data):
+      file        — the image or video to upload
+      gallery     — gallery slug (e.g. sajangnim_ep01) — used to find the
+                    bible sheet via SERIES_BIBLE_SHEETS
+      bible_tab   — CHARACTERS / LOCATIONS / COSTUME / PROPS / EFFECTS
+      name        — bible entry name (e.g. "MIN-JUN", "Walk-in cooler")
+      asset_type  — Image | Video | Audio (defaults to Image)
+
+    Returns: {ok, job_id, message} immediately; the BytePlus poll runs in a
+    background thread and the gallery's existing watchJobs() picks it up
+    via /debug/jobs polling.
+    """
+    from flask import request, jsonify
+    import io
+    f = request.files.get("file")
+    gallery = (request.form.get("gallery") or "").strip()
+    bible_tab = (request.form.get("bible_tab") or "").strip()
+    name = (request.form.get("name") or "").strip()
+    asset_type = (request.form.get("asset_type") or "Image").strip().capitalize()
+    if not f or not f.filename:
+        return jsonify({"ok": False, "error": "no file uploaded"}), 400
+    if gallery not in GALLERY_REGISTRY:
+        return jsonify({"ok": False, "error": f"unknown gallery '{gallery}'"}), 400
+    if not bible_tab or bible_tab.upper() not in {
+        "CHARACTERS", "LOCATIONS", "COSTUME", "PROPS", "EFFECTS"
+    }:
+        return jsonify({"ok": False, "error": "bible_tab must be one of CHARACTERS / LOCATIONS / COSTUME / PROPS / EFFECTS"}), 400
+    if not name:
+        return jsonify({"ok": False, "error": "name is required"}), 400
+    if asset_type not in {"Image", "Video", "Audio"}:
+        return jsonify({"ok": False, "error": "asset_type must be Image / Video / Audio"}), 400
+
+    bible_sheet_id = _bible_sheet_for(gallery)
+    if not bible_sheet_id:
+        return jsonify({"ok": False, "error": f"no series bible sheet configured for {gallery}"}), 500
+
+    # Read file bytes once (Flask's stream is single-use, and we need them
+    # for the Drive upload before the background thread starts).
+    file_bytes = f.read()
+    filename = f.filename
+    mimetype = f.mimetype or "application/octet-stream"
+    uploader_email = ""
+    try:
+        from flask import session as _sess
+        uploader_email = (_sess.get("user_email") or "").lower()
+    except Exception:
+        pass
+
+    job_id = uuid.uuid4().hex[:8]
+    append_job({
+        "id": job_id,
+        "label": f"upload {bible_tab}/{name} ({len(file_bytes)//1024}KB)",
+        "status": "queued",
+        "started": datetime.now(timezone.utc).isoformat(),
+        "log": "",
+        "cmd": f"upload-asset gallery={gallery} bible_tab={bible_tab} name={name} type={asset_type}",
+        "kind": "upload",
+        "uploader": uploader_email,
+        "sheet": bible_sheet_id,
+    })
+
+    def _run():
+        update_job(job_id, status="running")
+        log_lines: list[str] = []
+        def _log(msg: str):
+            log_lines.append(msg)
+            update_job(job_id, log="\n".join(log_lines[-200:]))
+        try:
+            from auth import get_credentials
+            import gspread
+            from googleapiclient.discovery import build as _gbuild
+            from googleapiclient.http import MediaIoBaseUpload
+            creds = get_credentials()
+            drive = _gbuild("drive", "v3", credentials=creds)
+            gc = gspread.authorize(creds)
+
+            # 1) Drive upload — store under <show-folder>/uploads/<bible_tab>/
+            sh = gc.open_by_key(bible_sheet_id)
+            show_folder = drive.files().get(fileId=bible_sheet_id, fields="parents").execute().get("parents", [None])[0]
+            if not show_folder:
+                raise RuntimeError(f"bible sheet {bible_sheet_id} has no parent folder")
+            def _ensure_subfolder(parent: str, sub_name: str) -> str:
+                q = (f"'{parent}' in parents and name='{sub_name}' "
+                     f"and mimeType='application/vnd.google-apps.folder' and trashed=false")
+                hits = drive.files().list(q=q, fields="files(id)").execute().get("files", [])
+                if hits:
+                    return hits[0]["id"]
+                created = drive.files().create(
+                    body={"name": sub_name, "parents": [parent],
+                          "mimeType": "application/vnd.google-apps.folder"},
+                    fields="id",
+                ).execute()
+                return created["id"]
+            uploads_folder = _ensure_subfolder(show_folder, "uploads")
+            tab_folder = _ensure_subfolder(uploads_folder, bible_tab.lower())
+            # File name: <name>_<timestamp>.<ext>
+            from pathlib import Path as _P
+            ext = _P(filename).suffix or ".bin"
+            ts = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+            safe_name = "".join(c for c in name if c.isalnum() or c in "-_") or "asset"
+            target_name = f"{safe_name}_{ts}{ext}"
+            _log(f"[1/4] Uploading to Drive: uploads/{bible_tab.lower()}/{target_name}")
+            media = MediaIoBaseUpload(io.BytesIO(file_bytes), mimetype=mimetype, resumable=False)
+            new_file = drive.files().create(
+                body={"name": target_name, "parents": [tab_folder]},
+                media_body=media,
+                fields="id,webViewLink",
+            ).execute()
+            drive.permissions().create(
+                fileId=new_file["id"],
+                body={"role": "reader", "type": "anyone"},
+                fields="id",
+            ).execute()
+            drive_view_url = new_file["webViewLink"]
+            drive_id_val = new_file["id"]
+            # BytePlus needs a publicly-fetchable URL — use the lh3 CDN form
+            # which auto-resolves redirects vs. /file/d/<id>/view.
+            byteplus_source_url = f"https://lh3.googleusercontent.com/d/{drive_id_val}=w2400"
+            _log(f"     ✓ Drive id={drive_id_val}")
+
+            # 2) BytePlus CreateAsset — uses BYTEPLUS_GROUP_ID env var
+            group_id = os.environ.get("BYTEPLUS_GROUP_ID", "").strip()
+            if not group_id:
+                raise RuntimeError(
+                    "BYTEPLUS_GROUP_ID env var not set on Render. "
+                    "Run `python3 byteplus_asset_v2.py create-group --name DDACS` "
+                    "locally once, then add the printed GROUP_ID as an env var."
+                )
+            _log(f"[2/4] BytePlus CreateAsset group={group_id} type={asset_type}")
+            sys.path.insert(0, str(PROJECT_ROOT))
+            import byteplus_asset_v2 as bp
+            asset_id = bp.create_asset(group_id, byteplus_source_url, asset_type, name=name)
+            _log(f"     ✓ asset_id={asset_id}")
+
+            # 3) Poll until Active
+            _log(f"[3/4] Polling BytePlus until asset Active (~30-120s)…")
+            try:
+                bp.poll_asset(asset_id, timeout=300)
+                _log("     ✓ asset Active")
+            except SystemExit as e:
+                # poll_asset calls sys.exit on Failed — translate to job failure
+                raise RuntimeError(str(e))
+
+            # 4) Append row to Asset Library tab
+            _log("[4/4] Writing Asset Library row")
+            try:
+                ws = sh.worksheet("Asset Library")
+            except Exception:
+                raise RuntimeError("Asset Library tab not found on bible sheet")
+            now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+            # Asset Library cols A-L per build_gallery.read_asset_library:
+            #   A=Name, B=Bible Tab, C=Asset Code, D=Source URL,
+            #   E=Asset Type, F=Status, G=Uploaded At, H..L=other
+            new_row = [
+                name, bible_tab.upper(), asset_id, drive_view_url,
+                asset_type.lower(), "Uploaded", now_iso,
+                "", "", "", "", uploader_email or "",
+            ]
+            ws.append_row(new_row, value_input_option="USER_ENTERED",
+                          insert_data_option="INSERT_ROWS",
+                          table_range="A4")  # below the header at row 4
+
+            # Flush gallery + bible caches so the new row shows up immediately
+            with _gallery_cache_lock:
+                _gallery_cache.clear()
+            try:
+                from build_gallery import _bible_cache, _bible_cache_lock
+                with _bible_cache_lock:
+                    _bible_cache.clear()
+            except Exception:
+                pass
+
+            update_job(
+                job_id, status="done",
+                log="\n".join(log_lines[-200:] +
+                              [f"[done] asset_id={asset_id} drive={drive_view_url}"]),
+                ended=datetime.now(timezone.utc).isoformat(),
+            )
+        except Exception as e:
+            err = f"{type(e).__name__}: {e}"
+            log_lines.append(f"[FAIL] {err}")
+            update_job(job_id, status="failed",
+                       log="\n".join(log_lines[-200:]),
+                       ended=datetime.now(timezone.utc).isoformat())
+
+    threading.Thread(target=_run, daemon=True).start()
+    return jsonify({
+        "ok": True,
+        "job_id": job_id,
+        "message": f"Queued upload of {name} ({bible_tab}); typical wall time ~60-120s.",
+    })
+
+
 @server.route("/gallery/<name>/refresh")
 def _gallery_refresh(name):
     """Force-flush the cached HTML for a single gallery. Use after sheet edits
