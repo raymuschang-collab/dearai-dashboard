@@ -33,9 +33,27 @@ import html
 import json
 import re
 import sys
+import threading
+import time
 
 import gspread
 from auth import get_credentials
+
+
+# ===== Bible-data cache =====
+# Bibles (CHARACTERS / LOCATIONS / COSTUME / PROPS / EFFECTS / Asset Library)
+# rarely change — caching them aggressively at module level eliminates the
+# Sheets-API 429 quota blow-up that happens when 6 episode galleries each
+# rebuild from scratch (each cold build = ~8 sheet reads × 6 eps = 48 reads
+# vs. the 60-reads/min/user quota; trivially throttles).
+#
+# After ep01's cold build warms this cache, eps 2-6 reuse the same bible data
+# and only read THEIR per-episode tabs (Storyboards + Video Globals = 2 reads).
+# 10-min TTL — bible edits show up on the next refresh, plenty fresh for
+# day-to-day review work.
+_BIBLE_TTL = 600.0
+_bible_cache: dict = {}
+_bible_cache_lock = threading.Lock()
 
 
 # ===== Defaults — change these to point at a different episode =====
@@ -1068,31 +1086,62 @@ def build_html(sheet_id: str, show: str, episode: str,
 
     gc = gspread.authorize(get_credentials())
     sh = gc.open_by_key(sheet_id)
-    if bible_sheet_id and bible_sheet_id != sheet_id:
-        bsh = gc.open_by_key(bible_sheet_id)
-        log(f"  (bibles ← {bible_sheet_id[:12]}…, episode-tabs ← {sheet_id[:12]}…)")
-    else:
-        bsh = sh
 
-    log("  • characters")
-    characters = read_characters(bsh)
-    log(f"    {len(characters)} chars")
-    log("  • locations")
-    locations = read_locations(bsh)
-    log(f"    {len(locations)} locs")
-    log("  • costume / props / effects")
-    costume = read_simple_bible(bsh, "COSTUME")
-    props = read_simple_bible(bsh, "PROPS")
-    effects = read_simple_bible(bsh, "EFFECTS")
-    log(f"    {len(costume)} costume · {len(props)} props · {len(effects)} effects")
+    # Bible-source key for the cache lookup. When bible_sheet_id is unset or
+    # equal to sheet_id, the bibles are local to this episode (back-compat
+    # for ep 1) — still cache them, just under their own key.
+    bible_key = bible_sheet_id or sheet_id
+    cache_hit = False
+    with _bible_cache_lock:
+        cached = _bible_cache.get(bible_key)
+        if cached and (time.time() - cached[0]) < _BIBLE_TTL:
+            bible_data = cached[1]
+            cache_hit = True
+            log(f"  (bibles ← cache, age {int(time.time() - cached[0])}s)")
+
+    if not cache_hit:
+        if bible_sheet_id and bible_sheet_id != sheet_id:
+            bsh = gc.open_by_key(bible_sheet_id)
+            log(f"  (bibles ← {bible_sheet_id[:12]}…, episode-tabs ← {sheet_id[:12]}…)")
+        else:
+            bsh = sh
+        log("  • characters")
+        characters = read_characters(bsh)
+        log(f"    {len(characters)} chars")
+        log("  • locations")
+        locations = read_locations(bsh)
+        log(f"    {len(locations)} locs")
+        log("  • costume / props / effects")
+        costume = read_simple_bible(bsh, "COSTUME")
+        props = read_simple_bible(bsh, "PROPS")
+        effects = read_simple_bible(bsh, "EFFECTS")
+        log(f"    {len(costume)} costume · {len(props)} props · {len(effects)} effects")
+        log("  • asset library")
+        asset_library = read_asset_library(bsh)
+        log(f"    {len(asset_library)} entries")
+        bible_data = {
+            "characters": characters,
+            "locations": locations,
+            "costume": costume,
+            "props": props,
+            "effects": effects,
+            "asset_library": asset_library,
+        }
+        with _bible_cache_lock:
+            _bible_cache[bible_key] = (time.time(), bible_data)
+
+    characters = bible_data["characters"]
+    locations = bible_data["locations"]
+    costume = bible_data["costume"]
+    props = bible_data["props"]
+    effects = bible_data["effects"]
+    asset_library = bible_data["asset_library"]
+
     log("  • storyboards")
     storyboards = read_storyboards(sh)
     log(f"    {len(storyboards)} sets")
     log("  • video globals")
     video_globals = read_video_globals(sh)
-    log("  • asset library")
-    asset_library = read_asset_library(bsh)
-    log(f"    {len(asset_library)} entries")
 
     data = {
         "show": show,
