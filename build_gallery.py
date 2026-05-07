@@ -442,13 +442,15 @@ def render_asset_library(assets: list[dict]) -> str:
 def render_html(data: dict, gallery_name: str = "") -> str:
     nav = []
     sections = []
+    # Storyboards first — the most-viewed section in production review.
+    # Bibles follow as reference material; Asset Library last (catalog view).
     section_defs = [
+        ("storyboards","Storyboards",lambda d: "".join(render_set_card(s, d.get("video_globals")) for s in d["storyboards"])),
         ("characters", "Characters", lambda d: render_card_grid(d["characters"], "char")),
         ("locations",  "Locations",  lambda d: render_card_grid(d["locations"], "loc")),
         ("costume",    "Costume",    lambda d: render_card_grid(d["costume"], "bib")),
         ("props",      "Props",      lambda d: render_card_grid(d["props"], "bib")),
         ("effects",    "Effects",    lambda d: render_card_grid(d["effects"], "bib")),
-        ("storyboards","Storyboards",lambda d: "".join(render_set_card(s, d.get("video_globals")) for s in d["storyboards"])),
         ("assets",     "Asset Library", lambda d: render_asset_library(d.get("asset_library", []))),
     ]
     # Default-active tab: Storyboards (the most-viewed section in production review).
