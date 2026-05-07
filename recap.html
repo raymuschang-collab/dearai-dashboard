@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
 <meta charset="UTF-8">
-<title>DearAI · Production Pipeline Recap · May 7, 2026</title>
+<title>DearAI · Rekap Pipeline Produksi · 7 Mei 2026</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -72,7 +72,7 @@
   }
   header.hero h1 .accent { color: var(--cyan); }
   header.hero .subtitle {
-    font-size: 16px; color: var(--muted); max-width: 700px;
+    font-size: 16px; color: var(--muted); max-width: 720px;
   }
   header.hero .stats-strip {
     display: flex; gap: 0; margin-top: 36px; max-width: 700px;
@@ -92,6 +92,23 @@
   .stat .lbl {
     font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
     color: var(--muted); margin-top: 6px;
+  }
+
+  /* Lang toggle */
+  .lang-toggle {
+    position: absolute; top: 30px; right: 40px;
+    display: flex; gap: 6px;
+    font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .lang-toggle a {
+    color: var(--muted); text-decoration: none;
+    padding: 5px 10px; border-radius: 4px;
+    border: 1px solid var(--line);
+    transition: all 0.15s;
+  }
+  .lang-toggle a:hover { color: var(--cyan); border-color: var(--cyan); }
+  .lang-toggle a.active {
+    color: var(--bg-deep); background: var(--cyan); border-color: var(--cyan);
   }
 
   /* Section grid */
@@ -166,19 +183,7 @@
     color: var(--muted); line-height: 1.5;
   }
 
-  .badge {
-    display: inline-block; padding: 4px 10px;
-    background: rgba(34, 211, 238, 0.1); color: var(--cyan);
-    border: 1px solid rgba(34, 211, 238, 0.25);
-    border-radius: 4px;
-    font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
-    text-transform: uppercase;
-    margin-right: 6px;
-  }
-  .badge.amber { color: var(--amber); border-color: rgba(251, 191, 36, 0.25); background: rgba(251, 191, 36, 0.1); }
-  .badge.green { color: var(--green); border-color: rgba(74, 222, 128, 0.25); background: rgba(74, 222, 128, 0.1); }
-
-  /* Highlight box for headlines */
+  /* Highlight box */
   .highlight {
     background: linear-gradient(135deg, rgba(34, 211, 238, 0.08), rgba(34, 211, 238, 0.02));
     border: 1px solid rgba(34, 211, 238, 0.2);
@@ -198,7 +203,7 @@
     color: var(--cyan-soft);
   }
 
-  /* Cost box */
+  /* Cost grid */
   .cost-grid {
     display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
     margin-top: 14px;
@@ -238,6 +243,7 @@
   footer.outro h3 .em { color: var(--cyan); }
   footer.outro p {
     color: var(--muted); font-size: 14px; margin: 0;
+    max-width: 700px; margin-left: auto; margin-right: auto;
   }
   footer.outro .links {
     display: flex; gap: 14px; justify-content: center; margin-top: 22px;
@@ -271,17 +277,21 @@
 <body>
 
 <header class="hero">
+  <div class="lang-toggle">
+    <a href="/recap?lang=en">EN</a>
+    <a href="/recap" class="active">ID</a>
+  </div>
   <div class="meta-row">
     <span class="pulse"></span>
-    Production Pipeline · May 7, 2026
+    Pipeline Produksi · 7 Mei 2026
   </div>
-  <h1>Today we shipped <span class="accent">a CMS</span>,<br>fixed <span class="accent">vidgen identity</span>, and<br>locked the <span class="accent">login wall</span>.</h1>
-  <div class="subtitle">Twelve commits. Four major systems landed. The team can self-serve new projects, scripts auto-shotlist (almost), and every V1/V2 click now bunches characters and survives Render redeploys.</div>
+  <h1>Hari ini kami merilis <span class="accent">CMS</span>,<br>memperbaiki <span class="accent">identitas vidgen</span>, dan<br>mengunci <span class="accent">tembok login</span>.</h1>
+  <div class="subtitle">Dua belas commit. Empat sistem besar terpasang. Tim bisa membuat proyek baru sendiri, skrip auto-shotlist (hampir), dan setiap klik V1/V2 sekarang mengelompokkan karakter dan bertahan dari redeploy Render.</div>
   <div class="stats-strip">
-    <div class="stat"><div class="num">12</div><div class="lbl">Commits Pushed</div></div>
-    <div class="stat"><div class="num">4</div><div class="lbl">CMS Foundations</div></div>
-    <div class="stat"><div class="num">5</div><div class="lbl">Vidgen Bugs Fixed</div></div>
-    <div class="stat"><div class="num">3</div><div class="lbl">Auth Layers Live</div></div>
+    <div class="stat"><div class="num">12</div><div class="lbl">Commit Dikirim</div></div>
+    <div class="stat"><div class="num">4</div><div class="lbl">Fondasi CMS</div></div>
+    <div class="stat"><div class="num">5</div><div class="lbl">Bug Vidgen Beres</div></div>
+    <div class="stat"><div class="num">3</div><div class="lbl">Lapisan Auth Aktif</div></div>
   </div>
 </header>
 
@@ -290,40 +300,40 @@
   <!-- 1. CMS Foundation -->
   <section class="card span-2">
     <div class="num">01 · CMS</div>
-    <h2>Multi-project <span class="em">CMS foundation</span> — projects sheet → live registry → landing page → blank-SOT scaffold</h2>
-    <div class="lede">Sajangnim was hardcoded into the dashboard. Now it's just one row in a Google Sheet your producers can edit. Adding a new show is one click — no engineer in the loop.</div>
+    <h2>Fondasi <span class="em">CMS multi-proyek</span> — sheet projects → registry live → landing page → scaffold SOT kosong</h2>
+    <div class="lede">Sajangnim dulu di-hardcode ke dashboard. Sekarang cuma satu baris di Google Sheet yang bisa diedit producer Anda. Menambah show baru cukup satu klik — tanpa perlu engineer.</div>
     <ul class="fixes">
-      <li><b>Master Projects sheet</b> — 12-column source of truth (slug, title, type, status, bible_sheet_id, drive_folder_id, parent_show, owner, created, script_url, shotlist_status, notes). Pre-seeded with sajangnim.</li>
-      <li><b>Dynamic registry</b> — <code>read_projects()</code> reads the sheet on every request (60s cache), auto-discovers episode sheets from each show's Drive folder by name pattern. Old hardcoded <code>GALLERY_REGISTRY</code> retired.</li>
-      <li><b>/projects landing page</b> — grid view of all projects with type chips (Series / POC / Concept / Client), status badges, episode counts, owner emails. Filter chips at top.</li>
-      <li><b>/api/new-project endpoint</b> — accepts title + type + slug, runs <code>_create_blank_sot.py</code> in a background thread, appends a master row, flushes the cache. Producers will fire this from a modal in CMS commit 5.</li>
-      <li><b>+ Add cover</b> — click the dashed placeholder on any project card → file picker → upload → 16:9 cover image lives at <code>&lt;show&gt;/cover.{jpg,png,webp}</code> on Drive, anyone-with-link.</li>
+      <li><b>Master Projects sheet</b> — source of truth 12-kolom (slug, title, type, status, bible_sheet_id, drive_folder_id, parent_show, owner, created, script_url, shotlist_status, notes). Pre-seeded dengan sajangnim.</li>
+      <li><b>Registry dinamis</b> — <code>read_projects()</code> baca sheet setiap request (cache 60 detik), auto-detect sheet episode dari folder Drive setiap show berdasarkan pola nama. <code>GALLERY_REGISTRY</code> hardcoded lama dihapus.</li>
+      <li><b>Landing page /projects</b> — grid view semua proyek dengan type chip (Series / POC / Concept / Client), status badge, jumlah episode, email owner. Filter chip di atas.</li>
+      <li><b>Endpoint /api/new-project</b> — terima title + type + slug, jalankan <code>_create_blank_sot.py</code> di background thread, tambah baris ke master sheet, flush cache. Producer akan jalankan ini dari modal di CMS commit 5.</li>
+      <li><b>+ Tambah cover</b> — klik placeholder dashed di kartu proyek manapun → file picker → upload → cover image 16:9 disimpan di <code>&lt;show&gt;/cover.{jpg,png,webp}</code> di Drive, anyone-with-link.</li>
     </ul>
     <div class="highlight">
-      <div class="lbl">What's next (queued for tonight)</div>
-      <div class="body">Commits 5-8: + New Project modal · script upload (PDF / Word / Google Doc) · Anthropic Opus auto-shotlist (review gate) · Approve button → ingest pipeline.</div>
+      <div class="lbl">Lanjutan (untuk malam ini)</div>
+      <div class="body">Commit 5-8: modal + Proyek Baru · upload skrip (PDF / Word / Google Doc) · auto-shotlist Anthropic Opus (review gate) · tombol Approve → pipeline ingest.</div>
     </div>
   </section>
 
   <!-- 2. Vidgen Reliability -->
   <section class="card span-2">
     <div class="num">02 · VIDGEN</div>
-    <h2>Vidgen identity faithfulness + <span class="em">no more orphan zombies</span></h2>
-    <div class="lede">Five real bugs in one batched commit. The chars-don't-match issue from this afternoon, plus the false "watcher gave up after 90 polls" red banners, plus the storyboard jobs that kept getting orphaned by my own deploys.</div>
+    <h2>Identitas vidgen lebih akurat + <span class="em">tidak ada lagi zombie orphan</span></h2>
+    <div class="lede">Lima bug nyata dalam satu commit batch. Masalah karakter-tidak-cocok dari sore tadi, plus banner merah palsu "watcher gave up after 90 polls", plus job storyboard yang kena orphan oleh deploy saya sendiri.</div>
     <ul class="fixes">
-      <li><b>Char-grouped refs</b> — all PARK MIN-JUN refs bunched, all TARA refs bunched. Sort: image (attire/hair) → video (face) → audio (voice). Deterministic per click.</li>
-      <li><b>Hair binding</b> — image binding now says "wardrobe, attire, AND HAIR come from the still X reference image" (was just "wardrobe and attire"). Closes the hair-drift gap.</li>
-      <li><b>Subprocess detach</b> — <code>start_new_session=True</code> on every <code>Popen</code>. Render redeploys SIGTERM gunicorn but the running storyboard / vidgen subprocess survives and completes its sheet writeback. No more "stuck on Generating" zombies.</li>
-      <li><b>Watcher pagination</b> — gallery JS now polls <code>/debug/jobs?n=200&only=all</code>. Was hitting the default <code>only=failed</code> which filtered out successful jobs entirely — that's why every successful gen showed "watcher gave up after 90 polls". Real cause, finally found.</li>
-      <li><b>480p / 15s / 9:16 default</b> — dropped from 1080p. ~62% cheaper per V1+V2 click while iterating. CLI flag still works for 1080p delivery cuts.</li>
+      <li><b>Ref dikelompokkan per karakter</b> — semua ref PARK MIN-JUN nempel jadi satu, semua ref TARA juga. Urutan: image (pakaian/rambut) → video (wajah) → audio (suara). Deterministik per klik.</li>
+      <li><b>Binding rambut</b> — image binding sekarang berbunyi "wardrobe, attire, DAN RAMBUT berasal dari reference image still X" (sebelumnya cuma "wardrobe and attire"). Nutup gap rambut yang tadi sering drift.</li>
+      <li><b>Subprocess detach</b> — <code>start_new_session=True</code> di setiap <code>Popen</code>. Redeploy Render SIGTERM gunicorn tapi subprocess storyboard / vidgen yang lagi jalan tetap survive dan menyelesaikan writeback ke sheet. Tidak ada lagi zombie "stuck on Generating".</li>
+      <li><b>Watcher pagination</b> — JS gallery sekarang polling <code>/debug/jobs?n=200&only=all</code>. Sebelumnya hit default <code>only=failed</code> yang memfilter job sukses sepenuhnya — itulah kenapa setiap gen sukses muncul "watcher gave up after 90 polls". Penyebab sebenarnya akhirnya ketemu.</li>
+      <li><b>Default 480p / 15s / 9:16</b> — diturunkan dari 1080p. Sekitar 62% lebih murah per klik V1+V2 saat iterasi. CLI flag tetap bisa untuk delivery cut 1080p.</li>
     </ul>
     <div class="cost-grid">
       <div class="cost-cell before">
-        <div class="label">Before · per V1+V2 click</div>
+        <div class="label">Sebelum · per klik V1+V2</div>
         <div class="val">~$2.00</div>
       </div>
       <div class="cost-cell after">
-        <div class="label">After · per V1+V2 click</div>
+        <div class="label">Sesudah · per klik V1+V2</div>
         <div class="val">~$0.75</div>
       </div>
     </div>
@@ -332,69 +342,69 @@
   <!-- 3. Auth -->
   <section class="card">
     <div class="num">03 · AUTH</div>
-    <h2><span class="em">Google OAuth</span> live · door is locked</h2>
-    <div class="lede">No more anonymous access. No one can hit your APIs to drain BytePlus credits.</div>
+    <h2><span class="em">Google OAuth</span> aktif · pintu terkunci</h2>
+    <div class="lede">Tidak ada akses anonim lagi. Tidak ada yang bisa hit API Anda buat ngabisin kredit BytePlus.</div>
     <ul class="fixes">
-      <li><b>Authlib middleware</b> — every request gated unless <code>session.user_email</code> is on the allowlist. <code>/api/*</code> returns 401 JSON; browsers redirect to <code>/login</code> → Google sign-in.</li>
-      <li><b>OAuth client created</b> in GCP Console, redirect URIs registered, secret saved to Render.</li>
-      <li><b>App published to production</b> (out of Testing mode) — anyone with a Google account can REACH the consent screen; my server-side allowlist does the real gating.</li>
-      <li><b>Allowlist live</b>: <code>dearai.com</code>, <code>dear.ai</code>, plus 3 individual emails.</li>
+      <li><b>Middleware Authlib</b> — setiap request di-gate kecuali <code>session.user_email</code> ada di allowlist. <code>/api/*</code> return 401 JSON; browser di-redirect ke <code>/login</code> → Google sign-in.</li>
+      <li><b>OAuth client dibuat</b> di GCP Console, redirect URI terdaftar, secret tersimpan di Render.</li>
+      <li><b>App di-publish ke production</b> (keluar dari Testing mode) — siapa pun dengan akun Google bisa mencapai consent screen; allowlist server-side yang melakukan gating sebenarnya.</li>
+      <li><b>Allowlist aktif</b>: <code>dearai.com</code>, <code>dear.ai</code>, plus 3 email individu.</li>
     </ul>
   </section>
 
   <!-- 4. Upload Asset -->
   <section class="card">
-    <div class="num">04 · ASSETS</div>
-    <h2><span class="em">Upload Asset</span> button on every bible tab</h2>
-    <div class="lede">No more sharing BytePlus keys. Producers self-serve via the dashboard.</div>
+    <div class="num">04 · ASET</div>
+    <h2><span class="em">Tombol Upload Asset</span> di setiap tab bible</h2>
+    <div class="lede">Tidak perlu lagi share key BytePlus. Producer self-serve via dashboard.</div>
     <ul class="fixes">
-      <li><b>"+ Upload Asset"</b> on every bible tab in the gallery (Characters / Locations / Costume / Props / Effects).</li>
-      <li><b>Combobox name field</b> — dropdown of existing canonical bible names so producers pick (no typo ghosts), but new names still typeable.</li>
-      <li><b>Server pipeline</b> — file → Drive → BytePlus <code>CreateAsset</code> → poll until Active → row in Asset Library tab. Uploader email logged for audit.</li>
-      <li><b>Image thumbs everywhere</b> — Asset Library 55 entries, all rows show actual image previews now (was 25 with letter placeholders).</li>
+      <li><b>"+ Upload Asset"</b> di setiap tab bible di gallery (Characters / Locations / Costume / Props / Effects).</li>
+      <li><b>Combobox field nama</b> — dropdown nama bible kanonik yang sudah ada biar producer tinggal pilih (gak ada hantu typo), tapi nama baru tetap bisa diketik manual.</li>
+      <li><b>Pipeline server</b> — file → Drive → BytePlus <code>CreateAsset</code> → poll sampai Active → baris di tab Asset Library. Email uploader dicatat untuk audit.</li>
+      <li><b>Image thumbnail di mana-mana</b> — Asset Library 55 entri, semua baris sekarang nampilin preview image asli (dulu cuma 25 dengan placeholder huruf).</li>
     </ul>
   </section>
 
-  <!-- 5. Gallery Quality of Life -->
+  <!-- 5. Gallery QoL -->
   <section class="card">
     <div class="num">05 · GALLERY</div>
-    <h2>Review-surface <span class="em">quality of life</span></h2>
-    <div class="lede">Small things that compound when 4 people open the gallery 30× per day.</div>
+    <h2><span class="em">Quality of life</span> di permukaan review</h2>
+    <div class="lede">Hal-hal kecil yang dampaknya numpuk pas 4 orang buka gallery 30× sehari.</div>
     <ul class="fixes">
-      <li><b>Storyboards is now the first tab</b> (was 6th — bibles are reference, storyboards are the work).</li>
-      <li><b>Lightbox</b> — click a storyboard image → expanded modal, esc / click-out / × to close.</li>
-      <li><b>Episode picker</b> — dropdown next to the refresh button. All sibling episodes one click away.</li>
-      <li><b>Dark mode toggle</b> — persists in localStorage, honors <code>prefers-color-scheme</code> on first visit. Storyboard whites get brightness-dropped at night.</li>
-      <li><b>Live · 30s cache chip</b> + manual ↻ Refresh in hero so the team always knows the freshness state.</li>
+      <li><b>Storyboards jadi tab pertama</b> (sebelumnya ke-6 — bible itu referensi, storyboard itu kerjaan utama).</li>
+      <li><b>Lightbox</b> — klik image storyboard → modal expanded, esc / klik luar / × buat tutup.</li>
+      <li><b>Episode picker</b> — dropdown di sebelah tombol refresh. Semua episode bersaudara satu klik aja.</li>
+      <li><b>Toggle dark mode</b> — tersimpan di localStorage, ikut <code>prefers-color-scheme</code> di kunjungan pertama. Background putih storyboard diturunkan brightness-nya pas malam.</li>
+      <li><b>Chip Live · 30s cache</b> + ↻ Refresh manual di hero biar tim selalu tahu status freshness.</li>
     </ul>
   </section>
 
   <!-- 6. Reliability -->
   <section class="card">
-    <div class="num">06 · RELIABILITY</div>
-    <h2><span class="em">502 → 200</span> across all 6 episodes</h2>
-    <div class="lede">Episodes 2-6 had been bouncing 500s for hours this morning. Root-caused twice; fixed properly the second time.</div>
+    <div class="num">06 · KEANDALAN</div>
+    <h2><span class="em">502 → 200</span> di semua 6 episode</h2>
+    <div class="lede">Episode 2-6 sempat error 500 selama berjam-jam pagi tadi. Root cause dilakukan dua kali; baru fix beneran di kali kedua.</div>
     <ul class="fixes">
-      <li><b>Bibles route to ep01 sheet</b> — eps 2-6 don't have their own CHARACTERS / LOCATIONS / etc. tabs (those live at series level). Build was crashing with <code>KeyError: 'CHARACTERS'</code>.</li>
-      <li><b>Module-level bible cache (10-min TTL)</b> — eps 2-6 each used to do 8 sheet reads × 6 eps = 48 reads in 30s, blowing the 60-reads/min Sheets quota. Now ep01 warms cache once, eps 2-6 share it.</li>
-      <li><b>Graceful tab fallback</b> — missing tabs return <code>[]</code> instead of crashing.</li>
+      <li><b>Bible diarahkan ke sheet ep01</b> — ep 2-6 gak punya tab CHARACTERS / LOCATIONS / dll sendiri (itu di level series). Build crash dengan <code>KeyError: 'CHARACTERS'</code>.</li>
+      <li><b>Cache bible level modul (TTL 10 menit)</b> — ep 2-6 dulunya tiap-tiap melakukan 8 sheet read × 6 ep = 48 read dalam 30 detik, melebihi kuota Sheets 60-read/menit. Sekarang ep01 manasin cache sekali, ep 2-6 share.</li>
+      <li><b>Fallback tab yang gracefully</b> — tab yang gak ada return <code>[]</code> alih-alih crash.</li>
     </ul>
   </section>
 
 </main>
 
 <footer class="outro">
-  <h3>And a <span class="em">stack of stuff queued for tonight</span></h3>
-  <p>CMS commits 5-8 (modal + script upload + Anthropic auto-shotlist + approve gate). The microdrama-shotlist skill baked into the repo. Maybe a stale-job detector as belt-and-suspenders. By tomorrow morning standup: producers can spin up a new project from a script in 2-5 minutes, end-to-end.</p>
+  <h3>Dan <span class="em">tumpukan kerjaan untuk malam ini</span></h3>
+  <p>CMS commit 5-8 (modal + upload skrip + auto-shotlist Anthropic + gate approve). Skill microdrama-shotlist di-bake ke repo. Mungkin detector stale-job sebagai pengaman tambahan. Pas standup besok pagi: producer bisa start proyek baru dari skrip dalam 2-5 menit, end-to-end.</p>
   <div class="links">
-    <a href="/projects">→ Project list</a>
+    <a href="/projects">→ Daftar Proyek</a>
     <a href="/gallery/sajangnim_ep01">→ Sajangnim Ep 1</a>
     <a href="https://docs.google.com/spreadsheets/d/1J-x4b4hshrX3wdMItboQJzcjKkAff_jnKEiIKjpy0g0" target="_blank">→ Master sheet</a>
   </div>
 </footer>
 
 <div class="signoff">
-  <code>git log --since="2026-05-07" | wc -l</code> · 12 commits · 1 great afternoon
+  <code>git log --since="2026-05-07" | wc -l</code> · 12 commit · 1 sore yang luar biasa
 </div>
 
 </body>
