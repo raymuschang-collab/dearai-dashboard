@@ -23,6 +23,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import threading
@@ -394,74 +395,268 @@ def _debug_jobs():
     return jsonify({"count": len(out), "jobs": out})
 
 
-# Series-level bible source. Per the MEMORY.md production standard, bibles
-# (CHARACTERS / LOCATIONS / COSTUME / PROPS / EFFECTS / Asset Library) live
-# at the SERIES level — typically on the ep 1 sheet. Episode sheets only
-# carry their per-episode tabs (Shotlist / Storyboard Prompts / Video Prompts).
-# This map says: "for galleries whose name starts with X, read bibles from
-# this sheet ID." Lookup is by gallery-name prefix.
-SERIES_BIBLE_SHEETS = {
-    "sajangnim_": "1iygU-7XAwhVKykkTYXHAqwBh0wD1d7Zk2s6OGfnLXCc",  # ep01 = sajangnim bible
-}
+# ============================================================
+# Master Projects sheet — single source of truth for all shows.
+# ============================================================
+# Read from the sheet at runtime + cached 60s. Episodes are auto-discovered
+# per-project by scanning the show's Drive folder for spreadsheets named
+# "Ep N — ..." (multi-sheet pattern, e.g. sajangnim) OR registering the
+# show's single SOT sheet as ep01 (single-sheet pattern, e.g. new POCs from
+# _create_blank_sot.py).
+#
+# The legacy hardcoded GALLERY_REGISTRY is gone — set MASTER_PROJECTS_SHEET_ID
+# in Render env vars to enable. While unset, the registry is empty and
+# galleries 404 cleanly (deploy doesn't break).
+
+MASTER_PROJECTS_SHEET_ID = os.environ.get("MASTER_PROJECTS_SHEET_ID", "").strip()
+_PROJECTS_TTL = 60.0  # cache the parsed projects index for this many seconds
+_projects_cache: dict = {}
+_projects_cache_lock = threading.Lock()
+# Permissive episode-sheet name matcher. Accepts:
+#   "Ep 1 — Pelarian Pertama"
+#   "Ep01_Pelarian_Pertama"
+#   "EP01_Pelarian_Pertama_shotlist_v2_2"
+#   "Episode 3: ..."
+# First capture group is the episode number; second is the rest (title +
+# optional suffixes which we'll clean up downstream for display).
+_EP_NAME_RE = re.compile(r"^Ep(?:isode)?[\s_\-]*?(\d+)[\s\-—_:]+(.+)$", re.IGNORECASE)
+# Strip these trailing tokens from auto-discovered episode titles before
+# rendering (`shotlist`, `v2_2`, `final`, etc. are not part of the title).
+# `\b` doesn't fire between letters and `_` because `_` is a word char in
+# regex, so we use an explicit separator-or-end lookahead. This prevents
+# false-positives like "FINALE" being treated as "FINAL" + suffix.
+_EP_TITLE_TRIM_RE = re.compile(
+    r"[\s_\-]+(?:shotlist|sotmaster|sot|v\d+(?:_\d+)?|final|draft)(?:$|[\s_\-].*$)",
+    re.IGNORECASE,
+)
+
+
+def _clean_ep_title(raw: str, ep_num: int) -> str:
+    """`EP01_Pelarian_Pertama_shotlist_v2_2` → `Episode 1 — Pelarian Pertama`."""
+    title = _EP_TITLE_TRIM_RE.sub("", raw).strip(" _-")
+    title = title.replace("_", " ").strip()
+    return f"Episode {ep_num} — {title}" if title else f"Episode {ep_num}"
+
+
+def _discover_episodes(slug: str, drive_folder_id: str, bible_sheet_id: str,
+                       show_title: str) -> list[dict]:
+    """For one show, return a list of episode dicts:
+        [{gallery_slug, sheet_id, episode_title, episode_number}, ...]
+
+    Two patterns:
+      1. Multi-sheet (sajangnim): the show's Drive folder contains N
+         spreadsheets named "Ep N — <title>". Each is one episode.
+      2. Single-sheet (new POCs from _create_blank_sot.py): the show has
+         exactly one SOT spreadsheet covering everything. Register it as
+         <slug>_ep01.
+    """
+    if not drive_folder_id:
+        # Single-sheet fallback when folder ID isn't set
+        return [{
+            "gallery_slug": f"{slug}_ep01",
+            "sheet_id": bible_sheet_id,
+            "episode_title": show_title,
+            "episode_number": 1,
+        }]
+    try:
+        from auth import get_credentials
+        from googleapiclient.discovery import build as _drive_build
+        creds = get_credentials()
+        drive = _drive_build("drive", "v3", credentials=creds)
+        files = drive.files().list(
+            q=f"'{drive_folder_id}' in parents "
+              f"and mimeType='application/vnd.google-apps.spreadsheet' "
+              f"and trashed=false",
+            fields="files(id,name)",
+            supportsAllDrives=True,
+        ).execute().get("files", [])
+    except Exception as e:
+        print(f"[projects] _discover_episodes({slug}) Drive list failed: {e}")
+        return [{
+            "gallery_slug": f"{slug}_ep01",
+            "sheet_id": bible_sheet_id,
+            "episode_title": show_title,
+            "episode_number": 1,
+        }]
+
+    matched = []
+    for f in files:
+        m = _EP_NAME_RE.match(f["name"])
+        if m:
+            ep_num = int(m.group(1))
+            ep_title = _clean_ep_title(m.group(2), ep_num)
+            matched.append((ep_num, f["id"], ep_title))
+    if matched:
+        # Multi-sheet pattern — sort by ep number, register each as a gallery
+        matched.sort()
+        return [{
+            "gallery_slug": f"{slug}_ep{ep_num:02d}",
+            "sheet_id": fid,
+            "episode_title": ep_title,
+            "episode_number": ep_num,
+        } for ep_num, fid, ep_title in matched]
+    # Single-sheet — bible IS the only episode
+    return [{
+        "gallery_slug": f"{slug}_ep01",
+        "sheet_id": bible_sheet_id,
+        "episode_title": show_title,
+        "episode_number": 1,
+    }]
+
+
+def _read_projects_uncached() -> dict:
+    """Read the master Projects sheet end-to-end and resolve every project's
+    episodes via Drive folder scan. Returns:
+        {
+          "projects": [project_dict, ...],         # full row + 'episodes' list
+          "registry": {gallery_slug: (sheet_id, show_title, episode_title), ...},
+          "bible_for": {gallery_slug: bible_sheet_id, ...},
+          "siblings_for": {gallery_slug: [(sib_slug, ep_title), ...], ...},
+        }
+    """
+    if not MASTER_PROJECTS_SHEET_ID:
+        return {"projects": [], "registry": {}, "bible_for": {}, "siblings_for": {}}
+    try:
+        from auth import get_credentials
+        import gspread
+        gc = gspread.authorize(get_credentials())
+        sh = gc.open_by_key(MASTER_PROJECTS_SHEET_ID)
+        ws = sh.worksheet("Projects")
+        rows = ws.get(
+            "A2:L500", value_render_option="FORMATTED_VALUE"
+        )
+    except Exception as e:
+        print(f"[projects] master sheet read failed: {e}")
+        return {"projects": [], "registry": {}, "bible_for": {}, "siblings_for": {}}
+
+    # Parse rows into project dicts (skip blank slug rows)
+    projects: list[dict] = []
+    for r in rows:
+        r = (r + [""] * 12)[:12]
+        slug = r[0].strip()
+        if not slug:
+            continue
+        # Skip archived projects unless explicitly hit by URL
+        # (status='archived' rows still get registered so old URLs keep working)
+        proj = {
+            "slug": slug,
+            "title": r[1].strip(),
+            "type": r[2].strip().lower() or "series",
+            "status": r[3].strip().lower() or "draft",
+            "bible_sheet_id": r[4].strip(),
+            "drive_folder_id": r[5].strip(),
+            "parent_show": r[6].strip(),
+            "owner_email": r[7].strip(),
+            "created_at": r[8].strip(),
+            "script_drive_url": r[9].strip(),
+            "shotlist_status": r[10].strip().lower() or "pending",
+            "notes": r[11].strip(),
+        }
+        projects.append(proj)
+
+    # Resolve spinoff inheritance: parent_show → use parent's bible_sheet_id
+    by_slug = {p["slug"]: p for p in projects}
+    for p in projects:
+        if p["parent_show"] and p["parent_show"] in by_slug:
+            parent = by_slug[p["parent_show"]]
+            if not p["bible_sheet_id"]:
+                p["bible_sheet_id"] = parent["bible_sheet_id"]
+
+    # For each project, discover episodes + build registry/bible_for/siblings_for
+    registry: dict[str, tuple[str, str, str]] = {}
+    bible_for: dict[str, str] = {}
+    siblings_by_show: dict[str, list[tuple[str, str]]] = {}
+
+    for p in projects:
+        if not p["bible_sheet_id"]:
+            print(f"[projects] {p['slug']}: no bible_sheet_id, skipping")
+            continue
+        eps = _discover_episodes(
+            slug=p["slug"],
+            drive_folder_id=p["drive_folder_id"],
+            bible_sheet_id=p["bible_sheet_id"],
+            show_title=p["title"],
+        )
+        p["episodes"] = eps
+        for ep in eps:
+            gallery_slug = ep["gallery_slug"]
+            registry[gallery_slug] = (ep["sheet_id"], p["title"], ep["episode_title"])
+            bible_for[gallery_slug] = p["bible_sheet_id"]
+        # Same-show galleries are siblings for the episode-picker dropdown
+        siblings_by_show[p["slug"]] = [
+            (ep["gallery_slug"], ep["episode_title"]) for ep in eps
+        ]
+
+    siblings_for: dict[str, list[tuple[str, str]]] = {}
+    for p in projects:
+        for ep in p.get("episodes", []):
+            siblings_for[ep["gallery_slug"]] = siblings_by_show.get(p["slug"], [])
+
+    return {
+        "projects": projects,
+        "registry": registry,
+        "bible_for": bible_for,
+        "siblings_for": siblings_for,
+    }
+
+
+def read_projects(force: bool = False) -> dict:
+    """Cached wrapper. Use force=True to bypass the 60s TTL after edits."""
+    import time as _t
+    now = _t.time()
+    with _projects_cache_lock:
+        cached = _projects_cache.get("data")
+        if cached and not force and (now - cached[0]) < _PROJECTS_TTL:
+            return cached[1]
+    data = _read_projects_uncached()
+    with _projects_cache_lock:
+        _projects_cache["data"] = (now, data)
+    return data
+
+
+# ----- Backward-compat shims for existing route handlers ------------------
+# Until the master sheet flow is fully migrated, the rest of dash_app/app.py
+# still references SERIES_BIBLE_SHEETS / GALLERY_REGISTRY / _bible_sheet_for /
+# _episodes_for. These shims keep that surface working — they're now backed
+# by the master sheet via read_projects(), so producer-edited rows take
+# effect within 60s without redeploys.
+
+class _DynamicGalleryRegistry:
+    """Dict-like view over read_projects()['registry'] — keeps the existing
+    `GALLERY_REGISTRY[slug]` lookups + `slug in GALLERY_REGISTRY` checks
+    working with the dynamic data."""
+    def __getitem__(self, key):
+        return read_projects()["registry"][key]
+    def __contains__(self, key):
+        return key in read_projects()["registry"]
+    def __iter__(self):
+        return iter(read_projects()["registry"])
+    def keys(self):
+        return read_projects()["registry"].keys()
+    def items(self):
+        return read_projects()["registry"].items()
+    def values(self):
+        return read_projects()["registry"].values()
+    def get(self, key, default=None):
+        return read_projects()["registry"].get(key, default)
+
+
+GALLERY_REGISTRY = _DynamicGalleryRegistry()
 
 
 def _bible_sheet_for(gallery_name: str) -> str | None:
-    for prefix, sid in SERIES_BIBLE_SHEETS.items():
-        if gallery_name.startswith(prefix):
-            return sid
-    return None
+    return read_projects()["bible_for"].get(gallery_name)
 
 
 def _episodes_for(gallery_name: str) -> list[tuple[str, str]]:
-    """Return [(slug, label)] for all sibling episodes of `gallery_name`,
-    used by the gallery's episode-picker dropdown. Siblings = same series
-    prefix (e.g. all 'sajangnim_*' galleries appear together).
-    Falls back to [] when no series prefix matches."""
-    for prefix in SERIES_BIBLE_SHEETS:
-        if gallery_name.startswith(prefix):
-            return [
-                (slug, entry[2])  # entry[2] = episode title from the registry
-                for slug, entry in GALLERY_REGISTRY.items()
-                if slug.startswith(prefix)
-            ]
-    return []
+    """Same-show siblings for the episode-picker dropdown."""
+    return read_projects()["siblings_for"].get(gallery_name, [])
 
 
-# Live galleries — known names → (sheet_id, show, episode_title).
-# Adding a new ep = one line here + push. /gallery/<name> reads this map and
-# builds the HTML on demand from the SOT (30s in-memory cache for speed).
-GALLERY_REGISTRY = {
-    "sajangnim_ep01": (
-        "1iygU-7XAwhVKykkTYXHAqwBh0wD1d7Zk2s6OGfnLXCc",
-        "Diam Diam Aku Cinta Sajangnim",
-        "Episode 1 — Pelarian Pertama",
-    ),
-    "sajangnim_ep02": (
-        "1DlnYVqa_6S4ogcaBEtjoWw5tBjrB7wPHjkMFPR5fad4",
-        "Diam Diam Aku Cinta Sajangnim",
-        "Episode 2 — Garam Jadi Gula",
-    ),
-    "sajangnim_ep03": (
-        "10wcCajzknstf79pvUs9UuS28ayvVG7k_SPe8KLqyy9I",
-        "Diam Diam Aku Cinta Sajangnim",
-        "Episode 3 — Kalau Aku Pergi (PAYWALL)",
-    ),
-    "sajangnim_ep04": (
-        "1khTYtHShiI1z0caqouZUQW3eZKnihScxIG7IQo3l3w4",
-        "Diam Diam Aku Cinta Sajangnim",
-        "Episode 4 — Pukul Lima Pagi",
-    ),
-    "sajangnim_ep05": (
-        "1_lm-ztYiZKHODRzg0g_N3Ms6HC0Mb8WANjRblVWnnfg",
-        "Diam Diam Aku Cinta Sajangnim",
-        "Episode 5 — Mata yang Mengamati",
-    ),
-    "sajangnim_ep06": (
-        "1ZIYUMH_o6PpN1-KDiEiBRT6NZcp1uO6EjEt7L13pQFI",
-        "Diam Diam Aku Cinta Sajangnim",
-        "Episode 6 — Sajangnim Sudah Tahu (FINALE)",
-    ),
-}
+# `re` is imported at the top of this file (line 26).
+# `build_gservice` is the same `googleapiclient.discovery.build` used elsewhere;
+# imported lazily inside _discover_episodes when needed (line 437) so module
+# load stays cheap if the Drive API isn't available at boot.
 
 # In-memory cache for live galleries: name → (timestamp, html_string).
 # 30s TTL — long enough that rapid hits don't burn Sheets quota, short enough
