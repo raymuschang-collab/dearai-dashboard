@@ -488,6 +488,11 @@ def render_html(data: dict, gallery_name: str = "") -> str:
     stats = data["stats"]
     stats_html = " · ".join(f"<b>{v}</b> {k}" for k, v in stats.items() if v)
 
+    # Canonical bible-name index for the Upload modal's name combobox.
+    # JSON-encoded so the JS const below picks it up directly. Empty
+    # dict when bibles are unloaded (gallery_name unset).
+    bible_names_json = json.dumps(data.get("bible_names_by_tab") or {})
+
     # Live indicator + manual refresh link. Only renders when running through
     # the Flask /gallery/<name> route (gallery_name is set); harmless for
     # standalone CLI builds (link just doesn't render).
@@ -934,6 +939,13 @@ def render_html(data: dict, gallery_name: str = "") -> str:
     color: var(--accent); font-size: 12px; margin-top: 10px;
     min-height: 16px;
   }}
+  .ul-hint {{
+    color: var(--muted); font-size: 11px;
+    padding: 0 0 0 82px; /* align with the inputs (70px label + 12px gap) */
+    margin-top: -8px; margin-bottom: 8px;
+    min-height: 14px;
+  }}
+  .ul-hint b {{ color: var(--ink); font-weight: 500; }}
 
   footer {{
     text-align: center; color: var(--muted); font-size: 11px;
@@ -974,9 +986,12 @@ def render_html(data: dict, gallery_name: str = "") -> str:
       </label>
       <label class="ul-row">
         <span class="ul-lbl">Name</span>
-        <input type="text" name="name" id="ul-name" required
-               placeholder="e.g. TARA Variant 5 / Walk-in cooler / Bronze spear">
+        <input type="text" name="name" id="ul-name" list="ul-name-list" required
+               autocomplete="off"
+               placeholder="Pick existing or type new">
+        <datalist id="ul-name-list"></datalist>
       </label>
+      <div class="ul-hint" id="ul-name-hint"></div>
       <label class="ul-row">
         <span class="ul-lbl">Type</span>
         <select name="asset_type" id="ul-type" required>
@@ -1200,6 +1215,12 @@ def render_html(data: dict, gallery_name: str = "") -> str:
   // multipart-fetch /api/upload-asset → returns job_id → watchJobs reloads
   // gallery on Active. The bible read cache is flushed server-side so the
   // new row shows up on the auto-refresh.
+  // Canonical bible-name index, server-injected. Keyed by upper-case bible tab.
+  // Used to populate the Name combobox so users pick existing canonical entries
+  // rather than creating typo-ghosts. Free-text still works for genuinely new
+  // entries — the datalist is suggestion-only, not a hard restriction.
+  const BIBLE_NAMES = {bible_names_json};
+
   function openUploadModal(bibleTab) {{
     const m = document.getElementById('upload-modal');
     document.getElementById('ul-bible').value = bibleTab;
@@ -1208,6 +1229,16 @@ def render_html(data: dict, gallery_name: str = "") -> str:
     document.getElementById('ul-error').textContent = '';
     document.getElementById('ul-submit').disabled = false;
     document.getElementById('ul-submit').textContent = 'Upload';
+    // Populate the datalist with this bible's canonical names
+    const dl = document.getElementById('ul-name-list');
+    const names = (BIBLE_NAMES[bibleTab] || []);
+    dl.innerHTML = names.map(n => `<option value="${{n.replace(/"/g, '&quot;')}}">`).join('');
+    const hint = document.getElementById('ul-name-hint');
+    if (names.length) {{
+      hint.innerHTML = `<b>${{names.length}}</b> existing in ${{bibleTab}} — click the field to pick, or type a new one.`;
+    }} else {{
+      hint.innerHTML = `No existing ${{bibleTab}} entries — type a new name.`;
+    }}
     m.classList.add('open');
     document.body.style.overflow = 'hidden';
     setTimeout(() => document.getElementById('ul-name').focus(), 50);
@@ -1404,6 +1435,18 @@ def build_html(sheet_id: str, show: str, episode: str,
         "video_globals": video_globals,
         "asset_library": asset_library,
         "episodes": episodes or [],
+        # Canonical bible-name index — keyed by uppercased bible_tab so the
+        # Upload Asset modal's name combobox can suggest only the existing
+        # canonical entries (preventing typos that create ghost rows).
+        # Each list is the unique col-A names from that bible tab in original
+        # order. Free-text typing still works for genuinely new entries.
+        "bible_names_by_tab": {
+            "CHARACTERS": [c["name"] for c in characters if c.get("name")],
+            "LOCATIONS":  [l["name"] for l in locations  if l.get("name")],
+            "COSTUME":    [c["name"] for c in costume    if c.get("name")],
+            "PROPS":      [p["name"] for p in props      if p.get("name")],
+            "EFFECTS":    [e["name"] for e in effects    if e.get("name")],
+        },
     }
     return render_html(data, gallery_name=gallery_name)
 

@@ -395,6 +395,13 @@
     color: var(--accent); font-size: 12px; margin-top: 10px;
     min-height: 16px;
   }
+  .ul-hint {
+    color: var(--muted); font-size: 11px;
+    padding: 0 0 0 82px; /* align with the inputs (70px label + 12px gap) */
+    margin-top: -8px; margin-bottom: 8px;
+    min-height: 14px;
+  }
+  .ul-hint b { color: var(--ink); font-weight: 500; }
 
   footer {
     text-align: center; color: var(--muted); font-size: 11px;
@@ -435,9 +442,12 @@
       </label>
       <label class="ul-row">
         <span class="ul-lbl">Name</span>
-        <input type="text" name="name" id="ul-name" required
-               placeholder="e.g. TARA Variant 5 / Walk-in cooler / Bronze spear">
+        <input type="text" name="name" id="ul-name" list="ul-name-list" required
+               autocomplete="off"
+               placeholder="Pick existing or type new">
+        <datalist id="ul-name-list"></datalist>
       </label>
+      <div class="ul-hint" id="ul-name-hint"></div>
       <label class="ul-row">
         <span class="ul-lbl">Type</span>
         <select name="asset_type" id="ul-type" required>
@@ -843,7 +853,7 @@
         </div>
         <div class="card loc-card">
           <div class="card-head"><h4>Walk-In Cooler</h4></div>
-          <div class="card-iters"><a class="thumb" href="https://drive.google.com/file/d/1Fok18M7a7X1z1Y72Tpcl0DRBVTqYBzYi/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1Fok18M7a7X1z1Y72Tpcl0DRBVTqYBzYi=w1000" alt="wide – iter 1" loading="lazy"><span class="label">wide – iter 1</span></a><a class="thumb" href="https://drive.google.com/file/d/1MpTCwUu70keAqeGN5oWyTKvxOZfUwz1E/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1MpTCwUu70keAqeGN5oWyTKvxOZfUwz1E=w1000" alt="wide – iter 2" loading="lazy"><span class="label">wide – iter 2</span></a></div>
+          <div class="card-iters"><a class="thumb" href="https://drive.google.com/file/d/10bRQgfRc_Y3ru054KHEIAHQFcH3V-nfe/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/10bRQgfRc_Y3ru054KHEIAHQFcH3V-nfe=w1000" alt="wide – iter 1" loading="lazy"><span class="label">wide – iter 1</span></a><a class="thumb" href="https://drive.google.com/file/d/1oVM2JLs72nj1wQIvB0LQwGnz9DbK_pna/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1oVM2JLs72nj1wQIvB0LQwGnz9DbK_pna=w1000" alt="wide – iter 2" loading="lazy"><span class="label">wide – iter 2</span></a></div>
           <div class="meta-line"><b>description:</b> Spacious walk-in chiller — wide enough for two people to move around comfortably, long corridor feel. Practical, lived-in restaurant kitchen aesthetic — same visual world as the adjacent storage room. Stainless steel wire racks lining both walls: hanging short ribs, banchan tubs, chilled fish, vegetable crates. On the LEFT side wall: a heavy thick stainless steel walk-in cooler door with a small circular porthole window and a horizontal bar lever handle, door slightly ajar. Black rubber anti-slip mat on the floor. On the nearest rack at eye level: two medium-sized round plastic food containers — the kind one person can easily carry with both hands — each with a large easy-peel white rectangular sticker label: one reads &#x27;KIMCHI — 5 MONTHS&#x27;, the other reads &#x27;KIMCHI — 1 WEEK&#x27;. Labels are flat, smooth, and peelable. Thin visible breath fog drifting in cold air.</div>
         </div>
         <div class="card loc-card">
@@ -1722,6 +1732,12 @@
   // multipart-fetch /api/upload-asset → returns job_id → watchJobs reloads
   // gallery on Active. The bible read cache is flushed server-side so the
   // new row shows up on the auto-refresh.
+  // Canonical bible-name index, server-injected. Keyed by upper-case bible tab.
+  // Used to populate the Name combobox so users pick existing canonical entries
+  // rather than creating typo-ghosts. Free-text still works for genuinely new
+  // entries — the datalist is suggestion-only, not a hard restriction.
+  const BIBLE_NAMES = {"CHARACTERS": ["TARA ANJANI", "LEE JOON-HO", "PARK MIN-JUN", "BU ENDANG", "GALIH", "MANAGER"], "LOCATIONS": ["Hanbyeol Bistro Kitchen", "Hanbyeol Dressing Room", "Walk-In Cooler", "Joon-Ho's Office", "Hanbyeol Storage Room", "Alley Behind Hanbyeol", "Tara's Mampang Apartment", "Hanbyeol Pass Station"], "COSTUME": ["White junior chef coat (Tara EP01)", "White junior chef coat (Tara, broken-in)", "Tara casual (apartment)", "Sous chef whites (Min-jun)", "Executive chef whites (Joon-ho)", "Indonesian kitchen lead (Bu Endang)", "Line cook whites (Galih)", "Joon-ho's casual (alley scene)"], "PROPS": ["Chef's knife", "Wooden cutting board", "5kg garlic heap", "Earthen clay pot (kimchi jjigae)", "Tray of marinated short ribs", "Bibimbap bowl", "Stack of clean plates", "Joon-ho's notebook", "Coffee cup", "Cigarette", "Trash bag", "Pot of doenjang stew", "Banchan steel rack", "Halmoni Park photo", "Hyundai 1992-1995 photo", "Hanbyeol Logo (brand mark)"], "EFFECTS": ["Kitchen steam", "Knife glint", "Blood drop bloom", "Cigarette smoke curl", "Heat shimmer", "Oil sizzle / wok flare", "Sodium lamp glow (alley)", "Cooler breath"]};
+
   function openUploadModal(bibleTab) {
     const m = document.getElementById('upload-modal');
     document.getElementById('ul-bible').value = bibleTab;
@@ -1730,6 +1746,16 @@
     document.getElementById('ul-error').textContent = '';
     document.getElementById('ul-submit').disabled = false;
     document.getElementById('ul-submit').textContent = 'Upload';
+    // Populate the datalist with this bible's canonical names
+    const dl = document.getElementById('ul-name-list');
+    const names = (BIBLE_NAMES[bibleTab] || []);
+    dl.innerHTML = names.map(n => `<option value="${n.replace(/"/g, '&quot;')}">`).join('');
+    const hint = document.getElementById('ul-name-hint');
+    if (names.length) {
+      hint.innerHTML = `<b>${names.length}</b> existing in ${bibleTab} — click the field to pick, or type a new one.`;
+    } else {
+      hint.innerHTML = `No existing ${bibleTab} entries — type a new name.`;
+    }
     m.classList.add('open');
     document.body.style.overflow = 'hidden';
     setTimeout(() => document.getElementById('ul-name').focus(), 50);
