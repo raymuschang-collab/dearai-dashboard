@@ -414,9 +414,13 @@ def _api_vidgen():
                          "error": f"unknown gallery '{gallery}'"}), 400
     sheet_id, _show, _ep = GALLERY_REGISTRY[gallery]
     job_id = uuid.uuid4().hex[:8]
+    # NO --confirm flag — that triggers an interactive y/N input() gate which
+    # crashes the subprocess (no stdin). For button-fired jobs we want
+    # auto-submit; the prompt+refs preview goes to the job log instead, so
+    # users can audit what fired via /debug/jobs.
     cmd = [PYTHON_BIN, "byteplus_vidgen.py",
            "--sheet", sheet_id, "--set", str(set_n),
-           "--slot", str(slot), "--confirm"]
+           "--slot", str(slot)]
     append_job({
         "id": job_id,
         "label": f"vidgen {gallery} set{set_n} V{slot}",
