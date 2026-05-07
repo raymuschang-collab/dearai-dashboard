@@ -386,7 +386,7 @@ def render_asset_library(assets: list[dict]) -> str:
     return "".join(sections)
 
 
-def render_html(data: dict) -> str:
+def render_html(data: dict, gallery_name: str = "") -> str:
     nav = []
     sections = []
     section_defs = [
@@ -409,6 +409,19 @@ def render_html(data: dict) -> str:
 
     stats = data["stats"]
     stats_html = " · ".join(f"<b>{v}</b> {k}" for k, v in stats.items() if v)
+
+    # Live indicator + manual refresh link. Only renders when running through
+    # the Flask /gallery/<name> route (gallery_name is set); harmless for
+    # standalone CLI builds (link just doesn't render).
+    refresh_link = (
+        f'<a class="refresh" href="/gallery/{html.escape(gallery_name)}/refresh" '
+        f'title="Force-flush server cache + reload (default 30s TTL)">↻ Refresh</a>'
+        if gallery_name else ""
+    )
+    live_chip = (
+        '<span class="live-chip">LIVE · 30s cache</span>'
+        if gallery_name else ""
+    )
 
     return f'''<!DOCTYPE html>
 <html lang="en">
@@ -438,6 +451,36 @@ def render_html(data: dict) -> str:
   header.hero h1 {{ font-size: 34px; font-weight: 700; margin: 0 0 14px; }}
   header.hero .stats {{ font-size: 13px; color: var(--muted); }}
   header.hero .stats b {{ color: var(--ink); font-weight: 600; }}
+  header.hero .live-row {{ display: flex; gap: 12px; align-items: center; margin-bottom: 8px; }}
+  .live-chip {{
+    display: inline-block;
+    background: #e8f5e9; color: #2e7d32;
+    padding: 3px 9px; font-size: 10px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    border-radius: 4px;
+  }}
+  a.refresh {{
+    color: var(--muted); text-decoration: none; font-size: 11px;
+    border: 1px solid var(--line); border-radius: 4px;
+    padding: 3px 9px; transition: all 0.15s;
+  }}
+  a.refresh:hover {{ color: var(--ink); border-color: var(--ink); }}
+  /* Job-watch banner — appears at top after a Generate click, watches the
+     job through /debug/jobs polling, auto-refreshes the gallery on success. */
+  #job-banner {{
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: #1a1a1a; color: white;
+    font-family: 'Inter', sans-serif; font-size: 12px;
+    padding: 10px 18px; display: none;
+    border-bottom: 2px solid var(--accent);
+  }}
+  #job-banner.error {{ background: #c11647; }}
+  #job-banner.success {{ background: #2e7d32; }}
+  #job-banner .close {{
+    float: right; cursor: pointer; padding: 0 6px;
+    color: rgba(255,255,255,0.7);
+  }}
+  #job-banner .close:hover {{ color: white; }}
   nav.toc {{
     position: sticky; top: 0; z-index: 10;
     background: white; border-bottom: 1px solid var(--line);
@@ -615,7 +658,12 @@ def render_html(data: dict) -> str:
 </style>
 </head>
 <body>
+<div id="job-banner">
+  <span class="close" onclick="this.parentElement.style.display='none'">×</span>
+  <span id="job-banner-text">Watching job…</span>
+</div>
 <header class="hero">
+  <div class="live-row">{live_chip}{refresh_link}</div>
   <div class="show">{html.escape(data["show"])}</div>
   <h1>{html.escape(data["episode"])}</h1>
   <div class="stats">{stats_html}</div>
@@ -626,25 +674,111 @@ def render_html(data: dict) -> str:
 <script>
   // Tab switcher — single-section view. Click a tab → hide siblings, show target.
   // Hash-aware: opens the panel matching the URL hash on load if present.
+  // Pinned-restore: if sessionStorage has a saved tab from a job-triggered
+  // refresh, that wins over the URL hash.
+  let _activate;  // hoisted for use by the watcher below
   (function() {{
     const tabs = document.querySelectorAll('nav.toc .tab');
     const panels = document.querySelectorAll('section.panel');
-    function activate(id) {{
+    function activate(id, suppressScroll) {{
       tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === id));
       panels.forEach(p => p.classList.toggle('active', p.id === id));
       if (history.replaceState) history.replaceState(null, '', '#' + id);
-      window.scrollTo({{top: 0, behavior: 'instant'}});
+      if (!suppressScroll) window.scrollTo({{top: 0, behavior: 'instant'}});
     }}
+    _activate = activate;
     tabs.forEach(t => t.addEventListener('click', () => activate(t.dataset.tab)));
-    // Honor URL hash on initial load (so links like #characters open that tab)
-    const hash = location.hash.replace(/^#/, '');
-    if (hash && document.getElementById(hash)) activate(hash);
+    // Restore-from-refresh: if we just came back from /gallery/<name>/refresh
+    // after a job watcher finished, restore tab + scroll without resetting.
+    const savedTab = sessionStorage.getItem('gallery_active_tab');
+    const savedScroll = sessionStorage.getItem('gallery_scroll_y');
+    if (savedTab && document.getElementById(savedTab)) {{
+      activate(savedTab, true);
+      sessionStorage.removeItem('gallery_active_tab');
+    }} else {{
+      // Honor URL hash on first load
+      const hash = location.hash.replace(/^#/, '');
+      if (hash && document.getElementById(hash)) activate(hash);
+    }}
+    if (savedScroll) {{
+      requestAnimationFrame(() => {{
+        window.scrollTo({{top: parseInt(savedScroll, 10), behavior: 'instant'}});
+        sessionStorage.removeItem('gallery_scroll_y');
+      }});
+    }}
   }})();
 
+  // Job watcher — after a Generate click, polls /debug/jobs every 8s until
+  // the watched job(s) finish. On success, saves scroll+tab to sessionStorage
+  // and force-refreshes via /gallery/<name>/refresh (which 302s back here).
+  // On failure, leaves the banner up so the user can read the error.
+  function watchJobs(jobIds, label) {{
+    if (!Array.isArray(jobIds)) jobIds = [jobIds];
+    const banner = document.getElementById('job-banner');
+    const text = document.getElementById('job-banner-text');
+    banner.className = '';  // reset state classes
+    banner.style.display = 'block';
+    text.textContent = `${{label}} queued — polling for completion…`;
+    const remaining = new Set(jobIds);
+    const failed = [];
+    let attempts = 0;
+    const MAX_ATTEMPTS = 90;  // 90 × 8s = 12 min cap; vidgen typically lands in 3-5 min
+    async function tick() {{
+      attempts++;
+      if (attempts > MAX_ATTEMPTS) {{
+        text.textContent = `${{label}} — watcher gave up after ${{MAX_ATTEMPTS}} polls. Check /debug/jobs manually then click ↻ Refresh.`;
+        banner.classList.add('error');
+        return;
+      }}
+      try {{
+        const r = await fetch('/debug/jobs', {{cache: 'no-store'}});
+        const data = await r.json();
+        const byId = {{}};
+        for (const j of (data.jobs || [])) byId[j.id] = j;
+        for (const id of Array.from(remaining)) {{
+          const j = byId[id];
+          if (!j) continue;
+          if (j.status === 'succeeded') remaining.delete(id);
+          else if (j.status === 'failed' || j.status === 'errored') {{
+            remaining.delete(id);
+            failed.push(id);
+          }}
+        }}
+        if (remaining.size === 0) {{
+          if (failed.length === 0) {{
+            // All succeeded — save UI state, force fresh build, reload
+            text.textContent = `${{label}} complete — refreshing gallery…`;
+            banner.classList.add('success');
+            sessionStorage.setItem('gallery_scroll_y', String(window.scrollY));
+            const activeTab = document.querySelector('nav.toc .tab.active');
+            if (activeTab) sessionStorage.setItem('gallery_active_tab', activeTab.dataset.tab);
+            const gallery = location.pathname.split('/').filter(s => s).pop();
+            location.href = `/gallery/${{gallery}}/refresh`;
+            return;
+          }} else {{
+            text.textContent = `${{label}} failed — see /debug/jobs for log (${{failed.join(', ')}})`;
+            banner.classList.add('error');
+            return;
+          }}
+        }}
+        const status = Object.values(byId)
+          .filter(j => jobIds.includes(j.id))
+          .map(j => `${{j.id}}=${{j.status}}`)
+          .join(', ');
+        text.textContent = `${{label}} — ${{status}} (poll #${{attempts}})`;
+      }} catch (e) {{
+        text.textContent = `${{label}} — poll failed (${{e.message}}); retrying`;
+      }}
+      setTimeout(tick, 8000);
+    }}
+    tick();
+  }}
+
   // Generic gen-button handler — fires the named API endpoint and cycles
-  // button state. Used by both fireStoryboard (storyboard panels) and
-  // fireVidgen (BytePlus Seedance 2 video clips).
-  async function _fireGen(endpoint, body, btn, queueMins) {{
+  // button state. On success, hands the returned job_id(s) to watchJobs,
+  // which polls /debug/jobs and auto-refreshes the gallery on completion
+  // (preserving scroll position + active tab via sessionStorage).
+  async function _fireGen(endpoint, body, btn, queueMins, label) {{
     const orig = btn.textContent;
     btn.disabled = true;
     btn.textContent = 'Firing…';
@@ -658,7 +792,10 @@ def render_html(data: dict) -> str:
       const data = await r.json();
       if (r.ok && data.ok) {{
         btn.classList.add('success');
-        btn.textContent = `Queued · ${{data.job_id}} · refresh in ~${{queueMins}} min`;
+        btn.textContent = `Queued · ${{data.job_id}} · auto-refresh on completion`;
+        // job_ids[] (vidgen returns 2) takes precedence; fall back to job_id (single)
+        const ids = data.job_ids || [data.job_id];
+        watchJobs(ids, label);
         setTimeout(() => {{ btn.disabled = false; btn.textContent = orig; btn.classList.remove('success'); }}, queueMins * 60 * 1000);
       }} else {{
         btn.classList.add('error');
@@ -672,29 +809,37 @@ def render_html(data: dict) -> str:
     }}
   }}
 
-  // Storyboard gen — Higgsfield gpt_image_2, ~5 min for 2 iters
+  // Storyboard gen — fal.ai gpt-image-2, ~2-3 min for 2 iters
   function fireStoryboard(setN, btn) {{
     const gallery = location.pathname.split('/').filter(s => s).pop();
-    return _fireGen('/api/storyboard', {{set: setN, gallery: gallery}}, btn, 5);
+    return _fireGen('/api/storyboard', {{set: setN, gallery: gallery}}, btn, 5,
+                    `Storyboard set ${{setN}}`);
   }}
 
-  // Vidgen V1/V2 — BytePlus Seedance 2.0, ~3-5 min per slot. Pulls the
-  // matching storyboard iter (slot 1 → SP!G/G; slot 2 → SP!H/H) as the
-  // visual reference, plus video globals + per-shot bodies as the prompt.
+  // Vidgen V1/V2 — BytePlus Seedance 2.0. Each click fires BOTH slots; the
+  // server returns job_ids:[v1,v2] and watchJobs waits for both before reload.
   function fireVidgen(setN, slot, btn) {{
     const gallery = location.pathname.split('/').filter(s => s).pop();
-    return _fireGen('/api/vidgen', {{set: setN, slot: slot, gallery: gallery}}, btn, 5);
+    return _fireGen('/api/vidgen', {{set: setN, slot: slot, gallery: gallery}}, btn, 8,
+                    `Video set ${{setN}} (V1+V2)`);
   }}
 </script>
 </body>
 </html>'''
 
 
-def build_html(sheet_id: str, show: str, episode: str, verbose: bool = False) -> str:
+def build_html(sheet_id: str, show: str, episode: str,
+               gallery_name: str = "", verbose: bool = False) -> str:
     """Read a sheet end-to-end and return the rendered gallery HTML as a string.
 
     Used both by the CLI (main) and by the Dash app's live /gallery route.
-    Reusable from any caller — pure function, no side effects on disk."""
+    Reusable from any caller — pure function, no side effects on disk.
+
+    `gallery_name` is the URL-safe slug (e.g. "sajangnim_ep01") that the Flask
+    route uses to look up this gallery; passing it enables the LIVE chip + the
+    /gallery/<name>/refresh button + the auto-refresh-on-job-complete watcher.
+    Standalone CLI builds (where the HTML is opened off disk) leave it blank
+    so those features render as no-ops."""
     def log(msg):
         if verbose:
             print(msg)
@@ -742,7 +887,7 @@ def build_html(sheet_id: str, show: str, episode: str, verbose: bool = False) ->
         "video_globals": video_globals,
         "asset_library": asset_library,
     }
-    return render_html(data)
+    return render_html(data, gallery_name=gallery_name)
 
 
 def main():
@@ -751,10 +896,13 @@ def main():
     ap.add_argument("--show",    default=DEFAULT_SHOW)
     ap.add_argument("--episode", default=DEFAULT_EPISODE)
     ap.add_argument("--output",  default=DEFAULT_OUTPUT)
+    ap.add_argument("--gallery-name", default="",
+                    help="URL slug (e.g. sajangnim_ep01) — wires up live chip + refresh link + job watcher")
     args = ap.parse_args()
 
     print(f"→ reading sheet {args.sheet}")
-    html_doc = build_html(args.sheet, args.show, args.episode, verbose=True)
+    html_doc = build_html(args.sheet, args.show, args.episode,
+                          gallery_name=args.gallery_name, verbose=True)
     with open(args.output, "w", encoding="utf-8") as f:
         f.write(html_doc)
     print(f"\n✓ wrote {args.output} ({len(html_doc) // 1024} KB)")

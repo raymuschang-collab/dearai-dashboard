@@ -281,9 +281,10 @@ GALLERY_REGISTRY = {
 }
 
 # In-memory cache for live galleries: name → (timestamp, html_string).
-# 5-min TTL so rapid hits don't burn Sheets quota; team edit + refresh sees
-# changes within 5 min (or hit /debug/refresh to force fresh).
-_GALLERY_TTL = 300.0
+# 30s TTL — long enough that rapid hits don't burn Sheets quota, short enough
+# that team sees their sheet edits / button-triggered generations promptly
+# without needing a manual rebuild step. Force-flush via /gallery/<name>/refresh.
+_GALLERY_TTL = 30.0
 _gallery_cache: dict = {}
 _gallery_cache_lock = threading.Lock()
 
@@ -304,6 +305,13 @@ def _gallery(name):
     from flask import send_file, abort, Response
     safe = "".join(c for c in name if c.isalnum() or c in "_-")
 
+    # Browser-side cache header — match server TTL so stale tabs auto-revalidate.
+    # `must-revalidate` makes browsers re-fetch instead of serving from disk
+    # cache; the Render-side cache absorbs the actual sheet read load.
+    cache_headers = {
+        "Cache-Control": f"max-age={int(_GALLERY_TTL)}, must-revalidate",
+    }
+
     # Live-build path
     if safe in GALLERY_REGISTRY:
         sheet_id, show, episode = GALLERY_REGISTRY[safe]
@@ -311,21 +319,21 @@ def _gallery(name):
         with _gallery_cache_lock:
             cached = _gallery_cache.get(safe)
             if cached and (now - cached[0]) < _GALLERY_TTL:
-                return Response(cached[1], mimetype="text/html")
+                return Response(cached[1], mimetype="text/html", headers=cache_headers)
         # Build fresh
         try:
             from build_gallery import build_html
-            html_doc = build_html(sheet_id, show, episode, verbose=False)
+            html_doc = build_html(sheet_id, show, episode, gallery_name=safe, verbose=False)
             with _gallery_cache_lock:
                 _gallery_cache[safe] = (now, html_doc)
-            return Response(html_doc, mimetype="text/html")
+            return Response(html_doc, mimetype="text/html", headers=cache_headers)
         except Exception as e:
             # Live build failed — try last-known cache value (even if expired)
             with _gallery_cache_lock:
                 stale = _gallery_cache.get(safe)
             if stale:
                 print(f"[gallery] live build failed for {safe} ({e}); serving stale cache ({(now - stale[0]) // 60:.0f} min old)")
-                return Response(stale[1], mimetype="text/html")
+                return Response(stale[1], mimetype="text/html", headers=cache_headers)
             # No cache — try static fallback
             static_path = PROJECT_ROOT / f"{safe}_gallery.html"
             if static_path.exists():

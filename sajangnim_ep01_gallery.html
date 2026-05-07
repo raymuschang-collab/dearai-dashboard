@@ -26,6 +26,36 @@
   header.hero h1 { font-size: 34px; font-weight: 700; margin: 0 0 14px; }
   header.hero .stats { font-size: 13px; color: var(--muted); }
   header.hero .stats b { color: var(--ink); font-weight: 600; }
+  header.hero .live-row { display: flex; gap: 12px; align-items: center; margin-bottom: 8px; }
+  .live-chip {
+    display: inline-block;
+    background: #e8f5e9; color: #2e7d32;
+    padding: 3px 9px; font-size: 10px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    border-radius: 4px;
+  }
+  a.refresh {
+    color: var(--muted); text-decoration: none; font-size: 11px;
+    border: 1px solid var(--line); border-radius: 4px;
+    padding: 3px 9px; transition: all 0.15s;
+  }
+  a.refresh:hover { color: var(--ink); border-color: var(--ink); }
+  /* Job-watch banner — appears at top after a Generate click, watches the
+     job through /debug/jobs polling, auto-refreshes the gallery on success. */
+  #job-banner {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: #1a1a1a; color: white;
+    font-family: 'Inter', sans-serif; font-size: 12px;
+    padding: 10px 18px; display: none;
+    border-bottom: 2px solid var(--accent);
+  }
+  #job-banner.error { background: #c11647; }
+  #job-banner.success { background: #2e7d32; }
+  #job-banner .close {
+    float: right; cursor: pointer; padding: 0 6px;
+    color: rgba(255,255,255,0.7);
+  }
+  #job-banner .close:hover { color: white; }
   nav.toc {
     position: sticky; top: 0; z-index: 10;
     background: white; border-bottom: 1px solid var(--line);
@@ -203,7 +233,12 @@
 </style>
 </head>
 <body>
+<div id="job-banner">
+  <span class="close" onclick="this.parentElement.style.display='none'">×</span>
+  <span id="job-banner-text">Watching job…</span>
+</div>
 <header class="hero">
+  <div class="live-row"><span class="live-chip">LIVE · 30s cache</span><a class="refresh" href="/gallery/sajangnim_ep01/refresh" title="Force-flush server cache + reload (default 30s TTL)">↻ Refresh</a></div>
   <div class="show">Diam Diam Aku Cinta Sajangnim</div>
   <h1>Episode 1 — Pelarian Pertama</h1>
   <div class="stats"><b>6</b> characters · <b>8</b> locations · <b>8</b> costume · <b>16</b> props · <b>8</b> effects · <b>12</b> sets</div>
@@ -252,8 +287,8 @@
         </div>
         <div class="card loc-card">
           <div class="card-head"><h4>Walk-In Cooler</h4></div>
-          <div class="card-iters"><a class="thumb" href="https://drive.google.com/file/d/1vJ1VoGjFg2_SOZHiXl2g8asd8rSyPena/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1vJ1VoGjFg2_SOZHiXl2g8asd8rSyPena=w1000" alt="wide – iter 1" loading="lazy"><span class="label">wide – iter 1</span></a><a class="thumb" href="https://drive.google.com/file/d/1dkf5_0vRYbQjNTzJ4VEHFBEOkwmUqezR/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1dkf5_0vRYbQjNTzJ4VEHFBEOkwmUqezR=w1000" alt="wide – iter 2" loading="lazy"><span class="label">wide – iter 2</span></a></div>
-          <div class="meta-line"><b>description:</b> Large industrial walk-in chiller, narrow enough to trap two people. Practical, lived-in restaurant kitchen aesthetic — same visual world as the adjacent storage room. Stainless steel wire racks lining both walls: hanging short ribs, banchan tubs, chilled fish, vegetable crates. On the LEFT side wall: a heavy thick stainless steel walk-in cooler door — same door visible from the storage room side — with a small circular porthole window and a horizontal bar lever handle, door slightly ajar. Black rubber anti-slip mat on the floor. On the nearest rack: two clearly visible plastic kimchi containers with large easy-peel white rectangular sticker labels — one label reads &#x27;KIMCHI — 5 MONTHS&#x27;, the other reads &#x27;KIMCHI — 1 WEEK&#x27;. Labels are flat, smooth, and peelable. Thin visible breath fog drifting in cold air.</div>
+          <div class="card-iters"><a class="thumb" href="https://drive.google.com/file/d/1WChMgWxPI7MwVy0nhTg6LdN1fZwNSxF1/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1WChMgWxPI7MwVy0nhTg6LdN1fZwNSxF1=w1000" alt="wide – iter 1" loading="lazy"><span class="label">wide – iter 1</span></a><a class="thumb" href="https://drive.google.com/file/d/1CFz5Q8C_8M8E_gXx7q2l4Ixe1ditwZXG/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1CFz5Q8C_8M8E_gXx7q2l4Ixe1ditwZXG=w1000" alt="wide – iter 2" loading="lazy"><span class="label">wide – iter 2</span></a></div>
+          <div class="meta-line"><b>description:</b> Spacious walk-in chiller — wide enough for two people to move around comfortably, long corridor feel. Practical, lived-in restaurant kitchen aesthetic — same visual world as the adjacent storage room. Stainless steel wire racks lining both walls: hanging short ribs, banchan tubs, chilled fish, vegetable crates. On the LEFT side wall: a heavy thick stainless steel walk-in cooler door with a small circular porthole window and a horizontal bar lever handle, door slightly ajar. Black rubber anti-slip mat on the floor. On the nearest rack at eye level: two medium-sized round plastic food containers — the kind one person can easily carry with both hands — each with a large easy-peel white rectangular sticker label: one reads &#x27;KIMCHI — 5 MONTHS&#x27;, the other reads &#x27;KIMCHI — 1 WEEK&#x27;. Labels are flat, smooth, and peelable. Thin visible breath fog drifting in cold air.</div>
         </div>
         <div class="card loc-card">
           <div class="card-head"><h4>Joon-Ho&#x27;s Office</h4></div>
@@ -500,7 +535,7 @@
       <div class="set-head">
         <h3>Set 3 · shots 8-10</h3>
         <div class="set-meta">
-          <span class="chip">Done</span>
+          <span class="chip">Generating</span>
         </div>
       </div>
       <div class="set-grid">
@@ -1220,25 +1255,111 @@
 <script>
   // Tab switcher — single-section view. Click a tab → hide siblings, show target.
   // Hash-aware: opens the panel matching the URL hash on load if present.
+  // Pinned-restore: if sessionStorage has a saved tab from a job-triggered
+  // refresh, that wins over the URL hash.
+  let _activate;  // hoisted for use by the watcher below
   (function() {
     const tabs = document.querySelectorAll('nav.toc .tab');
     const panels = document.querySelectorAll('section.panel');
-    function activate(id) {
+    function activate(id, suppressScroll) {
       tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === id));
       panels.forEach(p => p.classList.toggle('active', p.id === id));
       if (history.replaceState) history.replaceState(null, '', '#' + id);
-      window.scrollTo({top: 0, behavior: 'instant'});
+      if (!suppressScroll) window.scrollTo({top: 0, behavior: 'instant'});
     }
+    _activate = activate;
     tabs.forEach(t => t.addEventListener('click', () => activate(t.dataset.tab)));
-    // Honor URL hash on initial load (so links like #characters open that tab)
-    const hash = location.hash.replace(/^#/, '');
-    if (hash && document.getElementById(hash)) activate(hash);
+    // Restore-from-refresh: if we just came back from /gallery/<name>/refresh
+    // after a job watcher finished, restore tab + scroll without resetting.
+    const savedTab = sessionStorage.getItem('gallery_active_tab');
+    const savedScroll = sessionStorage.getItem('gallery_scroll_y');
+    if (savedTab && document.getElementById(savedTab)) {
+      activate(savedTab, true);
+      sessionStorage.removeItem('gallery_active_tab');
+    } else {
+      // Honor URL hash on first load
+      const hash = location.hash.replace(/^#/, '');
+      if (hash && document.getElementById(hash)) activate(hash);
+    }
+    if (savedScroll) {
+      requestAnimationFrame(() => {
+        window.scrollTo({top: parseInt(savedScroll, 10), behavior: 'instant'});
+        sessionStorage.removeItem('gallery_scroll_y');
+      });
+    }
   })();
 
+  // Job watcher — after a Generate click, polls /debug/jobs every 8s until
+  // the watched job(s) finish. On success, saves scroll+tab to sessionStorage
+  // and force-refreshes via /gallery/<name>/refresh (which 302s back here).
+  // On failure, leaves the banner up so the user can read the error.
+  function watchJobs(jobIds, label) {
+    if (!Array.isArray(jobIds)) jobIds = [jobIds];
+    const banner = document.getElementById('job-banner');
+    const text = document.getElementById('job-banner-text');
+    banner.className = '';  // reset state classes
+    banner.style.display = 'block';
+    text.textContent = `${label} queued — polling for completion…`;
+    const remaining = new Set(jobIds);
+    const failed = [];
+    let attempts = 0;
+    const MAX_ATTEMPTS = 90;  // 90 × 8s = 12 min cap; vidgen typically lands in 3-5 min
+    async function tick() {
+      attempts++;
+      if (attempts > MAX_ATTEMPTS) {
+        text.textContent = `${label} — watcher gave up after ${MAX_ATTEMPTS} polls. Check /debug/jobs manually then click ↻ Refresh.`;
+        banner.classList.add('error');
+        return;
+      }
+      try {
+        const r = await fetch('/debug/jobs', {cache: 'no-store'});
+        const data = await r.json();
+        const byId = {};
+        for (const j of (data.jobs || [])) byId[j.id] = j;
+        for (const id of Array.from(remaining)) {
+          const j = byId[id];
+          if (!j) continue;
+          if (j.status === 'succeeded') remaining.delete(id);
+          else if (j.status === 'failed' || j.status === 'errored') {
+            remaining.delete(id);
+            failed.push(id);
+          }
+        }
+        if (remaining.size === 0) {
+          if (failed.length === 0) {
+            // All succeeded — save UI state, force fresh build, reload
+            text.textContent = `${label} complete — refreshing gallery…`;
+            banner.classList.add('success');
+            sessionStorage.setItem('gallery_scroll_y', String(window.scrollY));
+            const activeTab = document.querySelector('nav.toc .tab.active');
+            if (activeTab) sessionStorage.setItem('gallery_active_tab', activeTab.dataset.tab);
+            const gallery = location.pathname.split('/').filter(s => s).pop();
+            location.href = `/gallery/${gallery}/refresh`;
+            return;
+          } else {
+            text.textContent = `${label} failed — see /debug/jobs for log (${failed.join(', ')})`;
+            banner.classList.add('error');
+            return;
+          }
+        }
+        const status = Object.values(byId)
+          .filter(j => jobIds.includes(j.id))
+          .map(j => `${j.id}=${j.status}`)
+          .join(', ');
+        text.textContent = `${label} — ${status} (poll #${attempts})`;
+      } catch (e) {
+        text.textContent = `${label} — poll failed (${e.message}); retrying`;
+      }
+      setTimeout(tick, 8000);
+    }
+    tick();
+  }
+
   // Generic gen-button handler — fires the named API endpoint and cycles
-  // button state. Used by both fireStoryboard (storyboard panels) and
-  // fireVidgen (BytePlus Seedance 2 video clips).
-  async function _fireGen(endpoint, body, btn, queueMins) {
+  // button state. On success, hands the returned job_id(s) to watchJobs,
+  // which polls /debug/jobs and auto-refreshes the gallery on completion
+  // (preserving scroll position + active tab via sessionStorage).
+  async function _fireGen(endpoint, body, btn, queueMins, label) {
     const orig = btn.textContent;
     btn.disabled = true;
     btn.textContent = 'Firing…';
@@ -1252,7 +1373,10 @@
       const data = await r.json();
       if (r.ok && data.ok) {
         btn.classList.add('success');
-        btn.textContent = `Queued · ${data.job_id} · refresh in ~${queueMins} min`;
+        btn.textContent = `Queued · ${data.job_id} · auto-refresh on completion`;
+        // job_ids[] (vidgen returns 2) takes precedence; fall back to job_id (single)
+        const ids = data.job_ids || [data.job_id];
+        watchJobs(ids, label);
         setTimeout(() => { btn.disabled = false; btn.textContent = orig; btn.classList.remove('success'); }, queueMins * 60 * 1000);
       } else {
         btn.classList.add('error');
@@ -1266,18 +1390,19 @@
     }
   }
 
-  // Storyboard gen — Higgsfield gpt_image_2, ~5 min for 2 iters
+  // Storyboard gen — fal.ai gpt-image-2, ~2-3 min for 2 iters
   function fireStoryboard(setN, btn) {
     const gallery = location.pathname.split('/').filter(s => s).pop();
-    return _fireGen('/api/storyboard', {set: setN, gallery: gallery}, btn, 5);
+    return _fireGen('/api/storyboard', {set: setN, gallery: gallery}, btn, 5,
+                    `Storyboard set ${setN}`);
   }
 
-  // Vidgen V1/V2 — BytePlus Seedance 2.0, ~3-5 min per slot. Pulls the
-  // matching storyboard iter (slot 1 → SP!G/G; slot 2 → SP!H/H) as the
-  // visual reference, plus video globals + per-shot bodies as the prompt.
+  // Vidgen V1/V2 — BytePlus Seedance 2.0. Each click fires BOTH slots; the
+  // server returns job_ids:[v1,v2] and watchJobs waits for both before reload.
   function fireVidgen(setN, slot, btn) {
     const gallery = location.pathname.split('/').filter(s => s).pop();
-    return _fireGen('/api/vidgen', {set: setN, slot: slot, gallery: gallery}, btn, 5);
+    return _fireGen('/api/vidgen', {set: setN, slot: slot, gallery: gallery}, btn, 8,
+                    `Video set ${setN} (V1+V2)`);
   }
 </script>
 </body>
