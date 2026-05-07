@@ -1841,7 +1841,7 @@ def _bulk_run(sheet_id: str, kind: str):
         else:
             cmd = [PYTHON_BIN, "byteplus_vidgen.py",
                    "--sheet", sheet_id, "--set", str(set_n), "--slot", str(slot),
-                   "--resolution", "720p", "--duration", "15"]
+                   "--resolution", "480p", "--duration", "15", "--aspect", "9:16"]
             label = f"vidgen set{set_n} slot{slot}"
             kind_tag = "video"
         append_job({"id": job_id, "label": label, "status": "queued",
@@ -2550,7 +2550,7 @@ def fire_video_for_set(n_clicks_list, ids_list):
                "--sheet", sheet_id, "--set", str(set_n),
                "--slot", str(output_slot),
                "--sb-slot", str(sb_slot),
-               "--resolution", "720p", "--duration", "15"]
+               "--resolution", "480p", "--duration", "15", "--aspect", "9:16"]
         append_job({"id": job_id,
                     "label": f"vidgen set{set_n} out{output_slot} sb{sb_slot}",
                     "status": "queued",

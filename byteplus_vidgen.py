@@ -444,7 +444,13 @@ def main():
                     help="Which Storyboard Prompts iter to attach as composition ref. "
                          "1 → SP!G (Iter 1), 2 → SP!H (Iter 2). Default: matches --slot.")
     ap.add_argument("--duration", type=int, default=15)
-    ap.add_argument("--resolution", default="1080p", choices=["480p","720p","1080p","2K"])
+    # Default 480p — every gallery V1/V2 button uses this default for the
+    # POC-iteration cost band. Flag remains overrideable for ad-hoc CLI runs
+    # (e.g. --resolution 1080p for client deliverables). Cost ratio:
+    # 480p = $0.05/s, 720p = $0.08/s, 1080p = $0.132/s (1080p is ~2.6× more
+    # expensive). Producers iterate at 480p, approve, then re-run a single
+    # set at 1080p just before final delivery.
+    ap.add_argument("--resolution", default="480p", choices=["480p","720p","1080p","2K"])
     ap.add_argument("--aspect", default="9:16")
     ap.add_argument("--fast", action="store_true", help="Use fast tier (cheaper, slightly lower quality)")
     ap.add_argument("--confirm", action="store_true",
