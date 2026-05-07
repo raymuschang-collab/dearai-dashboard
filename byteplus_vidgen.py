@@ -237,8 +237,11 @@ def detect_bible_refs(body: str, sh) -> list[dict]:
 
 def detect_shotlist_tab(sh) -> str | None:
     non_shotlist = {"Storyboard Prompts", "Video Prompts", "CHARACTERS", "LOCATIONS",
-                    "PROPS", "COSTUME", "EFFECTS", "README", "Asset Library"}
+                    "PROPS", "COSTUME", "EFFECTS", "README", "_README",
+                    "Asset Library"}
     for ws in sh.worksheets():
+        if ws.title.startswith("_"):
+            continue  # skip reserved tabs (_README, _GalleryConfig, etc.)
         if ws.title not in non_shotlist:
             return ws.title
     return None
@@ -265,13 +268,31 @@ def read_video_prompt_payload(sh, set_num: int) -> tuple[str, str, str, str]:
     except Exception:
         global_camera = "Shot with Arri 35."
 
+    # Read the actual shot range for this set from Storyboard Prompts!B{row}.
+    # SP rows: row 11 = set 1, row 10+N = set N. Col B holds the range string
+    # ("1-3", "4-8", etc.) that user controls. Falls back to hardcoded
+    # (set-1)*5+1..set*5 if the SP row's range is empty/malformed.
+    first_shot, last_shot = (set_num - 1) * 5 + 1, set_num * 5
+    try:
+        sp_ws = sh.worksheet("Storyboard Prompts")
+        sp_row = 10 + set_num
+        rng = (sp_ws.acell(f"B{sp_row}").value or "").strip()
+        import re as _re
+        m = _re.match(r"^\s*(\d+)\s*[-–—]\s*(\d+)\s*$", rng)
+        if m:
+            a, b = int(m.group(1)), int(m.group(2))
+            if a <= b:
+                first_shot, last_shot = a, b
+        elif rng.isdigit():
+            first_shot = last_shot = int(rng)
+    except Exception:
+        pass
+
     shot_payloads = []
     try:
         shotlist_tab = detect_shotlist_tab(sh) or "Shotlist"
         sl_ws = sh.worksheet(shotlist_tab)
         sl_rows = sl_ws.get("A2:R200", value_render_option="FORMATTED_VALUE")
-        first_shot = (set_num - 1) * 5 + 1
-        last_shot = set_num * 5
         for r in sl_rows:
             r = (r + [""] * 18)[:18]
             shot_num = (r[0] or "").strip()
