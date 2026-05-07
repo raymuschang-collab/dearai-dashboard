@@ -109,51 +109,96 @@ def parse_sheet_id(s: str) -> str:
     return m.group(1) if m else s.strip()
 
 
+# Fal.ai endpoint for OpenAI's GPT Image 2 (released Apr 21 2026, photoreal +
+# pixel-perfect text rendering + built-in reasoning). Stateless API key auth
+# via FAL_KEY env var; picks up .env automatically via load_dotenv at import.
+# fal.ai queue API pattern:
+#   POST /fal-ai/gpt-image-2 → {"request_id": "..."}
+#   GET  /fal-ai/gpt-image-2/requests/{id}/status → {"status": "IN_PROGRESS"|"COMPLETED"|...}
+#   GET  /fal-ai/gpt-image-2/requests/{id}        → final response with images[].url
+FAL_QUEUE_BASE = "https://queue.fal.run/fal-ai/gpt-image-2"
+
+# Aspect → fal's image_size enum mapping. gpt-image-2 supports preset names
+# rather than free-form aspect strings; landscape_16_9 covers our 21:9 storyboards.
+FAL_IMAGE_SIZE_MAP = {
+    "16:9":   "landscape_16_9",
+    "21:9":   "landscape_16_9",
+    "9:16":   "portrait_9_16",
+    "1:1":    "square_hd",
+    "4:3":    "landscape_4_3",
+    "3:4":    "portrait_4_3",
+}
+
+
 def generate_image(prompt: str, aspect: str, resolution: str) -> bytes:
-    """Fire gpt_image_2 via the Higgsfield CLI, poll until completed,
-    download the PNG. The CLI's `higgs generate get <id> --json` returns
-    the result URL at the top-level key `result_url`."""
-    if not os.path.exists(HIGGS_BIN):
+    """Fire fal.ai/gpt-image-2 via the queue API, poll until COMPLETED,
+    download the PNG. Stateless API-key auth — no CLI/OAuth, never expires.
+
+    Replaces the Higgsfield CLI subprocess flow that broke on Render every
+    few hours when the OAuth session expired. Same OpenAI engine,
+    autonomous on Render."""
+    fal_key = os.environ.get("FAL_KEY", "").strip()
+    if not fal_key:
         raise RuntimeError(
-            f"Higgsfield CLI not found at {HIGGS_BIN}. "
-            f"Install with: npm install -g @higgsfield/cli")
-    sub = subprocess.run([
-        HIGGS_BIN, "generate", "create", MODEL,
-        "--prompt", prompt,
-        "--aspect_ratio", aspect,
-        "--quality", DEFAULT_QUALITY,
-        "--resolution", resolution,
-        "--json",
-    ], capture_output=True, text=True, timeout=120)
-    if sub.returncode != 0:
-        raise RuntimeError(f"higgs submit failed: {sub.stderr[:300]}")
-    job_ids = json.loads(sub.stdout)
-    if not job_ids:
-        raise RuntimeError(f"no job id returned: {sub.stdout[:200]}")
-    job_id = job_ids[0]
-    # Poll
+            "FAL_KEY env var not set. Add it to .env (local) or Render's "
+            "environment variables. Get a key from https://fal.ai/dashboard/keys"
+        )
+    headers = {
+        "Authorization": f"Key {fal_key}",
+        "Content-Type": "application/json",
+    }
+    image_size = FAL_IMAGE_SIZE_MAP.get(aspect, "landscape_16_9")
+
+    # Submit. resolution arg is mapped to fal's "quality" tier (high default).
+    submit = requests.post(
+        FAL_QUEUE_BASE,
+        headers=headers,
+        json={
+            "prompt": prompt,
+            "image_size": image_size,
+            "quality": "high",          # low | medium | high
+            "num_images": 1,
+            "output_format": "png",
+        },
+        timeout=60,
+    )
+    if submit.status_code != 200:
+        raise RuntimeError(f"fal submit failed: HTTP {submit.status_code} — {submit.text[:300]}")
+    request_id = submit.json().get("request_id")
+    if not request_id:
+        raise RuntimeError(f"no request_id in submit response: {submit.text[:200]}")
+
+    # Poll status
+    status_url = f"{FAL_QUEUE_BASE}/requests/{request_id}/status"
     deadline = time.time() + 360
     while time.time() < deadline:
-        get = subprocess.run([HIGGS_BIN, "generate", "get", job_id, "--json"],
-                             capture_output=True, text=True, timeout=30)
-        if get.returncode == 0:
-            try:
-                data = json.loads(get.stdout)
-            except json.JSONDecodeError:
-                data = {}
-            status = data.get("status")
-            if status == "completed":
-                url = data.get("result_url") or data.get("rawUrl") \
-                    or (data.get("results", {}).get("rawUrl") if isinstance(data.get("results"), dict) else None)
-                if not url:
-                    raise RuntimeError(f"no result_url in completed job: {json.dumps(data)[:300]}")
-                resp = requests.get(url, timeout=180)
-                resp.raise_for_status()
-                return resp.content
-            if status == "failed":
-                raise RuntimeError(f"higgs job failed: {json.dumps(data)[:300]}")
-        time.sleep(8)
-    raise RuntimeError(f"higgs job {job_id} timed out after 360s")
+        s = requests.get(status_url, headers=headers, timeout=30)
+        if s.status_code != 200:
+            time.sleep(4)
+            continue
+        st = s.json().get("status", "")
+        if st == "COMPLETED":
+            break
+        if st in ("FAILED", "CANCELLED"):
+            raise RuntimeError(f"fal job {st.lower()}: {s.text[:300]}")
+        time.sleep(4)
+    else:
+        raise RuntimeError(f"fal job {request_id} timed out after 360s")
+
+    # Fetch result
+    result_url = f"{FAL_QUEUE_BASE}/requests/{request_id}"
+    r = requests.get(result_url, headers=headers, timeout=30)
+    r.raise_for_status()
+    data = r.json()
+    images = data.get("images") or []
+    if not images:
+        raise RuntimeError(f"fal completed but no images: {json.dumps(data)[:300]}")
+    img_url = images[0].get("url")
+    if not img_url:
+        raise RuntimeError(f"fal images[0] has no url: {json.dumps(data)[:300]}")
+    resp = requests.get(img_url, timeout=180)
+    resp.raise_for_status()
+    return resp.content
 
 
 def upload_and_share(drive, folder_id: str, filename: str, content: bytes) -> str:
@@ -278,15 +323,11 @@ def main():
     ap.add_argument("--resolution", default=DEFAULT_RESOLUTION, help="Resolution (default 1K)")
     args = ap.parse_args()
 
-    # Higgsfield CLI provides its own auth (~/.config/higgsfield credentials).
-    # Confirm the binary is present + a token exists.
-    if not os.path.exists(HIGGS_BIN):
-        sys.exit(f"higgs CLI not found at {HIGGS_BIN}. "
-                 f"Run: npm install -g @higgsfield/cli")
-    auth_check = subprocess.run([HIGGS_BIN, "auth", "token"],
-                                 capture_output=True, text=True, timeout=10)
-    if auth_check.returncode != 0:
-        sys.exit("higgs CLI not authenticated. Run: higgs auth login")
+    # fal.ai uses a static API key (FAL_KEY env var). No CLI / OAuth /
+    # session-expiry dance like Higgsfield required.
+    if not os.environ.get("FAL_KEY", "").strip():
+        sys.exit("FAL_KEY env var not set. Add it to .env (local) or "
+                 "Render env vars. Get a key from https://fal.ai/dashboard/keys")
 
     creds = get_credentials()
     gc = gspread.authorize(creds)
