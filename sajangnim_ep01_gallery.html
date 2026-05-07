@@ -126,6 +126,19 @@
     /* No max-height — show all shots without scroll-trap. Long sets just
        extend the card naturally. */
   }
+  .gen-btn {
+    background: #1a1a1a; color: white;
+    border: 0; border-radius: 6px;
+    font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 11px 18px; cursor: pointer;
+    transition: background 0.15s;
+    margin-top: 4px; align-self: flex-start;
+  }
+  .gen-btn:hover { background: #000; }
+  .gen-btn:disabled { background: #888; cursor: wait; }
+  .gen-btn.success { background: #2e7d32; }
+  .gen-btn.error { background: #c11647; }
   .set-storyboards { display: flex; flex-direction: column; gap: 10px; }
   .set-videos { display: flex; flex-direction: column; gap: 10px; }
   .vid-tile {
@@ -388,7 +401,7 @@
           <div class="card-iters"><a class="thumb" href="https://drive.google.com/file/d/1C6_2mJ24uFcWn6WC687X-5Rf06L8ed2x/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1C6_2mJ24uFcWn6WC687X-5Rf06L8ed2x=w1000" alt="Iter 1" loading="lazy"><span class="label">Iter 1</span></a></div>
           <div class="meta-line"><b>used_by:</b> Walk-In Cooler</div><div class="meta-line"><b>description:</b> Visible breath fog from characters inside the walk-in cooler</div>
         </div></div></section><section class="panel active" id="storyboards"><h2>Storyboards</h2>
-    <div class="set-card">
+    <div class="set-card" data-set="1">
       <div class="set-head">
         <h3>Set 1 · shots 1-3</h3>
         <div class="set-meta">
@@ -408,12 +421,15 @@
       <div class="prompt-section">
         <div class="prompt-label">COMBINED PROMPT</div>
         <div class="prompt-body combined">Shot 1: No music. Dialogue in Jakarta Bahasa accent.<br>1, 3s, CU, Static, TARA&#x27;s trembling hands grip a chef&#x27;s knife, knuckles white, knife scraping cutting board; kitchen ambient; stove hiss.<br><br>Shot 2: No music. Dialogue in Jakarta Bahasa accent.<br>2, 5s, MS, Low angle; Rack focus (garlic → TARA), Five kilograms of unpeeled garlic fill the foreground (low angle); rack focus pulls to reveal TARA at her prep station amid eight chefs in a busy modern Korean kitchen, (Stoic on the surface; nervous beneath), kitchen clatter; induction burner hiss.<br><br>Shot 3: No music. Dialogue in Jakarta Bahasa accent.<br>3, 5s, MCU, Static, TARA takes one steadying breath and cuts into the first clove, (Steeling herself; jaw set), knife slice; quiet exhale.</div>
-      </div></div>
+      </div>
+      <button class="gen-btn" data-set="1" onclick="fireStoryboard(1, this)">
+        Generate Storyboard
+      </button></div>
         <div class="set-storyboards"><div class="thumb wide placeholder">storyboard pending</div><div class="thumb wide placeholder">storyboard pending</div></div>
         <div class="set-videos"><div class="vid-tile"><iframe src="https://drive.google.com/file/d/1VBp8MbE5pk-wdpdnXaQ8hlNXyAMdUwFK/preview" allow="autoplay" loading="lazy"></iframe><div class="label">Video 1</div></div><div class="vid-tile"><iframe src="https://drive.google.com/file/d/1WAGmoRKGMfRCfbDKi9DoWi1t0dWO0RtT/preview" allow="autoplay" loading="lazy"></iframe><div class="label">Video 2</div></div></div>
       </div>
     </div>
-    <div class="set-card">
+    <div class="set-card" data-set="2">
       <div class="set-head">
         <h3>Set 2 · shots 4-8</h3>
         <div class="set-meta">
@@ -433,12 +449,15 @@
       <div class="prompt-section">
         <div class="prompt-label">COMBINED PROMPT</div>
         <div class="prompt-body combined">Shot 4: No music. Dialogue in Seoul Korean accent.<br>4, 6s, WS, Tracking (follow), MIN-JUN (screen-left) walks past TARA (screen-right) from behind through the kitchen line; his shoulder deliberately checks TARA&#x27;s shoulder as he passes, (TARA: jaw tightens, eyes flash with suppressed fury then deliberately blank — refuses to react publicly; MIN-JUN: micro-smirk as shoulder makes contact — deliberate, not accidental; quick side-glance to clock her reaction), footsteps on tile; kitchen ambient.<br><br>Shot 5: No music. Dialogue in Jakarta Bahasa accent.<br>5, 3s, Insert, Static, TARA&#x27;s left index finger opens on the knife blade — MIN-JUN&#x27;s shoulder-check redirected the cut; a dark bead of blood wells at the knuckle and drops onto the wooden cutting board, spreading a thin red smear across the wood grain beside a half-peeled garlic clove, raw garlic juice mixing with the blood, knife clatter; blood drip.<br><br>Shot 6: No music. Dialogue in Jakarta Bahasa accent.<br>6, 6s, CU→MS, Dolly track (pull back); Rack focus (blood → TARA face → MIN-JUN background), TARA&#x27;s eyes lock on the blood — does not gasp, does not flinch; camera slowly pulls back as MIN-JUN stops two paces away in background, turns around wearing a smile that looks like concern — framing predator and prey in the same shot, (TARA: stoicism cracking at the edges — eyes begin to well, jaw tightening hard to force it back, refusing to break in front of the line; MIN-JUN: barely-there smirk of gratification as he turns — cold eyes scan the room to confirm witnesses, satisfaction at visible damage), silence under kitchen hum.<br><br>Shot 7: No music. Dialogue in Seoul Korean with Indonesian-English code-switch accent.<br>7, 4s, MCU, Static, MIN-JUN delivers the line with mock concern, MIN-JUN: 아이구 TARA-ssi, be careful. Dapur Korea bukan tempat anak-anak. (Smile that does not reach the eyes), kitchen ambient.<br><br>Shot 8: No music. Dialogue in Jakarta Bahasa accent.<br>8, 6s, CU, Static, TARA&#x27;s face moves through a controlled collapse: lip trembles once, jaw tightens to lock it down, eyes drop to the floor — she tilts her head to hide; after a held breath she whispers her answer without lifting her eyes, the defeat written in every muscle and in the near-silence of her voice, TARA: 네, 선배. (Lip trembles briefly then snapped back under control; eyes well then forcibly blinked dry; jaw sets hard; shoulders drop a fraction in full-body submission; a single sharp nose-breath steadies her before the whispered answer — grief swallowed whole, compliance performed), quiet breath.</div>
-      </div></div>
+      </div>
+      <button class="gen-btn" data-set="2" onclick="fireStoryboard(2, this)">
+        Generate Storyboard
+      </button></div>
         <div class="set-storyboards"><a class="thumb wide" href="https://drive.google.com/file/d/1a1u_F8XSZf7ZQowlbBzIQt9ZNHoy46rf/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1a1u_F8XSZf7ZQowlbBzIQt9ZNHoy46rf=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><a class="thumb wide" href="https://drive.google.com/file/d/1JwOojLVkDi6amI-mjHwdzQNtjYi5yM8A/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1JwOojLVkDi6amI-mjHwdzQNtjYi5yM8A=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a></div>
         <div class="set-videos"><div class="vid-tile placeholder">video pending</div><div class="vid-tile"><iframe src="https://drive.google.com/file/d/1UjNgHAbVhwe6thCpYMjZuha0gWm4F_wa/preview" allow="autoplay" loading="lazy"></iframe><div class="label">Video 2</div></div></div>
       </div>
     </div>
-    <div class="set-card">
+    <div class="set-card" data-set="3">
       <div class="set-head">
         <h3>Set 3 · shots 9-13</h3>
         <div class="set-meta">
@@ -458,12 +477,15 @@
       <div class="prompt-section">
         <div class="prompt-label">COMBINED PROMPT</div>
         <div class="prompt-body combined">Shot 9: No music. Dialogue in Seoul Korean accent.<br>9, 3s, ECU, Dolly in (slow push); Tracking (follow), ECU on MIN-JUN&#x27;s profile as he strides away — the corner of his mouth curls into a micro-smirk of pure satisfaction; shoulders relax with the ease of a man who just handled something minor; camera pushes in on the smug curve of his lips then pans slowly to reveal TARA alone and diminished at her station, (Smug ease — satisfaction is physical: slight lift at the corner of the mouth, a small exhale like releasing weight, chin tilted fractionally upward — the involuntary signature of someone who just enjoyed causing pain), footsteps fade.<br><br>Shot 10: No music. Dialogue in Jakarta Bahasa accent.<br>10, 9s, MS→CU, Tracking (follow); Rack focus (ribs tray → shoulder touch → BU ENDANG lips), BU ENDANG walks past TARA carrying a tray of marinated short ribs; in a seamless continuous motion her hand gently brushes TARA&#x27;s shoulder without breaking stride — camera tracks with her and racks focus to her lips as she whispers, BU ENDANG: Sabar ya nak. (Quiet motherly concern — the shoulder-touch deliberate but brief, an act of solidarity that cannot cost her anything; expression steady and warm as she whispers, eyes forward, keeping them both safe), tray clinks; sizzle of marinade.<br><br>Shot 11: No music. Dialogue in Jakarta Bahasa accent.<br>11, 3s, CU, Static, TARA absorbs the whispered kindness, eyes brimming, (Eyes well; lip trembles), kitchen ambient.<br><br>Shot 12: No music. Dialogue in Seoul Korean accent.<br>12, 3s, MS, Static, MIN-JUN (screen-left) spots JOON-HO (screen-right) from across the kitchen — roughly eight meters of line stations, moving staff and steam between them; MIN-JUN straightens mid-task, rolling his shoulders back, the cold calculation in his eyes dissolving into performed readiness before JOON-HO is even close, (Eyes go sharp the instant JOON-HO enters his sightline — a beat of cold tactical assessment, reading distance and witnesses; then a controlled reset: shoulders roll back, chin lifts slightly, expression neutralized into professional warmth — the performance boots up before the gap closes), kitchen ambient; footsteps approaching.<br><br>Shot 13: No music. Dialogue in Seoul Korean accent.<br>13, 4s, MCU, Tracking (follow), Chef LEE JOON-HO walks through the kitchen on inspection, calm command in his stride, (Stoic authority), footsteps; kitchen quiets slightly as he passes.</div>
-      </div></div>
+      </div>
+      <button class="gen-btn" data-set="3" onclick="fireStoryboard(3, this)">
+        Generate Storyboard
+      </button></div>
         <div class="set-storyboards"><a class="thumb wide" href="https://drive.google.com/file/d/1y2HKECcxieF_jLJY_H6tm0lUix2PD3Aa/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1y2HKECcxieF_jLJY_H6tm0lUix2PD3Aa=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><a class="thumb wide" href="https://drive.google.com/file/d/14ezlYycArHBOeVhzMjNVs9F1hRsq8nIq/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/14ezlYycArHBOeVhzMjNVs9F1hRsq8nIq=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a></div>
         <div class="set-videos"><div class="vid-tile"><iframe src="https://drive.google.com/file/d/1X6IHw2iC6x1ysOWJxdsX-5opb-rPZlFh/preview" allow="autoplay" loading="lazy"></iframe><div class="label">Video 1</div></div><div class="vid-tile"><iframe src="https://drive.google.com/file/d/1iA0QpmV4NQQ42iAkB1qSZhj_PJH4RYBt/preview" allow="autoplay" loading="lazy"></iframe><div class="label">Video 2</div></div></div>
       </div>
     </div>
-    <div class="set-card">
+    <div class="set-card" data-set="4">
       <div class="set-head">
         <h3>Set 4 · shots 14-18</h3>
         <div class="set-meta">
@@ -483,12 +505,15 @@
       <div class="prompt-section">
         <div class="prompt-label">COMBINED PROMPT</div>
         <div class="prompt-body combined">Shot 14: No music. Dialogue in Seoul Korean accent.<br>14, 3s, CU, Static, MIN-JUN mid-step — a half-beat where his eyes go flat and calculating, reading JOON-HO&#x27;s approach like a tactical problem; then as if a switch flips his posture lifts, shoulders pull back, and the practiced smile breaks across his face — warm, eager, immaculate, (Half-beat of cold assessment — the real MIN-JUN visible for one frame: flat affect, calculating eyes, predator reading terrain; then the mask snaps into place with practiced speed — smile genuine-looking, eyes warm on command, body language open and deferential), kitchen ambient.<br><br>Shot 15: No music. Dialogue in Seoul Korean with Indonesian-English code-switch accent.<br>15, 4s, MS, Static, MIN-JUN (screen-left) moves behind TARA (screen-right), takes her hand on the knife in a teaching gesture, MIN-JUN: TARA-ssi, you&#x27;re doing great! Let me show you the proper cut. (MIN-JUN: performed warmth broadcast wide for the room — smile calibrated to read as mentorship, grip on her hand too firm for teaching, proximity unnecessary and deliberate; TARA: body stiffens involuntarily, eyes dart sideways to check witnesses, compliance performed but jaw locked — every muscle tensed to pull away), footsteps stop behind Tara.<br><br>Shot 16: No music. Dialogue in Seoul Korean with Indonesian-English code-switch accent.<br>16, 3s, ECU, Static, ECU on MIN-JUN&#x27;s hand pressed over TARA&#x27;s on the knife — his fingers force hers into a pinch grip on the blade (thumb and index on the steel itself, not the handle); the correction is textbook valid but the pressure is excessive, white knuckles visible; TARA&#x27;s left index finger (the cut from Shot 7, still unattended) is now pressed directly against the cold steel, knife on board; forceful fabric contact; TARA breath catch.<br><br>Shot 17: No music. Dialogue in Seoul Korean accent.<br>17, 6s, Low angle WS→CU, Low angle; Dolly in; Rack focus (TARA+MIN-JUN hands FG → JOON-HO face BG), Low angle: TARA and MIN-JUN&#x27;s clasped hands fill the foreground; JOON-HO enters mid-ground walking past on inspection — camera dollies in, racking focus from the hands to JOON-HO&#x27;s face as he registers the scene; he pauses one beat, eyes tracking from the grip to TARA&#x27;s stiff expression, (Notices, gives nothing away — eyes move deliberately: hands → TARA&#x27;s face → MIN-JUN&#x27;s smile → forward again; the assessment is fast and complete, expression locked neutral throughout), footsteps.<br><br>Shot 18: No music. Dialogue in Seoul Korean accent.<br>18, 6s, POV Insert, Tilt up (cut finger → MIN-JUN face); no rack focus — sharp throughout, POV JOON-HO — his gaze drops to TARA&#x27;s left index finger: unbandaged, the cut still fresh, a blood smudge visible on the knuckle (sharp focus, no rack — he sees it cleanly); tilt up to MIN-JUN&#x27;s face: the too-bright smile, the performed warmth, the grip still on her hand, (Suspicion masked beneath neutral face — the unprotected cut and blood registered and filed without reaction; tilt up to MIN-JUN&#x27;s performance smile reveals nothing on JOON-HO&#x27;s face — the evidence is collected, the verdict silent).</div>
-      </div></div>
+      </div>
+      <button class="gen-btn" data-set="4" onclick="fireStoryboard(4, this)">
+        Generate Storyboard
+      </button></div>
         <div class="set-storyboards"><a class="thumb wide" href="https://drive.google.com/file/d/16c-qYxY3Es_ok3tKk12TOpbraDVSEz_7/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/16c-qYxY3Es_ok3tKk12TOpbraDVSEz_7=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><a class="thumb wide" href="https://drive.google.com/file/d/1OZEfHQD8R-V-vX3DbssPL64y17MN-VEu/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1OZEfHQD8R-V-vX3DbssPL64y17MN-VEu=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a></div>
         <div class="set-videos"><div class="vid-tile"><iframe src="https://drive.google.com/file/d/1aqUnfpgc62YR-MBwC-VE_ghAZg9p4NWl/preview" allow="autoplay" loading="lazy"></iframe><div class="label">Video 1</div></div><div class="vid-tile"><iframe src="https://drive.google.com/file/d/13K5DkID8jTFZWVcgqyVl2yQK-wCBWP8t/preview" allow="autoplay" loading="lazy"></iframe><div class="label">Video 2</div></div></div>
       </div>
     </div>
-    <div class="set-card">
+    <div class="set-card" data-set="5">
       <div class="set-head">
         <h3>Set 5 · shots 19-23</h3>
         <div class="set-meta">
@@ -508,12 +533,15 @@
       <div class="prompt-section">
         <div class="prompt-label">COMBINED PROMPT</div>
         <div class="prompt-body combined">Shot 19: No music. Dialogue in Seoul Korean accent.<br>19, 3s, MS, Tracking (follow), JOON-HO resumes his inspection pace, moving screen-right toward the pass window and out of frame — he does not look back; the kitchen swallows him into its rhythm; his silence deliberate, heavier than any comment, (Cold restraint — the decision to walk on visible only in the set of his jaw and the slight pause before his stride resumes; nothing given away to the room), footsteps fade.<br><br>Shot 20: No music. Dialogue in Seoul Korean accent.<br>20, 3s, Insert, Static, ECU: MIN-JUN&#x27;s hand releases TARA&#x27;s in an instant — the grip gone, the &#x27;lesson&#x27; over; his fingers withdraw with deliberate precision, leaving TARA&#x27;s hand on the knife alone on the cutting board, fabric release.<br><br>Shot 21: No music. Dialogue in Seoul Korean accent.<br>21, 6s, CU→MS, Static, The performed warmth drops from MIN-JUN&#x27;s face the instant he steps back — mask off, eyes dead; he turns to face TARA with cold detachment and delivers his real instruction, MIN-JUN: Five kilos. Ten minutes. Go. (korean accented english) (Mask falls in an instant — eyes go dead, warmth extinguished; voice flat and cruel for the delivery; no anger, no heat — indifference wielded as a weapon), kitchen ambient.<br><br>Shot 22: No music. Dialogue in Jakarta Bahasa accent.<br>22, 3s, CU, Static, TARA (screen-left) absorbs the cold reset of MIN-JUN (screen-right)&#x27;s manner, says nothing, (Frozen; swallows hard), kitchen ambient.<br><br>Shot 23: No music. Dialogue in Seoul Korean accent.<br>23, 3s, MS, Tracking (follow), MIN-JUN walks away screen-left and exits frame; TARA stands alone at her station facing the five-kilo pile of unpeeled garlic — her left index finger (the cut from earlier, still unattended and bleeding) hovers over the pile as she steadies herself to begin, (Indifferent stride), footsteps.</div>
-      </div></div>
+      </div>
+      <button class="gen-btn" data-set="5" onclick="fireStoryboard(5, this)">
+        Generate Storyboard
+      </button></div>
         <div class="set-storyboards"><a class="thumb wide" href="https://drive.google.com/file/d/1Z8iDwBCi_kGnbaqmwXAMKB4Ugk8Pec7s/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1Z8iDwBCi_kGnbaqmwXAMKB4Ugk8Pec7s=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><a class="thumb wide" href="https://drive.google.com/file/d/13QJrnQLjw4od_SEgHd2yW1epRD5Ie91Z/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/13QJrnQLjw4od_SEgHd2yW1epRD5Ie91Z=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a></div>
         <div class="set-videos"><div class="vid-tile"><iframe src="https://drive.google.com/file/d/1gP4_93KV4VDKYvk532_SnBwqIBSAcHS0/preview" allow="autoplay" loading="lazy"></iframe><div class="label">Video 1</div></div><div class="vid-tile"><iframe src="https://drive.google.com/file/d/1PuDzaIQX_F5M9tpwaLTlflftzaDem9mw/preview" allow="autoplay" loading="lazy"></iframe><div class="label">Video 2</div></div></div>
       </div>
     </div>
-    <div class="set-card">
+    <div class="set-card" data-set="6">
       <div class="set-head">
         <h3>Set 6 · shots 24-28</h3>
         <div class="set-meta">
@@ -533,12 +561,15 @@
       <div class="prompt-section">
         <div class="prompt-label">COMBINED PROMPT</div>
         <div class="prompt-body combined">Shot 24: No music. Dialogue in Jakarta Bahasa accent.<br>24, 9s, Insert→CU, Static; Pan R (sweep); Tilt U (escalation), TARA&#x27;s left index finger (the unattended cut) smudges a garlic clove red as she peels — without pausing she wipes the bleeding hand on her apron; camera pans right and tilts up to her face: wet eyes blinking fast, refusing to spill, jaw tight and trembling at the edges, (Numbed acceptance in the hands — the bleeding wiped away as if it doesn&#x27;t matter; wet eyes blinking hard, refusing to spill; jaw tight then trembling at the corners — the body surrendering what the face won&#x27;t admit), knife slice; quiet sniff.<br><br>Shot 25: No music. Dialogue in Jakarta Bahasa accent.<br>25, 3s, MS, Tracking (follow), GALIH (screen-left) walks past with a stack of clean plates, slows when he sees TARA (screen-right), (Concerned; debating whether to stop), plate clatter.<br><br>Shot 26: No music. Dialogue in Jakarta Bahasa accent.<br>26, 3s, MCU, Static, GALIH (screen-left) lowers his voice, asks TARA (screen-right) discreetly, GALIH: Lo perlu plester gak? (Quiet concern; trying not to embarrass), low voice under kitchen hum.<br><br>Shot 27: No music. Dialogue in Jakarta Bahasa accent.<br>27, 3s, CU, Static, TARA forces a small smile and waves him off without looking up, TARA: Gak apa-apa, Mas. (Forced smile; eyes wet), soft reply.<br><br>Shot 28: No music. Dialogue in Jakarta Bahasa accent.<br>28, 6s, MCU→MS, Static→Tracking (follow), GALIH freezes in MCU — he can see she is not okay, but the kitchen will not stop. A beat of helpless concern; then he forces himself forward. Camera unlocks and tracks with him as he moves back into the rhythm of service, plates in hand, one last glance over his shoulder before he disappears into the line., (Helpless concern → Reluctant exit), kitchen ambient; footsteps.</div>
-      </div></div>
+      </div>
+      <button class="gen-btn" data-set="6" onclick="fireStoryboard(6, this)">
+        Generate Storyboard
+      </button></div>
         <div class="set-storyboards"><a class="thumb wide" href="https://drive.google.com/file/d/1AnSD5sxy5KOKgqLCkv57hxzmTLMUaHaR/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1AnSD5sxy5KOKgqLCkv57hxzmTLMUaHaR=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><a class="thumb wide" href="https://drive.google.com/file/d/1Rjp2SB0B_2DAA0AyKBbmXsaKOEI4GnY7/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1Rjp2SB0B_2DAA0AyKBbmXsaKOEI4GnY7=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a></div>
         <div class="set-videos"><div class="vid-tile placeholder">video pending</div><div class="vid-tile placeholder">video pending</div></div>
       </div>
     </div>
-    <div class="set-card">
+    <div class="set-card" data-set="7">
       <div class="set-head">
         <h3>Set 7 · shots 29-33</h3>
         <div class="set-meta">
@@ -558,12 +589,15 @@
       <div class="prompt-section">
         <div class="prompt-label">COMBINED PROMPT</div>
         <div class="prompt-body combined">Shot 29: No music. Dialogue in Jakarta Bahasa accent.<br>29, 3s, WS, Handheld (organic), WS of the kitchen in full service — TARA (screen-left, entrée station) frantically plates; GALIH (screen-center, pass) ferries dishes; MIN-JUN (screen-right, pass window) commands the line. Steam, calls of &#x27;order up&#x27;, controlled chaos fills the frame., kitchen frenzy; plates clatter; voices overlap.<br><br>Shot 30: No music. Dialogue in Jakarta Bahasa accent.<br>30, 3s, MS, Static, TARA (screen-right, off-center) works the entrée station: far-left pan — galbi braising; second pan — doenjang jjigae reducing; third pan — pajeon crisping; fourth pan — bibimbap rice warming. Her hands shake between all four., (Overwhelmed; hands shaking), pan sizzle; tongs clack.<br><br>Shot 31: No music. Dialogue in Jakarta Bahasa accent.<br>31, 3s, Insert, Static, INSERT — TARA&#x27;s hands place the white kimchi on the LEFT side of the bibimbap bowl. Continuity with Shot 45: MIN-JUN will shout &quot;흰색 오른쪽, 왼쪽 아니야!&quot; — white kimchi belongs on the RIGHT. This visible plating error is the trigger., metal spoon scrape on stone.<br><br>Shot 32: No music. Dialogue in Seoul Korean accent.<br>32, 6s, CU→MS, Static, MIN-JUN in CU catches the misplated bibimbap — eyes sharpen, a predatory beat of recognition. He straightens and the frame widens to MS as he erupts loud enough for the entire line to freeze. No one moves., MIN-JUN: Are you blind? 흰색 오른쪽, 왼쪽 아니야! (Predator finding weakness → Performed outrage; enjoying the audience), kitchen rush ambient.<br><br>Shot 33: No music. Dialogue in Jakarta Bahasa accent.<br>33, 3s, CU, Static, CU — LINE COOKS (two prep cooks screen-left, one grill cook screen-right) snap their heads in unison toward TARA&#x27;s station; a dishwasher in the background freezes mid-wipe. Silence falls over the line except for the burners., (Frozen attention; pity, judgment), kitchen rush quiets briefly.</div>
-      </div></div>
+      </div>
+      <button class="gen-btn" data-set="7" onclick="fireStoryboard(7, this)">
+        Generate Storyboard
+      </button></div>
         <div class="set-storyboards"><a class="thumb wide" href="https://drive.google.com/file/d/1Y8ftpDzY-bkxoxn9vG_8sLEuMyEgbyh5/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1Y8ftpDzY-bkxoxn9vG_8sLEuMyEgbyh5=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><a class="thumb wide" href="https://drive.google.com/file/d/1EEiEdin_17VuRQhRb2CfBvUAeC20Ix7V/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1EEiEdin_17VuRQhRb2CfBvUAeC20Ix7V=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a></div>
         <div class="set-videos"><div class="vid-tile placeholder">video pending</div><div class="vid-tile placeholder">video pending</div></div>
       </div>
     </div>
-    <div class="set-card">
+    <div class="set-card" data-set="8">
       <div class="set-head">
         <h3>Set 8 · shots 34-38</h3>
         <div class="set-meta">
@@ -583,12 +617,15 @@
       <div class="prompt-section">
         <div class="prompt-label">COMBINED PROMPT</div>
         <div class="prompt-body combined">Shot 34: No music. Dialogue in Jakarta Bahasa accent.<br>34, 3s, MCU, Static, Two waiters stop in the pass to watch, plates in hand, (Discomfort; awkward witness), plate hold; kitchen pause.<br><br>Shot 35: No music. Dialogue in Jakarta Bahasa accent.<br>35, 3s, Insert, Static, TARA&#x27;s trembling hands rush to replate the bibimbap, kimchi to the correct side, tongs clatter; quick breath.<br><br>Shot 36: No music. Dialogue in Jakarta Bahasa accent.<br>36, 9s, WS→MCU→MS, Handheld (follow TARA, continuous), Camera waits in the concrete alley facing the back door — rain already falling. TARA bursts through into the wet; handheld locks on and follows. Frame recomposes tighter as her hand white-knuckles the chef hat at her side (MCU — lip trembling, rain and tears mixing). Tracks until she reaches the wall and slides down to sit on rain-soaked concrete. Handheld settles as she does., (Holding it together until alone → Lip trembling, on the edge → Surrender, body folds), rain on concrete; wet footsteps; handheld rustle.<br><br>Shot 37: No music. Dialogue in Jakarta Bahasa accent.<br>37, 4s, CU, Static, TARA breaks silently — tears and rain both fall down her face; she has stopped distinguishing between them., (Silent grief; controlled sobs), rain on concrete; muffled cry; sodium lamp hum.<br><br>Shot 38: No music. Dialogue in Jakarta Bahasa accent.<br>38, 3s, WS, Static, The kitchen back door creaks open behind TARA — she does not look up. A wedge of warm kitchen light and noise spills briefly into the wet alley., back door creak; rain on concrete; brief kitchen noise.</div>
-      </div></div>
+      </div>
+      <button class="gen-btn" data-set="8" onclick="fireStoryboard(8, this)">
+        Generate Storyboard
+      </button></div>
         <div class="set-storyboards"><a class="thumb wide" href="https://drive.google.com/file/d/1YCtEW5DpOQz91uDvJSHImtxSLLPLQDLQ/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1YCtEW5DpOQz91uDvJSHImtxSLLPLQDLQ=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><a class="thumb wide" href="https://drive.google.com/file/d/1gBx6lwRdDfzyNtfH1R8-QZHvUFoLx8C_/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1gBx6lwRdDfzyNtfH1R8-QZHvUFoLx8C_=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a></div>
         <div class="set-videos"><div class="vid-tile placeholder">video pending</div><div class="vid-tile placeholder">video pending</div></div>
       </div>
     </div>
-    <div class="set-card">
+    <div class="set-card" data-set="9">
       <div class="set-head">
         <h3>Set 9 · shots 39-43</h3>
         <div class="set-meta">
@@ -608,12 +645,15 @@
       <div class="prompt-section">
         <div class="prompt-label">COMBINED PROMPT</div>
         <div class="prompt-body combined">Shot 39: No music. Dialogue in Seoul Korean accent.<br>39, 3s, MS, Static, JOON-HO steps out into the rain carrying a heavy two-handed kitchen trash bag., (Surprised at finding her here), rain on concrete; trash bag rustle; door close behind him.<br><br>Shot 40: No music. Dialogue in Seoul Korean accent.<br>40, 3s, Two-shot CU, Static, Two-shot CU from neutral frontal angle (not POV, not OTS) — JOON-HO (screen-left) stops mid-stride in the rain as he registers TARA (screen-right) soaked and crumpled against the wall. Both characters visible. The garbage bag hangs forgotten in his grip; rain catches the sodium lamp above., (Soft surprise; concern surfaces), trash bag stops; rain on concrete.<br><br>Shot 41: No music. Dialogue in Seoul Korean accent.<br>41, 3s, MS, Tracking (follow), JOON-HO (screen-left) sets the trash bag down in the rain and walks slowly toward TARA (screen-right)., (Deliberate softness), trash bag set down; wet footsteps on concrete; rain.<br><br>Shot 42: No music. Dialogue in Seoul Korean accent.<br>42, 4s, MCU, Static, JOON-HO crouches beside TARA and speaks softly in the rain, leaving the question open., JOON-HO: 괜찮아요? (Genuine concern; rare softness), voice low; rain on concrete.<br><br>Shot 43: No music. Dialogue in Jakarta Bahasa with Korean reflex accent.<br>43, 9s, CU→MCU, Static, TARA JOLTS as she realizes it is the boss himself standing over her in the rain — scrambles to stand, back pressing the wet wall. In the same motion her sleeve drags across her face, smearing rain and tears together. She lowers her head, lips trembling, and apologizes., TARA: 죄송합니다 사장님— (Panicked recognition; scrambling → Shame; gratitude tangled), rapid breath; fabric scuffle; rain on concrete.</div>
-      </div></div>
+      </div>
+      <button class="gen-btn" data-set="9" onclick="fireStoryboard(9, this)">
+        Generate Storyboard
+      </button></div>
         <div class="set-storyboards"><a class="thumb wide" href="https://drive.google.com/file/d/1habuA1BF17GSBubRFs9sXM-taxJPNJiT/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1habuA1BF17GSBubRFs9sXM-taxJPNJiT=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><a class="thumb wide" href="https://drive.google.com/file/d/1rk2W9LqeLkQ1UwWw6TfGJIYeYdsnDK6U/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1rk2W9LqeLkQ1UwWw6TfGJIYeYdsnDK6U=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a></div>
         <div class="set-videos"><div class="vid-tile placeholder">video pending</div><div class="vid-tile placeholder">video pending</div></div>
       </div>
     </div>
-    <div class="set-card">
+    <div class="set-card" data-set="10">
       <div class="set-head">
         <h3>Set 10 · shots 44-48</h3>
         <div class="set-meta">
@@ -633,12 +673,15 @@
       <div class="prompt-section">
         <div class="prompt-label">COMBINED PROMPT</div>
         <div class="prompt-body combined">Shot 44: No music. Dialogue in Seoul Korean accent.<br>44, 3s, MS, Static, Camera at TARA&#x27;s seated eye-level, neutral frontal angle (not POV, not OTS). JOON-HO (screen-left) descends into frame as he lowers himself to one knee on the wet concrete, bringing his face level with TARA (screen-right)&#x27;s eyes. The equalization of height is the emotional gesture; rain falls on both of them., (Deliberate gentleness), knees on wet concrete; rain.<br><br>Shot 45: No music. Dialogue in Seoul Korean accent.<br>45, 3s, Insert, Static, TARA is soaked and shivering. JOON-HO&#x27;s hands move to the buttons of his own chef coat and begin to unfasten them — the gesture is instinct., button release; fabric soft; rain on concrete.<br><br>Shot 46: No music. Dialogue in Seoul Korean accent.<br>46, 3s, MCU, Static, JOON-HO removes his chef coat in one continuous motion, rain falling on his bare arms and white kitchen undershirt., (Quiet decisiveness), fabric rustle; rain on concrete and clothing.<br><br>Shot 47: No music. Dialogue in Seoul Korean accent.<br>47, 4s, CU, Tracking (follow), CU on hands — JOON-HO&#x27;s hands (screen-top) carefully lower and drape his dry chef coat over TARA&#x27;s soaked, trembling hands (screen-bottom), fingers curling slightly at the warmth. No faces visible. The contrast of dry fabric on wet skin is the whole shot., (Tenderness held close to the chest), fabric settle on wet skin; rain on concrete; soft exhale.<br><br>Shot 48: No music. Dialogue in Seoul Korean speaking broken Indonesian accent.<br>48, 4s, MCU, Static, JOON-HO speaks his Indonesian slowly in the rain, deliberately, like each word costs him effort., JOON-HO: Hari pertama... selalu... susah. (Carefully formed words; eyes steady), low voice; rain on concrete.</div>
-      </div></div>
+      </div>
+      <button class="gen-btn" data-set="10" onclick="fireStoryboard(10, this)">
+        Generate Storyboard
+      </button></div>
         <div class="set-storyboards"><a class="thumb wide" href="https://drive.google.com/file/d/1IR1JVM045FN8kvab2zp6roJ7D7TqHf3a/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1IR1JVM045FN8kvab2zp6roJ7D7TqHf3a=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><a class="thumb wide" href="https://drive.google.com/file/d/1OpUb1JvJoB2cAJ194RB_SdPRCnOgFcm7/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1OpUb1JvJoB2cAJ194RB_SdPRCnOgFcm7=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a></div>
         <div class="set-videos"><div class="vid-tile placeholder">video pending</div><div class="vid-tile placeholder">video pending</div></div>
       </div>
     </div>
-    <div class="set-card">
+    <div class="set-card" data-set="11">
       <div class="set-head">
         <h3>Set 11 · shots 49-53</h3>
         <div class="set-meta">
@@ -658,12 +701,15 @@
       <div class="prompt-section">
         <div class="prompt-label">COMBINED PROMPT</div>
         <div class="prompt-body combined">Shot 49: No music. Dialogue in Seoul Korean accent.<br>49, 3s, MS, Static, JOON-HO (screen-left) stands up, picks up the trash bag, and walks through the rain to the dumpster — matter-of-fact, as if none of this was a detour., (Returns to professional restraint), wet footsteps; trash bag lift; rain on concrete.<br><br>Shot 50: No music. Dialogue in Seoul Korean accent.<br>50, 3s, WS, Tracking (follow), JOON-HO tosses the trash bag into the dumpster with an unceremonious thud. Rain drums on the dumpster lid., dumpster lid bang; thud; rain on metal.<br><br>Shot 51: No music. Dialogue in Seoul Korean accent.<br>51, 3s, MS, Tracking (follow), JOON-HO (screen-left) walks back through the rain past TARA (screen-right) to the kitchen door without looking at her again., (Disciplined restraint; protecting her dignity), wet footsteps; door swing; rain.<br><br>Shot 52: No music. Dialogue in Jakarta Bahasa accent.<br>52, 6s, CU, Static with rack focus, CU holds on TARA pulling JOON-HO&#x27;s dry chef coat tighter around herself — she is soaked underneath but the coat is warm. Camera holds on the contrast of the fabric (wonder, vulnerability returning). Then rack focus shifts from the coat texture to TARA&#x27;s face as she breaks down, crying harder in the rain — a different kind of crying, wearing someone else&#x27;s warmth., (Wonder; vulnerability returning → Tears of being seen; relief mixed with grief), fabric tighten against wet skin; rain on concrete; soft sobs; sodium lamp hum.<br><br>Shot 53: No music. Dialogue in Jakarta Bahasa accent.<br>53, 4s, WS, Dolly In (slow push toward kitchen window), Still in the rain-soaked alley — camera holds on TARA (seated, foreground) wrapped in JOON-HO&#x27;s chef coat, rain falling around her. Slow dolly pushes past her toward the open service window of the kitchen at ground level. MIN-JUN&#x27;s still silhouette becomes visible through the open window: same floor, warm kitchen light framing him from behind, rain between them, already watching., rain on concrete; rain on kitchen window sill; distant kitchen noise.</div>
-      </div></div>
+      </div>
+      <button class="gen-btn" data-set="11" onclick="fireStoryboard(11, this)">
+        Generate Storyboard
+      </button></div>
         <div class="set-storyboards"><a class="thumb wide" href="https://drive.google.com/file/d/1PoBGlV1KltFLU1FR7TDzp9Zfdz5oCZe0/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1PoBGlV1KltFLU1FR7TDzp9Zfdz5oCZe0=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><a class="thumb wide" href="https://drive.google.com/file/d/1v7Uvud-KyTdLYgh7b74M-9X8qje1df1z/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1v7Uvud-KyTdLYgh7b74M-9X8qje1df1z=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a></div>
         <div class="set-videos"><div class="vid-tile placeholder">video pending</div><div class="vid-tile placeholder">video pending</div></div>
       </div>
     </div>
-    <div class="set-card">
+    <div class="set-card" data-set="12">
       <div class="set-head">
         <h3>Set 12 · shots 54-55</h3>
         <div class="set-meta">
@@ -683,7 +729,10 @@
       <div class="prompt-section">
         <div class="prompt-label">COMBINED PROMPT</div>
         <div class="prompt-body combined">Shot 54: No music. Dialogue in Seoul Korean accent.<br>54, 3s, MCU, Static, Inside the kitchen. MIN-JUN stands at the open service window — ground floor, same level as the alley. Arms crossed, body turned toward the window. Rain is audible and visible through the opening. He can see TARA in the alley still wrapped in JOON-HO&#x27;s dry chef coat. Continuity: JOON-HO already re-entered the kitchen damp and bare-shouldered moments ago. MIN-JUN registered it then. He knows., (Cold calculation), rain through open window; distant kitchen noise; faint window frame creak.<br><br>Shot 55: No music. Dialogue in Seoul Korean accent.<br>55, 4s, CU, Dolly In (intensify), Wide shot Dolly In on MIN-JUN&#x27;s face, framed by the open window. His eyes hold on TARA in the rain — JOON-HO&#x27;s chef coat unmistakable on her soaked shoulders. Continuity: JOON-HO walked back through that door damp, without it. MIN-JUN understood the gesture the moment it happened. Now he watches it wear, in the rain. Jaw tightens. Slow calculation behind still eyes., (Rage masked as calm; resolve hardening), rain through open window; ominous bass drone enters.</div>
-      </div></div>
+      </div>
+      <button class="gen-btn" data-set="12" onclick="fireStoryboard(12, this)">
+        Generate Storyboard
+      </button></div>
         <div class="set-storyboards"><a class="thumb wide" href="https://drive.google.com/file/d/1xWNcXe7GN_7g2Y22crUvbXOR05kcxt27/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1xWNcXe7GN_7g2Y22crUvbXOR05kcxt27=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><a class="thumb wide" href="https://drive.google.com/file/d/1maoUUhGeCRDna6JdOhv7ycUch3eGddy0/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1maoUUhGeCRDna6JdOhv7ycUch3eGddy0=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a></div>
         <div class="set-videos"><div class="vid-tile placeholder">video pending</div><div class="vid-tile placeholder">video pending</div></div>
       </div>
@@ -706,6 +755,40 @@
     const hash = location.hash.replace(/^#/, '');
     if (hash && document.getElementById(hash)) activate(hash);
   })();
+
+  // Storyboard gen button — fires set + globals + location through the
+  // existing /api/storyboard endpoint (which spawns storyboard_generate.py
+  // with --set N --force). Higgsfield gpt_image_2 takes ~3-7 min for both
+  // iters; refresh the gallery after to see the new panels.
+  async function fireStoryboard(setN, btn) {
+    const galleryName = location.pathname.split('/').filter(s => s).pop();
+    const orig = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Firing…';
+    btn.classList.remove('success', 'error');
+    try {
+      const r = await fetch('/api/storyboard', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({set: setN, gallery: galleryName}),
+      });
+      const data = await r.json();
+      if (r.ok && data.ok) {
+        btn.classList.add('success');
+        btn.textContent = `Queued · ${data.job_id} · refresh in ~5 min`;
+        // Re-enable after 5 min so user can fire again if needed
+        setTimeout(() => { btn.disabled = false; btn.textContent = orig; btn.classList.remove('success'); }, 5 * 60 * 1000);
+      } else {
+        btn.classList.add('error');
+        btn.textContent = 'Failed: ' + (data.error || 'unknown');
+        setTimeout(() => { btn.disabled = false; btn.textContent = orig; btn.classList.remove('error'); }, 8000);
+      }
+    } catch (e) {
+      btn.classList.add('error');
+      btn.textContent = 'Error: ' + e.message;
+      setTimeout(() => { btn.disabled = false; btn.textContent = orig; btn.classList.remove('error'); }, 8000);
+    }
+  }
 </script>
 </body>
 </html>

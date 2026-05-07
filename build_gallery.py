@@ -282,10 +282,13 @@ def render_set_card(s: dict, video_globals: dict | None = None) -> str:
       <div class="prompt-section">
         <div class="prompt-label">COMBINED PROMPT</div>
         <div class="prompt-body combined">{body_html}</div>
-      </div>'''
+      </div>
+      <button class="gen-btn" data-set="{s["set"]}" onclick="fireStoryboard({s["set"]}, this)">
+        Generate Storyboard
+      </button>'''
 
     return f'''
-    <div class="set-card">
+    <div class="set-card" data-set="{s["set"]}">
       <div class="set-head">
         <h3>Set {s["set"]} · shots {html.escape(s["shots"] or "—")}</h3>
         <div class="set-meta">
@@ -451,6 +454,19 @@ def render_html(data: dict) -> str:
     /* No max-height — show all shots without scroll-trap. Long sets just
        extend the card naturally. */
   }}
+  .gen-btn {{
+    background: #1a1a1a; color: white;
+    border: 0; border-radius: 6px;
+    font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 11px 18px; cursor: pointer;
+    transition: background 0.15s;
+    margin-top: 4px; align-self: flex-start;
+  }}
+  .gen-btn:hover {{ background: #000; }}
+  .gen-btn:disabled {{ background: #888; cursor: wait; }}
+  .gen-btn.success {{ background: #2e7d32; }}
+  .gen-btn.error {{ background: #c11647; }}
   .set-storyboards {{ display: flex; flex-direction: column; gap: 10px; }}
   .set-videos {{ display: flex; flex-direction: column; gap: 10px; }}
   .vid-tile {{
@@ -501,6 +517,40 @@ def render_html(data: dict) -> str:
     const hash = location.hash.replace(/^#/, '');
     if (hash && document.getElementById(hash)) activate(hash);
   }})();
+
+  // Storyboard gen button — fires set + globals + location through the
+  // existing /api/storyboard endpoint (which spawns storyboard_generate.py
+  // with --set N --force). Higgsfield gpt_image_2 takes ~3-7 min for both
+  // iters; refresh the gallery after to see the new panels.
+  async function fireStoryboard(setN, btn) {{
+    const galleryName = location.pathname.split('/').filter(s => s).pop();
+    const orig = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Firing…';
+    btn.classList.remove('success', 'error');
+    try {{
+      const r = await fetch('/api/storyboard', {{
+        method: 'POST',
+        headers: {{'Content-Type': 'application/json'}},
+        body: JSON.stringify({{set: setN, gallery: galleryName}}),
+      }});
+      const data = await r.json();
+      if (r.ok && data.ok) {{
+        btn.classList.add('success');
+        btn.textContent = `Queued · ${{data.job_id}} · refresh in ~5 min`;
+        // Re-enable after 5 min so user can fire again if needed
+        setTimeout(() => {{ btn.disabled = false; btn.textContent = orig; btn.classList.remove('success'); }}, 5 * 60 * 1000);
+      }} else {{
+        btn.classList.add('error');
+        btn.textContent = 'Failed: ' + (data.error || 'unknown');
+        setTimeout(() => {{ btn.disabled = false; btn.textContent = orig; btn.classList.remove('error'); }}, 8000);
+      }}
+    }} catch (e) {{
+      btn.classList.add('error');
+      btn.textContent = 'Error: ' + e.message;
+      setTimeout(() => {{ btn.disabled = false; btn.textContent = orig; btn.classList.remove('error'); }}, 8000);
+    }}
+  }}
 </script>
 </body>
 </html>'''

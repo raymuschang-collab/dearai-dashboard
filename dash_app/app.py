@@ -348,6 +348,47 @@ def _gallery(name):
           ", ".join(GALLERY_REGISTRY.keys()))
 
 
+@server.route("/api/storyboard", methods=["POST"])
+def _api_storyboard():
+    """Fire storyboard_generate.py for one set on the ep matched by 'gallery' name.
+    Body: {"set": <N>, "gallery": "sajangnim_ep01"}.
+    Returns {"ok": true, "job_id": "...", "message": "..."}.
+
+    Uses the same storyboard_generate.py the dashboard subprocess buttons used.
+    Higgsfield gpt_image_2 (chatgpt2) under the hood — pulls SP!C as the prompt
+    (which already contains globals B1-B8 + the dynamic per-set body)."""
+    from flask import request, jsonify
+    body = request.get_json(silent=True) or {}
+    set_n = body.get("set")
+    gallery = body.get("gallery", "")
+    if not isinstance(set_n, int) or set_n < 1:
+        return jsonify({"ok": False, "error": "missing or invalid 'set'"}), 400
+    if gallery not in GALLERY_REGISTRY:
+        return jsonify({"ok": False,
+                         "error": f"unknown gallery '{gallery}'. Known: {list(GALLERY_REGISTRY)}"}), 400
+    sheet_id, _show, _ep = GALLERY_REGISTRY[gallery]
+    job_id = uuid.uuid4().hex[:8]
+    cmd = [PYTHON_BIN, "storyboard_generate.py",
+           "--sheet", sheet_id, "--set", str(set_n), "--force"]
+    append_job({
+        "id": job_id,
+        "label": f"sb-gen {gallery} set{set_n}",
+        "status": "queued",
+        "started": datetime.now(timezone.utc).isoformat(),
+        "log": "",
+        "cmd": " ".join(cmd),
+        "kind": "storyboard",
+        "set": set_n,
+        "sheet": sheet_id,
+    })
+    threading.Thread(target=run_bg, args=(cmd, job_id), daemon=True).start()
+    return jsonify({
+        "ok": True,
+        "job_id": job_id,
+        "message": f"Queued storyboard gen for {gallery} set {set_n}; check Drive in ~5 min."
+    })
+
+
 @server.route("/gallery/<name>/refresh")
 def _gallery_refresh(name):
     """Force-flush the cached HTML for a single gallery. Use after sheet edits
