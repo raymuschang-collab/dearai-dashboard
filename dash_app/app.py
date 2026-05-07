@@ -504,6 +504,32 @@ def _discover_episodes(slug: str, drive_folder_id: str, bible_sheet_id: str,
     }]
 
 
+def _detect_cover(drive_folder_id: str) -> str:
+    """Look for cover.{jpg,png,webp,jpeg} in the show's Drive folder.
+    Returns a thumb URL (lh3 CDN) or empty string. Cached implicitly by the
+    surrounding read_projects 60s TTL."""
+    if not drive_folder_id:
+        return ""
+    try:
+        from auth import get_credentials
+        from googleapiclient.discovery import build as _drive_build
+        creds = get_credentials()
+        drive = _drive_build("drive", "v3", credentials=creds)
+        files = drive.files().list(
+            q=f"'{drive_folder_id}' in parents and trashed=false "
+              f"and (name='cover.jpg' or name='cover.png' or name='cover.webp' or name='cover.jpeg')",
+            fields="files(id,name)",
+        ).execute().get("files", [])
+        if not files:
+            return ""
+        # Most recent if multiple (shouldn't happen — endpoint trashes old)
+        fid = files[0]["id"]
+        return f"https://lh3.googleusercontent.com/d/{fid}=w800"
+    except Exception as e:
+        print(f"[projects] _detect_cover({drive_folder_id[:12]}…) failed: {e}")
+        return ""
+
+
 def _read_projects_uncached() -> dict:
     """Read the master Projects sheet end-to-end and resolve every project's
     episodes via Drive folder scan. Returns:
@@ -578,6 +604,9 @@ def _read_projects_uncached() -> dict:
             show_title=p["title"],
         )
         p["episodes"] = eps
+        # Detect cover image (cover.jpg / cover.png / cover.webp at folder root).
+        # Uploaded by the +/Change button on /projects via /api/project-cover.
+        p["cover_url"] = _detect_cover(p["drive_folder_id"]) if p["drive_folder_id"] else ""
         for ep in eps:
             gallery_slug = ep["gallery_slug"]
             registry[gallery_slug] = (ep["sheet_id"], p["title"], ep["episode_title"])
@@ -1241,6 +1270,91 @@ def _api_new_project():
         "message": f"Queued new project '{slug}'; typical wall time ~30-60s. "
                     "Check /projects after the job completes.",
     })
+
+
+@server.route("/api/project-cover/<slug>", methods=["POST"])
+def _api_project_cover(slug):
+    """Upload a cover image for one project to its show's Drive folder.
+    The cover is detected by name (cover.{jpg,png,webp,jpeg}) in read_projects(),
+    so we just upload + overwrite + flush the projects cache.
+
+    Body (multipart/form-data):
+      file — image file (jpg / png / webp)
+
+    Returns: {ok, cover_url, message}
+    """
+    from flask import request, jsonify
+    import io
+    f = request.files.get("file")
+    if not f or not f.filename:
+        return jsonify({"ok": False, "error": "no file uploaded"}), 400
+
+    # Look up the project's Drive folder from the master sheet
+    data = read_projects(force=True)
+    proj = next((p for p in data["projects"] if p["slug"] == slug), None)
+    if not proj:
+        return jsonify({"ok": False, "error": f"unknown project '{slug}'"}), 404
+    folder_id = proj.get("drive_folder_id", "")
+    if not folder_id:
+        return jsonify({"ok": False, "error": f"project '{slug}' has no drive_folder_id"}), 400
+
+    # File extension from upload (jpg, png, webp, jpeg only)
+    from pathlib import Path as _P
+    ext = (_P(f.filename).suffix or ".jpg").lower().lstrip(".")
+    if ext == "jpeg":
+        ext = "jpg"
+    if ext not in {"jpg", "png", "webp"}:
+        return jsonify({"ok": False, "error": f"unsupported image type .{ext} (jpg/png/webp only)"}), 400
+
+    file_bytes = f.read()
+    mimetype = f.mimetype or f"image/{ext}"
+
+    try:
+        from auth import get_credentials
+        from googleapiclient.discovery import build as _drive_build
+        from googleapiclient.http import MediaIoBaseUpload
+        creds = get_credentials()
+        drive = _drive_build("drive", "v3", credentials=creds)
+
+        # Trash any existing cover.* in the folder before uploading new one.
+        existing = drive.files().list(
+            q=f"'{folder_id}' in parents and trashed=false "
+              f"and (name='cover.jpg' or name='cover.png' or name='cover.webp')",
+            fields="files(id,name)",
+        ).execute().get("files", [])
+        for old in existing:
+            try:
+                drive.files().update(fileId=old["id"], body={"trashed": True}).execute()
+            except Exception:
+                pass
+
+        # Upload the new cover
+        target_name = f"cover.{ext}"
+        media = MediaIoBaseUpload(io.BytesIO(file_bytes), mimetype=mimetype, resumable=False)
+        new_file = drive.files().create(
+            body={"name": target_name, "parents": [folder_id]},
+            media_body=media,
+            fields="id,webViewLink",
+        ).execute()
+        drive.permissions().create(
+            fileId=new_file["id"],
+            body={"role": "reader", "type": "anyone"},
+            fields="id",
+        ).execute()
+        cover_url = f"https://lh3.googleusercontent.com/d/{new_file['id']}=w800"
+
+        # Flush projects cache so the cover shows up on next /projects load
+        with _projects_cache_lock:
+            _projects_cache.pop("data", None)
+
+        return jsonify({
+            "ok": True,
+            "cover_url": cover_url,
+            "drive_id": new_file["id"],
+            "message": f"Cover uploaded ({len(file_bytes)//1024}KB) for {slug}",
+        })
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
 
 
 @server.route("/gallery/<name>/refresh")

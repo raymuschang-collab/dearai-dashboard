@@ -64,8 +64,10 @@ def _project_card(p: dict) -> str:
     owner = p.get("owner_email", "")
     ep_count = len(p.get("episodes") or [])
     created = _fmt_created_at(p.get("created_at", ""))
+    cover_url = (p.get("cover_url") or "").strip()
 
-    # Card click → first gallery URL of this project
+    # Card click → first gallery URL of this project (NOT the cover area;
+    # cover area opens the file picker instead — handled in JS)
     first_ep = (p.get("episodes") or [{}])[0]
     target = f"/gallery/{first_ep.get('gallery_slug', '')}" if first_ep else "#"
 
@@ -79,24 +81,55 @@ def _project_card(p: dict) -> str:
         if notes else ""
     )
 
+    # Cover slot — image if cover exists, else "+" placeholder. Clicking the
+    # cover OR the "+" overlay opens a hidden file input (per-card) which
+    # POSTs to /api/project-cover/<slug>. Wrapping <a class="cover-link"> uses
+    # `data-cover-slug` so the JS can find the matching file input.
+    if cover_url:
+        cover_html = f'''
+        <div class="card-cover" data-cover-slug="{_html.escape(slug)}">
+          <img src="{_html.escape(cover_url)}" alt="" loading="lazy">
+          <div class="cover-overlay">Change cover</div>
+        </div>'''
+    else:
+        cover_html = f'''
+        <div class="card-cover empty" data-cover-slug="{_html.escape(slug)}">
+          <div class="cover-plus">+</div>
+          <div class="cover-add-text">Add cover</div>
+        </div>'''
+
+    # Hidden file input — outside the <a> wrapper so clicks don't propagate
+    # to the gallery link. JS clicks it programmatically when cover is clicked.
+    file_input_html = f'''
+    <input type="file" class="cover-file-input" accept="image/jpeg,image/jpg,image/png,image/webp"
+           data-slug="{_html.escape(slug)}" style="display:none">'''
+
+    # The card itself wraps everything except the file input. The cover slot
+    # has its own click handler (JS) that prevents default + opens file picker.
     return f'''
-    <a class="proj-card" href="{_html.escape(target)}">
-      <div class="card-row1">
-        <span class="type-chip {type_cls}">{_html.escape(type_label)}</span>
-        <span class="status-badge {status_cls}">{_html.escape(status)}</span>
-      </div>
-      <h3 class="card-title">{_html.escape(title)}</h3>
-      <div class="card-meta">
-        <span class="card-eps">{ep_count} episode{"s" if ep_count != 1 else ""}</span>
-        <span class="card-sep">·</span>
-        <span class="card-owner">{_html.escape(owner)}</span>
-      </div>
-      <div class="card-meta">
-        <span class="card-created">created {_html.escape(created)}</span>
-      </div>
-      {notes_line}
-      <div class="card-slug"><code>{_html.escape(slug)}</code></div>
-    </a>'''
+    <div class="proj-card-wrapper">
+      {file_input_html}
+      <a class="proj-card" href="{_html.escape(target)}">
+        {cover_html}
+        <div class="card-body">
+          <div class="card-row1">
+            <span class="type-chip {type_cls}">{_html.escape(type_label)}</span>
+            <span class="status-badge {status_cls}">{_html.escape(status)}</span>
+          </div>
+          <h3 class="card-title">{_html.escape(title)}</h3>
+          <div class="card-meta">
+            <span class="card-eps">{ep_count} episode{"s" if ep_count != 1 else ""}</span>
+            <span class="card-sep">·</span>
+            <span class="card-owner">{_html.escape(owner)}</span>
+          </div>
+          <div class="card-meta">
+            <span class="card-created">created {_html.escape(created)}</span>
+          </div>
+          {notes_line}
+          <div class="card-slug"><code>{_html.escape(slug)}</code></div>
+        </div>
+      </a>
+    </div>'''
 
 
 def render_projects_page(projects: list[dict], user_email: str = "") -> str:
@@ -216,14 +249,69 @@ def render_projects_page(projects: list[dict], user_email: str = "") -> str:
     display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 18px;
   }}
+  .proj-card-wrapper {{ position: relative; }}
   a.proj-card {{
-    background: var(--card-bg); border: 1px solid var(--line); border-radius: 12px;
-    padding: 18px; text-decoration: none; color: inherit;
-    display: flex; flex-direction: column; gap: 8px;
+    display: block; background: var(--card-bg); border: 1px solid var(--line);
+    border-radius: 12px; overflow: hidden;
+    text-decoration: none; color: inherit;
     transition: border-color 0.15s, transform 0.15s;
   }}
   a.proj-card:hover {{
     border-color: var(--ink); transform: translateY(-2px);
+  }}
+  .card-body {{
+    padding: 14px 18px 18px;
+    display: flex; flex-direction: column; gap: 8px;
+  }}
+  /* Cover slot — 16:9 image area at top of card, OR a "+" placeholder when no
+     cover yet. Clicking either opens a hidden file input (handled in JS at
+     end of <body>) so producers can drop a poster image without leaving the
+     page. */
+  .card-cover {{
+    position: relative; aspect-ratio: 16/9;
+    background: var(--soft-bg); cursor: pointer;
+    border-bottom: 1px solid var(--line);
+    overflow: hidden;
+  }}
+  .card-cover img {{
+    width: 100%; height: 100%; object-fit: cover; display: block;
+  }}
+  .card-cover .cover-overlay {{
+    position: absolute; inset: 0;
+    background: rgba(0, 0, 0, 0.5); color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    opacity: 0; transition: opacity 0.15s;
+  }}
+  .card-cover:hover .cover-overlay {{ opacity: 1; }}
+  .card-cover.empty {{
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 4px;
+    color: var(--muted);
+    background: var(--soft-bg);
+    border: 2px dashed var(--line);
+    border-bottom-width: 1px; border-bottom-style: solid;
+    transition: background 0.15s, color 0.15s;
+  }}
+  .card-cover.empty:hover {{
+    background: var(--code-bg); color: var(--ink);
+  }}
+  .card-cover .cover-plus {{
+    font-size: 36px; font-weight: 200; line-height: 1;
+  }}
+  .card-cover .cover-add-text {{
+    font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+  }}
+  .card-cover.uploading {{
+    pointer-events: none; opacity: 0.6;
+  }}
+  .card-cover.uploading::after {{
+    content: 'Uploading…';
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0, 0, 0, 0.7); color: white;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
   }}
   .card-row1 {{ display: flex; gap: 6px; align-items: center; }}
   .card-title {{
@@ -340,10 +428,11 @@ def render_projects_page(projects: list[dict], user_email: str = "") -> str:
   // We re-derive each card's status/type from its DOM (no extra data attrs needed).
   (function() {{
     const chips = document.querySelectorAll('.filter-chip');
-    const cards = document.querySelectorAll('a.proj-card');
+    const wrappers = document.querySelectorAll('.proj-card-wrapper');
     function activate(filter) {{
       chips.forEach(c => c.classList.toggle('active', c.dataset.filter === filter));
-      cards.forEach(card => {{
+      wrappers.forEach(w => {{
+        const card = w.querySelector('a.proj-card');
         const status = card.querySelector('.status-badge')?.textContent?.toLowerCase() || '';
         const type = card.querySelector('.type-chip')?.textContent?.toLowerCase() || '';
         let visible = false;
@@ -351,10 +440,66 @@ def render_projects_page(projects: list[dict], user_email: str = "") -> str:
         else if (filter === 'visible') visible = status !== 'archived';
         else if (filter === 'active' || filter === 'review' || filter === 'draft' || filter === 'archived') visible = status === filter;
         else if (filter === 'series' || filter === 'poc' || filter === 'concept' || filter === 'client') visible = type === filter;
-        card.style.display = visible ? '' : 'none';
+        w.style.display = visible ? '' : 'none';
       }});
     }}
     chips.forEach(c => c.addEventListener('click', () => activate(c.dataset.filter)));
+  }})();
+
+  // Cover image upload — click any card-cover slot → opens its sibling
+  // <input type="file"> → uploads → reloads with the new cover.
+  (function() {{
+    const slots = document.querySelectorAll('.card-cover');
+    slots.forEach(slot => {{
+      slot.addEventListener('click', (ev) => {{
+        // Stop the click from also triggering the wrapping <a> navigation
+        ev.preventDefault();
+        ev.stopPropagation();
+        const slug = slot.dataset.coverSlug;
+        const wrapper = slot.closest('.proj-card-wrapper');
+        const fileInput = wrapper?.querySelector('.cover-file-input');
+        if (fileInput) fileInput.click();
+      }});
+    }});
+    document.querySelectorAll('.cover-file-input').forEach(input => {{
+      input.addEventListener('change', async (ev) => {{
+        const file = ev.target.files && ev.target.files[0];
+        if (!file) return;
+        const slug = ev.target.dataset.slug;
+        const wrapper = ev.target.closest('.proj-card-wrapper');
+        const slot = wrapper?.querySelector('.card-cover');
+        if (slot) slot.classList.add('uploading');
+        try {{
+          const fd = new FormData();
+          fd.append('file', file);
+          const r = await fetch(`/api/project-cover/${{slug}}`, {{method: 'POST', body: fd}});
+          const data = await r.json();
+          if (r.ok && data.ok) {{
+            // Replace the cover slot with a fresh image. Bypass cache with a
+            // ?t= query so the browser doesn't show the OLD cover.
+            const img = document.createElement('img');
+            img.src = data.cover_url + '&t=' + Date.now();
+            img.alt = '';
+            img.loading = 'lazy';
+            slot.classList.remove('empty', 'uploading');
+            slot.innerHTML = '';
+            slot.appendChild(img);
+            const overlay = document.createElement('div');
+            overlay.className = 'cover-overlay';
+            overlay.textContent = 'Change cover';
+            slot.appendChild(overlay);
+          }} else {{
+            slot.classList.remove('uploading');
+            alert('Upload failed: ' + (data.error || 'unknown'));
+          }}
+        }} catch (e) {{
+          slot.classList.remove('uploading');
+          alert('Upload error: ' + e.message);
+        }}
+        // Reset the file input so the same file can be re-picked if needed
+        ev.target.value = '';
+      }});
+    }});
   }})();
 </script>
 </body>
