@@ -274,24 +274,43 @@ def process_row(
     folder_id = folder_url.split("/folders/")[1].rstrip("/")
     sb.update(range_name=f"F{sheet_row}", values=[["Generating"]])
 
-    # Track per-iter results so iter 2 success persists even if iter 1 errored.
+    # Track per-iter results so a successful iter persists even if the other
+    # iter errored. Both iters fire in PARALLEL via a thread pool — each one
+    # is a 30-60s fal.ai gpt-image-2 call, so concurrent dispatch roughly
+    # halves wall time (60-120s sequential → 30-60s parallel).
+    #
+    # googleapi's Drive client is thread-safe for distinct file uploads
+    # (each thread builds its own MediaIoBaseUpload from a fresh BytesIO),
+    # so concurrent upload_and_share calls don't trample each other.
+    import concurrent.futures
     urls_by_iter = {}  # {1: url, 2: url}
-    err = None
-    for it in range(1, ITERATIONS + 1):
+    errs_by_iter = {}  # {1: error_str, 2: error_str}
+
+    def _gen_one(it: int):
         t0 = time.time()
-        print(f"  iter {it}: generating...", end="", flush=True)
         try:
             img = generate_image(prompt, aspect, resolution)
             gen_dt = time.time() - t0
-            print(f" {len(img)//1024}KB in {gen_dt:.1f}s", end="", flush=True)
             fname = f"set-{int(set_num):02d}-iter-{it}.png"
             url = upload_and_share(drive, folder_id, fname, img)
-            print(f" → uploaded")
-            urls_by_iter[it] = url
+            return (it, url, None, len(img), gen_dt)
         except Exception as e:
-            print(f"\n    FAILED iter {it}: {type(e).__name__}: {e}")
-            err = f"iter {it}: {type(e).__name__}: {e}"
-            continue  # keep trying next iter
+            return (it, None, f"iter {it}: {type(e).__name__}: {e}", 0, 0)
+
+    print(f"  firing {ITERATIONS} iters in parallel…", flush=True)
+    t_parallel = time.time()
+    with concurrent.futures.ThreadPoolExecutor(max_workers=ITERATIONS) as ex:
+        futures = [ex.submit(_gen_one, it) for it in range(1, ITERATIONS + 1)]
+        for fut in concurrent.futures.as_completed(futures):
+            it, url, err_msg, img_size, gen_dt = fut.result()
+            if url:
+                print(f"  iter {it}: ✓ {img_size//1024}KB in {gen_dt:.1f}s → uploaded", flush=True)
+                urls_by_iter[it] = url
+            else:
+                print(f"  iter {it}: ✗ {err_msg}", flush=True)
+                errs_by_iter[it] = err_msg
+    print(f"  parallel batch done in {time.time() - t_parallel:.1f}s wall time", flush=True)
+    err = next(iter(errs_by_iter.values()), None)  # first error for sheet col I
 
     iter1 = urls_by_iter.get(1, "")
     iter2 = urls_by_iter.get(2, "")
