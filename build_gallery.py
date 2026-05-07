@@ -146,6 +146,34 @@ def read_simple_bible(sh, tab: str) -> list[dict]:
     return out
 
 
+def read_asset_library(sh) -> list[dict]:
+    """Asset Library tab — rows 5+ with cols:
+      A=Bible Entry Name, B=Bible Tab, C=Asset Code, D=Source URL,
+      E=Asset Type, F=Status, G=Uploaded At, ..., L=Last Used.
+    Returns list of dicts; skips empty rows."""
+    try:
+        ws = sh.worksheet("Asset Library")
+    except Exception:
+        return []
+    raw = ws.get("A5:L500", value_render_option="FORMATTED_VALUE")
+    out = []
+    for r in raw:
+        r = r + [""] * 12
+        name = (r[0] or "").strip()
+        if not name:
+            continue
+        out.append({
+            "name": name,
+            "bible_tab": r[1] or "",
+            "code": r[2] or "",
+            "source_url": r[3] or "",
+            "type": r[4] or "",
+            "status": r[5] or "",
+            "uploaded_at": r[6] or "",
+        })
+    return out
+
+
 def read_video_globals(sh) -> dict:
     """Video Prompts B1:B6 — globals shown once at top of storyboards section."""
     try:
@@ -309,6 +337,55 @@ def render_set_card(s: dict, video_globals: dict | None = None) -> str:
     </div>'''
 
 
+def render_asset_library(assets: list[dict]) -> str:
+    """Asset Library tab — table grouped by bible_tab, with status badges."""
+    if not assets:
+        return '<div class="empty">No Asset Library entries.</div>'
+    # Group by bible_tab; keep insertion order within group
+    groups: dict[str, list[dict]] = {}
+    for a in assets:
+        groups.setdefault(a["bible_tab"] or "—", []).append(a)
+    sections = []
+    for tab, items in groups.items():
+        rows = []
+        for a in items:
+            status = (a["status"] or "").lower()
+            status_class = (
+                "ok" if status == "uploaded"
+                else "warn" if status == "pending"
+                else "fail" if status in ("failed", "error")
+                else "muted" if status in ("replaced", "obsolete")
+                else "muted"
+            )
+            code = a["code"] or "—"
+            type_str = a["type"] or "—"
+            url_link = (
+                f'<a href="{html.escape(a["source_url"])}" target="_blank" class="al-srclink">view</a>'
+                if a["source_url"] else "<span class='muted'>—</span>"
+            )
+            rows.append(f'''
+              <tr>
+                <td class="al-name">{html.escape(a["name"])}</td>
+                <td class="al-type">{html.escape(type_str)}</td>
+                <td class="al-code"><code>{html.escape(code)}</code></td>
+                <td><span class="status-badge {status_class}">{html.escape(a["status"] or "—")}</span></td>
+                <td class="al-src">{url_link}</td>
+              </tr>''')
+        sections.append(f'''
+          <div class="al-group">
+            <h3 class="al-group-title">{html.escape(tab)} <span class="al-count">({len(items)})</span></h3>
+            <table class="al-table">
+              <thead>
+                <tr>
+                  <th>Name</th><th>Type</th><th>Asset Code (BytePlus)</th><th>Status</th><th>Source</th>
+                </tr>
+              </thead>
+              <tbody>{"".join(rows)}</tbody>
+            </table>
+          </div>''')
+    return "".join(sections)
+
+
 def render_html(data: dict) -> str:
     nav = []
     sections = []
@@ -319,6 +396,7 @@ def render_html(data: dict) -> str:
         ("props",      "Props",      lambda d: render_card_grid(d["props"], "bib")),
         ("effects",    "Effects",    lambda d: render_card_grid(d["effects"], "bib")),
         ("storyboards","Storyboards",lambda d: "".join(render_set_card(s, d.get("video_globals")) for s in d["storyboards"])),
+        ("assets",     "Asset Library", lambda d: render_asset_library(d.get("asset_library", []))),
     ]
     # Default-active tab: Storyboards (the most-viewed section in production review).
     default_tab = "storyboards"
@@ -491,6 +569,45 @@ def render_html(data: dict) -> str:
     font-size: 9px; letter-spacing: 0.05em; text-transform: uppercase;
     border-radius: 3px; pointer-events: none;
   }}
+  /* Asset Library tab */
+  .al-group {{ margin-bottom: 32px; }}
+  .al-group-title {{
+    font-size: 14px; font-weight: 600; margin: 0 0 10px;
+    color: var(--ink); text-transform: uppercase; letter-spacing: 0.08em;
+  }}
+  .al-group-title .al-count {{ color: var(--muted); font-weight: 400; font-size: 12px; }}
+  .al-table {{
+    width: 100%; border-collapse: collapse;
+    background: white; border: 1px solid var(--line); border-radius: 8px;
+    overflow: hidden; font-size: 12px;
+  }}
+  .al-table th {{
+    text-align: left; padding: 10px 14px;
+    background: #f5f5f5; color: var(--muted);
+    font-weight: 500; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+    border-bottom: 1px solid var(--line);
+  }}
+  .al-table td {{ padding: 10px 14px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }}
+  .al-table tr:last-child td {{ border-bottom: 0; }}
+  .al-table tr:hover td {{ background: #fafafa; }}
+  .al-name {{ font-weight: 500; color: var(--ink); }}
+  .al-type {{ color: var(--muted); text-transform: capitalize; }}
+  .al-code code {{
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: #666; background: #f5f5f5; padding: 2px 6px; border-radius: 3px;
+  }}
+  .al-srclink {{ color: var(--accent); text-decoration: none; font-size: 11px; }}
+  .al-srclink:hover {{ text-decoration: underline; }}
+  .status-badge {{
+    display: inline-block; padding: 3px 9px; border-radius: 4px;
+    font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; font-weight: 600;
+  }}
+  .status-badge.ok    {{ background: #e8f5e9; color: #2e7d32; }}
+  .status-badge.warn  {{ background: #fff3e0; color: #e65100; }}
+  .status-badge.fail  {{ background: #fde8ec; color: #c11647; }}
+  .status-badge.muted {{ background: #f0f0f0; color: #888; }}
+  .empty {{ color: var(--muted); font-style: italic; padding: 20px; }}
+
   footer {{
     text-align: center; color: var(--muted); font-size: 11px;
     padding: 30px; border-top: 1px solid var(--line); margin-top: 40px;
@@ -601,6 +718,9 @@ def build_html(sheet_id: str, show: str, episode: str, verbose: bool = False) ->
     log(f"    {len(storyboards)} sets")
     log("  • video globals")
     video_globals = read_video_globals(sh)
+    log("  • asset library")
+    asset_library = read_asset_library(sh)
+    log(f"    {len(asset_library)} entries")
 
     data = {
         "show": show,
@@ -620,6 +740,7 @@ def build_html(sheet_id: str, show: str, episode: str, verbose: bool = False) ->
         "effects": effects,
         "storyboards": storyboards,
         "video_globals": video_globals,
+        "asset_library": asset_library,
     }
     return render_html(data)
 

@@ -157,6 +157,45 @@
     font-size: 9px; letter-spacing: 0.05em; text-transform: uppercase;
     border-radius: 3px; pointer-events: none;
   }
+  /* Asset Library tab */
+  .al-group { margin-bottom: 32px; }
+  .al-group-title {
+    font-size: 14px; font-weight: 600; margin: 0 0 10px;
+    color: var(--ink); text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .al-group-title .al-count { color: var(--muted); font-weight: 400; font-size: 12px; }
+  .al-table {
+    width: 100%; border-collapse: collapse;
+    background: white; border: 1px solid var(--line); border-radius: 8px;
+    overflow: hidden; font-size: 12px;
+  }
+  .al-table th {
+    text-align: left; padding: 10px 14px;
+    background: #f5f5f5; color: var(--muted);
+    font-weight: 500; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+    border-bottom: 1px solid var(--line);
+  }
+  .al-table td { padding: 10px 14px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+  .al-table tr:last-child td { border-bottom: 0; }
+  .al-table tr:hover td { background: #fafafa; }
+  .al-name { font-weight: 500; color: var(--ink); }
+  .al-type { color: var(--muted); text-transform: capitalize; }
+  .al-code code {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: #666; background: #f5f5f5; padding: 2px 6px; border-radius: 3px;
+  }
+  .al-srclink { color: var(--accent); text-decoration: none; font-size: 11px; }
+  .al-srclink:hover { text-decoration: underline; }
+  .status-badge {
+    display: inline-block; padding: 3px 9px; border-radius: 4px;
+    font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; font-weight: 600;
+  }
+  .status-badge.ok    { background: #e8f5e9; color: #2e7d32; }
+  .status-badge.warn  { background: #fff3e0; color: #e65100; }
+  .status-badge.fail  { background: #fde8ec; color: #c11647; }
+  .status-badge.muted { background: #f0f0f0; color: #888; }
+  .empty { color: var(--muted); font-style: italic; padding: 20px; }
+
   footer {
     text-align: center; color: var(--muted); font-size: 11px;
     padding: 30px; border-top: 1px solid var(--line); margin-top: 40px;
@@ -169,7 +208,7 @@
   <h1>Episode 1 — Pelarian Pertama</h1>
   <div class="stats"><b>6</b> characters · <b>8</b> locations · <b>8</b> costume · <b>16</b> props · <b>8</b> effects · <b>12</b> sets</div>
 </header>
-<nav class="toc"><button class="tab" data-tab="characters">Characters</button><button class="tab" data-tab="locations">Locations</button><button class="tab" data-tab="costume">Costume</button><button class="tab" data-tab="props">Props</button><button class="tab" data-tab="effects">Effects</button><button class="tab active" data-tab="storyboards">Storyboards</button></nav>
+<nav class="toc"><button class="tab" data-tab="characters">Characters</button><button class="tab" data-tab="locations">Locations</button><button class="tab" data-tab="costume">Costume</button><button class="tab" data-tab="props">Props</button><button class="tab" data-tab="effects">Effects</button><button class="tab active" data-tab="storyboards">Storyboards</button><button class="tab" data-tab="assets">Asset Library</button></nav>
 <section class="panel" id="characters"><h2>Characters</h2><div class="card-grid">
         <div class="card char-card">
           <div class="card-head"><h4>TARA ANJANI</h4></div>
@@ -213,8 +252,8 @@
         </div>
         <div class="card loc-card">
           <div class="card-head"><h4>Walk-In Cooler</h4></div>
-          <div class="card-iters"><a class="thumb" href="https://drive.google.com/file/d/1TVKvQcAa2MnF6QklBj0THFU9JDQDMMyJ/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1TVKvQcAa2MnF6QklBj0THFU9JDQDMMyJ=w1000" alt="wide – iter 1" loading="lazy"><span class="label">wide – iter 1</span></a></div>
-          <div class="meta-line"><b>description:</b> Large industrial chiller. Stainless racks lining both walls. Short ribs, banchan tubs, chilled fish, vegetable crates. Visible breath in the cold.</div>
+          <div class="card-iters"><a class="thumb" href="https://drive.google.com/file/d/1vJ1VoGjFg2_SOZHiXl2g8asd8rSyPena/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1vJ1VoGjFg2_SOZHiXl2g8asd8rSyPena=w1000" alt="wide – iter 1" loading="lazy"><span class="label">wide – iter 1</span></a><a class="thumb" href="https://drive.google.com/file/d/1dkf5_0vRYbQjNTzJ4VEHFBEOkwmUqezR/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1dkf5_0vRYbQjNTzJ4VEHFBEOkwmUqezR=w1000" alt="wide – iter 2" loading="lazy"><span class="label">wide – iter 2</span></a></div>
+          <div class="meta-line"><b>description:</b> Large industrial walk-in chiller, narrow enough to trap two people. Practical, lived-in restaurant kitchen aesthetic — same visual world as the adjacent storage room. Stainless steel wire racks lining both walls: hanging short ribs, banchan tubs, chilled fish, vegetable crates. On the LEFT side wall: a heavy thick stainless steel walk-in cooler door — same door visible from the storage room side — with a small circular porthole window and a horizontal bar lever handle, door slightly ajar. Black rubber anti-slip mat on the floor. On the nearest rack: two clearly visible plastic kimchi containers with large easy-peel white rectangular sticker labels — one label reads &#x27;KIMCHI — 5 MONTHS&#x27;, the other reads &#x27;KIMCHI — 1 WEEK&#x27;. Labels are flat, smooth, and peelable. Thin visible breath fog drifting in cold air.</div>
         </div>
         <div class="card loc-card">
           <div class="card-head"><h4>Joon-Ho&#x27;s Office</h4></div>
@@ -405,7 +444,7 @@
       <div class="set-head">
         <h3>Set 1 · shots 1-3</h3>
         <div class="set-meta">
-          <span class="chip">Failed</span>
+          <span class="chip">Done</span>
         </div>
       </div>
       <div class="set-grid">
@@ -425,7 +464,7 @@
       <button class="gen-btn" data-set="1" onclick="fireStoryboard(1, this)">
         Generate Storyboard
       </button></div>
-        <div class="set-storyboards"><div class="thumb wide placeholder">storyboard pending</div><button class="gen-btn vid" data-set="1" data-slot="1" onclick="fireVidgen(1, 1, this)">Generate V1</button><div class="thumb wide placeholder">storyboard pending</div><button class="gen-btn vid" data-set="1" data-slot="2" onclick="fireVidgen(1, 2, this)">Generate V2</button></div>
+        <div class="set-storyboards"><a class="thumb wide" href="https://drive.google.com/file/d/1O9ysg1KqW0S2MT3IfBEq9CWb9sxwmcB7/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1O9ysg1KqW0S2MT3IfBEq9CWb9sxwmcB7=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><button class="gen-btn vid" data-set="1" data-slot="1" onclick="fireVidgen(1, 1, this)">Generate V1</button><a class="thumb wide" href="https://drive.google.com/file/d/1sbzOJLcZFWAXCCw4g7X5B4DRWehCflx_/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1sbzOJLcZFWAXCCw4g7X5B4DRWehCflx_=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a><button class="gen-btn vid" data-set="1" data-slot="2" onclick="fireVidgen(1, 2, this)">Generate V2</button></div>
         <div class="set-videos"><div class="vid-tile"><iframe src="https://drive.google.com/file/d/1VBp8MbE5pk-wdpdnXaQ8hlNXyAMdUwFK/preview" allow="autoplay" loading="lazy"></iframe><div class="label">Video 1</div></div><div class="vid-tile"><iframe src="https://drive.google.com/file/d/1WAGmoRKGMfRCfbDKi9DoWi1t0dWO0RtT/preview" allow="autoplay" loading="lazy"></iframe><div class="label">Video 2</div></div></div>
       </div>
     </div>
@@ -453,7 +492,7 @@
       <button class="gen-btn" data-set="2" onclick="fireStoryboard(2, this)">
         Generate Storyboard
       </button></div>
-        <div class="set-storyboards"><a class="thumb wide" href="https://drive.google.com/file/d/1a1u_F8XSZf7ZQowlbBzIQt9ZNHoy46rf/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1a1u_F8XSZf7ZQowlbBzIQt9ZNHoy46rf=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><button class="gen-btn vid" data-set="2" data-slot="1" onclick="fireVidgen(2, 1, this)">Generate V1</button><a class="thumb wide" href="https://drive.google.com/file/d/1JwOojLVkDi6amI-mjHwdzQNtjYi5yM8A/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1JwOojLVkDi6amI-mjHwdzQNtjYi5yM8A=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a><button class="gen-btn vid" data-set="2" data-slot="2" onclick="fireVidgen(2, 2, this)">Generate V2</button></div>
+        <div class="set-storyboards"><a class="thumb wide" href="https://drive.google.com/file/d/1YzG7Kg8_wLBALbroVWk3tZTmkRO84g3b/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1YzG7Kg8_wLBALbroVWk3tZTmkRO84g3b=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><button class="gen-btn vid" data-set="2" data-slot="1" onclick="fireVidgen(2, 1, this)">Generate V1</button><a class="thumb wide" href="https://drive.google.com/file/d/194pxQjpPlLwllW4kiJD2rQCFPK82j8_O/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/194pxQjpPlLwllW4kiJD2rQCFPK82j8_O=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a><button class="gen-btn vid" data-set="2" data-slot="2" onclick="fireVidgen(2, 2, this)">Generate V2</button></div>
         <div class="set-videos"><div class="vid-tile placeholder">video pending</div><div class="vid-tile"><iframe src="https://drive.google.com/file/d/1UjNgHAbVhwe6thCpYMjZuha0gWm4F_wa/preview" allow="autoplay" loading="lazy"></iframe><div class="label">Video 2</div></div></div>
       </div>
     </div>
@@ -566,7 +605,7 @@
         Generate Storyboard
       </button></div>
         <div class="set-storyboards"><a class="thumb wide" href="https://drive.google.com/file/d/1AnSD5sxy5KOKgqLCkv57hxzmTLMUaHaR/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1AnSD5sxy5KOKgqLCkv57hxzmTLMUaHaR=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><button class="gen-btn vid" data-set="6" data-slot="1" onclick="fireVidgen(6, 1, this)">Generate V1</button><a class="thumb wide" href="https://drive.google.com/file/d/1Rjp2SB0B_2DAA0AyKBbmXsaKOEI4GnY7/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1Rjp2SB0B_2DAA0AyKBbmXsaKOEI4GnY7=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a><button class="gen-btn vid" data-set="6" data-slot="2" onclick="fireVidgen(6, 2, this)">Generate V2</button></div>
-        <div class="set-videos"><div class="vid-tile placeholder">video pending</div><div class="vid-tile placeholder">video pending</div></div>
+        <div class="set-videos"><div class="vid-tile"><iframe src="https://drive.google.com/file/d/19A5Tr34p3b4-dHYjFaTlDh5mEUnxajuh/preview" allow="autoplay" loading="lazy"></iframe><div class="label">Video 1</div></div><div class="vid-tile placeholder">video pending</div></div>
       </div>
     </div>
     <div class="set-card" data-set="7">
@@ -736,7 +775,447 @@
         <div class="set-storyboards"><a class="thumb wide" href="https://drive.google.com/file/d/1xWNcXe7GN_7g2Y22crUvbXOR05kcxt27/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1xWNcXe7GN_7g2Y22crUvbXOR05kcxt27=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><button class="gen-btn vid" data-set="12" data-slot="1" onclick="fireVidgen(12, 1, this)">Generate V1</button><a class="thumb wide" href="https://drive.google.com/file/d/1maoUUhGeCRDna6JdOhv7ycUch3eGddy0/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1maoUUhGeCRDna6JdOhv7ycUch3eGddy0=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a><button class="gen-btn vid" data-set="12" data-slot="2" onclick="fireVidgen(12, 2, this)">Generate V2</button></div>
         <div class="set-videos"><div class="vid-tile placeholder">video pending</div><div class="vid-tile placeholder">video pending</div></div>
       </div>
-    </div></section>
+    </div></section><section class="panel" id="assets"><h2>Asset Library</h2>
+          <div class="al-group">
+            <h3 class="al-group-title">LOCATIONS <span class="al-count">(8)</span></h3>
+            <table class="al-table">
+              <thead>
+                <tr>
+                  <th>Name</th><th>Type</th><th>Asset Code (BytePlus)</th><th>Status</th><th>Source</th>
+                </tr>
+              </thead>
+              <tbody>
+              <tr>
+                <td class="al-name">Hanbyeol Bistro Kitchen</td>
+                <td class="al-type">scene</td>
+                <td class="al-code"><code>asset-20260505195135-n6nfz</code></td>
+                <td><span class="status-badge ok">Uploaded</span></td>
+                <td class="al-src"><a href="https://drive.google.com/file/d/10wivkLHQMHUrouoTx9Kml9CV9lWnWpYX/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
+              </tr>
+              <tr>
+                <td class="al-name">Hanbyeol Dressing Room</td>
+                <td class="al-type">scene</td>
+                <td class="al-code"><code>asset-20260505195140-57vqd</code></td>
+                <td><span class="status-badge ok">Uploaded</span></td>
+                <td class="al-src"><a href="https://drive.google.com/file/d/1qULgOP8GD1QrJc31Eq_OmZXSaj1DuWmy/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
+              </tr>
+              <tr>
+                <td class="al-name">Walk-In Cooler</td>
+                <td class="al-type">scene</td>
+                <td class="al-code"><code>asset-20260505195146-kntgj</code></td>
+                <td><span class="status-badge ok">Uploaded</span></td>
+                <td class="al-src"><a href="https://drive.google.com/file/d/1diYBNQpWi1bG_XfM4C_w9qmG71TXfzl0/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
+              </tr>
+              <tr>
+                <td class="al-name">Joon-Ho&#x27;s Office</td>
+                <td class="al-type">scene</td>
+                <td class="al-code"><code>asset-20260505195152-5tsdr</code></td>
+                <td><span class="status-badge ok">Uploaded</span></td>
+                <td class="al-src"><a href="https://drive.google.com/file/d/18jiO12bVsNviNAxEOGg_mhwF9PefsC08/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
+              </tr>
+              <tr>
+                <td class="al-name">Hanbyeol Storage Room</td>
+                <td class="al-type">scene</td>
+                <td class="al-code"><code>asset-20260505195158-8p7kh</code></td>
+                <td><span class="status-badge ok">Uploaded</span></td>
+                <td class="al-src"><a href="https://drive.google.com/file/d/1OTqk9ED9NljmEdEp1etCtD9X5Zk16G4h/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
+              </tr>
+              <tr>
+                <td class="al-name">Alley Behind Hanbyeol</td>
+                <td class="al-type">scene</td>
+                <td class="al-code"><code>asset-20260505195204-g8hzz</code></td>
+                <td><span class="status-badge ok">Uploaded</span></td>
+                <td class="al-src"><a href="https://drive.google.com/file/d/1uWUm645YEmhWxZy1_10yFCOIBCyBkHvY/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
+              </tr>
+              <tr>
+                <td class="al-name">Tara&#x27;s Mampang Apartment</td>
+                <td class="al-type">scene</td>
+                <td class="al-code"><code>asset-20260505195210-pq72k</code></td>
+                <td><span class="status-badge ok">Uploaded</span></td>
+                <td class="al-src"><a href="https://drive.google.com/file/d/1IsexbI4Xhgr1GQA9k7QSfZYukXgdJ30x/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
+              </tr>
+              <tr>
+                <td class="al-name">Hanbyeol Pass Station</td>
+                <td class="al-type">scene</td>
+                <td class="al-code"><code>asset-20260505195216-svvtc</code></td>
+                <td><span class="status-badge ok">Uploaded</span></td>
+                <td class="al-src"><a href="https://drive.google.com/file/d/198Eim35295y-4ww25mzEZPndhXmUQJW5/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
+              </tr></tbody>
+            </table>
+          </div>
+          <div class="al-group">
+            <h3 class="al-group-title">PROPS <span class="al-count">(16)</span></h3>
+            <table class="al-table">
+              <thead>
+                <tr>
+                  <th>Name</th><th>Type</th><th>Asset Code (BytePlus)</th><th>Status</th><th>Source</th>
+                </tr>
+              </thead>
+              <tbody>
+              <tr>
+                <td class="al-name">Chef&#x27;s knife</td>
+                <td class="al-type">prop</td>
+                <td class="al-code"><code>—</code></td>
+                <td><span class="status-badge warn">Pending</span></td>
+                <td class="al-src"><span class='muted'>—</span></td>
+              </tr>
+              <tr>
+                <td class="al-name">Wooden cutting board</td>
+                <td class="al-type">prop</td>
+                <td class="al-code"><code>—</code></td>
+                <td><span class="status-badge warn">Pending</span></td>
+                <td class="al-src"><span class='muted'>—</span></td>
+              </tr>
+              <tr>
+                <td class="al-name">5kg garlic heap</td>
+                <td class="al-type">prop</td>
+                <td class="al-code"><code>—</code></td>
+                <td><span class="status-badge warn">Pending</span></td>
+                <td class="al-src"><span class='muted'>—</span></td>
+              </tr>
+              <tr>
+                <td class="al-name">Earthen clay pot (kimchi jjigae)</td>
+                <td class="al-type">prop</td>
+                <td class="al-code"><code>—</code></td>
+                <td><span class="status-badge warn">Pending</span></td>
+                <td class="al-src"><span class='muted'>—</span></td>
+              </tr>
+              <tr>
+                <td class="al-name">Tray of marinated short ribs</td>
+                <td class="al-type">prop</td>
+                <td class="al-code"><code>—</code></td>
+                <td><span class="status-badge warn">Pending</span></td>
+                <td class="al-src"><span class='muted'>—</span></td>
+              </tr>
+              <tr>
+                <td class="al-name">Bibimbap bowl</td>
+                <td class="al-type">prop</td>
+                <td class="al-code"><code>—</code></td>
+                <td><span class="status-badge warn">Pending</span></td>
+                <td class="al-src"><span class='muted'>—</span></td>
+              </tr>
+              <tr>
+                <td class="al-name">Stack of clean plates</td>
+                <td class="al-type">prop</td>
+                <td class="al-code"><code>—</code></td>
+                <td><span class="status-badge warn">Pending</span></td>
+                <td class="al-src"><span class='muted'>—</span></td>
+              </tr>
+              <tr>
+                <td class="al-name">Joon-ho&#x27;s notebook</td>
+                <td class="al-type">prop</td>
+                <td class="al-code"><code>—</code></td>
+                <td><span class="status-badge warn">Pending</span></td>
+                <td class="al-src"><span class='muted'>—</span></td>
+              </tr>
+              <tr>
+                <td class="al-name">Coffee cup</td>
+                <td class="al-type">prop</td>
+                <td class="al-code"><code>—</code></td>
+                <td><span class="status-badge warn">Pending</span></td>
+                <td class="al-src"><span class='muted'>—</span></td>
+              </tr>
+              <tr>
+                <td class="al-name">Cigarette</td>
+                <td class="al-type">prop</td>
+                <td class="al-code"><code>—</code></td>
+                <td><span class="status-badge warn">Pending</span></td>
+                <td class="al-src"><span class='muted'>—</span></td>
+              </tr>
+              <tr>
+                <td class="al-name">Trash bag</td>
+                <td class="al-type">prop</td>
+                <td class="al-code"><code>—</code></td>
+                <td><span class="status-badge warn">Pending</span></td>
+                <td class="al-src"><span class='muted'>—</span></td>
+              </tr>
+              <tr>
+                <td class="al-name">Pot of doenjang stew</td>
+                <td class="al-type">prop</td>
+                <td class="al-code"><code>—</code></td>
+                <td><span class="status-badge warn">Pending</span></td>
+                <td class="al-src"><span class='muted'>—</span></td>
+              </tr>
+              <tr>
+                <td class="al-name">Banchan steel rack</td>
+                <td class="al-type">prop</td>
+                <td class="al-code"><code>—</code></td>
+                <td><span class="status-badge warn">Pending</span></td>
+                <td class="al-src"><span class='muted'>—</span></td>
+              </tr>
+              <tr>
+                <td class="al-name">Halmoni Park photo</td>
+                <td class="al-type">prop</td>
+                <td class="al-code"><code>—</code></td>
+                <td><span class="status-badge warn">Pending</span></td>
+                <td class="al-src"><span class='muted'>—</span></td>
+              </tr>
+              <tr>
+                <td class="al-name">Hyundai 1992-1995 photo</td>
+                <td class="al-type">prop</td>
+                <td class="al-code"><code>—</code></td>
+                <td><span class="status-badge warn">Pending</span></td>
+                <td class="al-src"><span class='muted'>—</span></td>
+              </tr>
+              <tr>
+                <td class="al-name">Hanbyeol Logo (brand mark)</td>
+                <td class="al-type">prop</td>
+                <td class="al-code"><code>—</code></td>
+                <td><span class="status-badge warn">Pending</span></td>
+                <td class="al-src"><a href="https://drive.google.com/file/d/1a3MW4RgsplZayR18SP1JKBHFhO3Ca4Nz/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
+              </tr></tbody>
+            </table>
+          </div>
+          <div class="al-group">
+            <h3 class="al-group-title">COSTUME <span class="al-count">(8)</span></h3>
+            <table class="al-table">
+              <thead>
+                <tr>
+                  <th>Name</th><th>Type</th><th>Asset Code (BytePlus)</th><th>Status</th><th>Source</th>
+                </tr>
+              </thead>
+              <tbody>
+              <tr>
+                <td class="al-name">White junior chef coat (Tara EP01)</td>
+                <td class="al-type">costume</td>
+                <td class="al-code"><code>—</code></td>
+                <td><span class="status-badge warn">Pending</span></td>
+                <td class="al-src"><a href="https://drive.google.com/file/d/1PZzoP_E_ftGZ-JH8LwIj8ZV3w5STSpdD/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
+              </tr>
+              <tr>
+                <td class="al-name">White junior chef coat (Tara, broken-in)</td>
+                <td class="al-type">costume</td>
+                <td class="al-code"><code>—</code></td>
+                <td><span class="status-badge warn">Pending</span></td>
+                <td class="al-src"><span class='muted'>—</span></td>
+              </tr>
+              <tr>
+                <td class="al-name">Tara casual (apartment)</td>
+                <td class="al-type">costume</td>
+                <td class="al-code"><code>—</code></td>
+                <td><span class="status-badge warn">Pending</span></td>
+                <td class="al-src"><span class='muted'>—</span></td>
+              </tr>
+              <tr>
+                <td class="al-name">Sous chef whites (Min-jun)</td>
+                <td class="al-type">costume</td>
+                <td class="al-code"><code>—</code></td>
+                <td><span class="status-badge warn">Pending</span></td>
+                <td class="al-src"><span class='muted'>—</span></td>
+              </tr>
+              <tr>
+                <td class="al-name">Executive chef whites (Joon-ho)</td>
+                <td class="al-type">costume</td>
+                <td class="al-code"><code>—</code></td>
+                <td><span class="status-badge warn">Pending</span></td>
+                <td class="al-src"><span class='muted'>—</span></td>
+              </tr>
+              <tr>
+                <td class="al-name">Indonesian kitchen lead (Bu Endang)</td>
+                <td class="al-type">costume</td>
+                <td class="al-code"><code>—</code></td>
+                <td><span class="status-badge warn">Pending</span></td>
+                <td class="al-src"><span class='muted'>—</span></td>
+              </tr>
+              <tr>
+                <td class="al-name">Line cook whites (Galih)</td>
+                <td class="al-type">costume</td>
+                <td class="al-code"><code>—</code></td>
+                <td><span class="status-badge warn">Pending</span></td>
+                <td class="al-src"><span class='muted'>—</span></td>
+              </tr>
+              <tr>
+                <td class="al-name">Joon-ho&#x27;s casual (alley scene)</td>
+                <td class="al-type">costume</td>
+                <td class="al-code"><code>—</code></td>
+                <td><span class="status-badge warn">Pending</span></td>
+                <td class="al-src"><span class='muted'>—</span></td>
+              </tr></tbody>
+            </table>
+          </div>
+          <div class="al-group">
+            <h3 class="al-group-title">EFFECTS <span class="al-count">(8)</span></h3>
+            <table class="al-table">
+              <thead>
+                <tr>
+                  <th>Name</th><th>Type</th><th>Asset Code (BytePlus)</th><th>Status</th><th>Source</th>
+                </tr>
+              </thead>
+              <tbody>
+              <tr>
+                <td class="al-name">Kitchen steam</td>
+                <td class="al-type">effect</td>
+                <td class="al-code"><code>—</code></td>
+                <td><span class="status-badge warn">Pending</span></td>
+                <td class="al-src"><span class='muted'>—</span></td>
+              </tr>
+              <tr>
+                <td class="al-name">Knife glint</td>
+                <td class="al-type">effect</td>
+                <td class="al-code"><code>—</code></td>
+                <td><span class="status-badge warn">Pending</span></td>
+                <td class="al-src"><span class='muted'>—</span></td>
+              </tr>
+              <tr>
+                <td class="al-name">Blood drop bloom</td>
+                <td class="al-type">effect</td>
+                <td class="al-code"><code>—</code></td>
+                <td><span class="status-badge warn">Pending</span></td>
+                <td class="al-src"><span class='muted'>—</span></td>
+              </tr>
+              <tr>
+                <td class="al-name">Cigarette smoke curl</td>
+                <td class="al-type">effect</td>
+                <td class="al-code"><code>—</code></td>
+                <td><span class="status-badge warn">Pending</span></td>
+                <td class="al-src"><span class='muted'>—</span></td>
+              </tr>
+              <tr>
+                <td class="al-name">Heat shimmer</td>
+                <td class="al-type">effect</td>
+                <td class="al-code"><code>—</code></td>
+                <td><span class="status-badge warn">Pending</span></td>
+                <td class="al-src"><span class='muted'>—</span></td>
+              </tr>
+              <tr>
+                <td class="al-name">Oil sizzle / wok flare</td>
+                <td class="al-type">effect</td>
+                <td class="al-code"><code>—</code></td>
+                <td><span class="status-badge warn">Pending</span></td>
+                <td class="al-src"><span class='muted'>—</span></td>
+              </tr>
+              <tr>
+                <td class="al-name">Sodium lamp glow (alley)</td>
+                <td class="al-type">effect</td>
+                <td class="al-code"><code>—</code></td>
+                <td><span class="status-badge warn">Pending</span></td>
+                <td class="al-src"><span class='muted'>—</span></td>
+              </tr>
+              <tr>
+                <td class="al-name">Cooler breath</td>
+                <td class="al-type">effect</td>
+                <td class="al-code"><code>—</code></td>
+                <td><span class="status-badge warn">Pending</span></td>
+                <td class="al-src"><span class='muted'>—</span></td>
+              </tr></tbody>
+            </table>
+          </div>
+          <div class="al-group">
+            <h3 class="al-group-title">CHARACTERS <span class="al-count">(15)</span></h3>
+            <table class="al-table">
+              <thead>
+                <tr>
+                  <th>Name</th><th>Type</th><th>Asset Code (BytePlus)</th><th>Status</th><th>Source</th>
+                </tr>
+              </thead>
+              <tbody>
+              <tr>
+                <td class="al-name">TARA ANJANI</td>
+                <td class="al-type">character</td>
+                <td class="al-code"><code>asset-20260505195221-bzhtj</code></td>
+                <td><span class="status-badge muted">Replaced</span></td>
+                <td class="al-src"><a href="https://drive.google.com/file/d/1-8I7NQa7cEG0vP8N7hh3LvZE5-WPR2P2/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
+              </tr>
+              <tr>
+                <td class="al-name">LEE JOON-HO</td>
+                <td class="al-type">character</td>
+                <td class="al-code"><code>asset-20260505195233-927n4</code></td>
+                <td><span class="status-badge muted">Replaced</span></td>
+                <td class="al-src"><a href="https://drive.google.com/file/d/1mCYXN9JFJsaHuz0e9nrsmM4v-OC09Lfo/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
+              </tr>
+              <tr>
+                <td class="al-name">PARK MIN-JUN</td>
+                <td class="al-type">character</td>
+                <td class="al-code"><code>asset-20260505195245-tzk8r</code></td>
+                <td><span class="status-badge muted">Replaced</span></td>
+                <td class="al-src"><a href="https://drive.google.com/file/d/1jnf5zpEKXxJxkDEEkzbEkseVHuevOIQO/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
+              </tr>
+              <tr>
+                <td class="al-name">BU ENDANG</td>
+                <td class="al-type">character</td>
+                <td class="al-code"><code>asset-20260505195256-wnv6s</code></td>
+                <td><span class="status-badge muted">Replaced</span></td>
+                <td class="al-src"><a href="https://drive.google.com/file/d/1SjlJWcHSHZ00VJTCHlmc5gbYp03gHrPR/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
+              </tr>
+              <tr>
+                <td class="al-name">GALIH</td>
+                <td class="al-type">character</td>
+                <td class="al-code"><code>asset-20260505195306-mhvhw</code></td>
+                <td><span class="status-badge muted">Replaced</span></td>
+                <td class="al-src"><a href="https://drive.google.com/file/d/1H7jqiIWMxS-vldsNgGSvmch_vT_gqwj_/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
+              </tr>
+              <tr>
+                <td class="al-name">PARK MIN-JUN</td>
+                <td class="al-type">Video</td>
+                <td class="al-code"><code>asset-20260506170719-kkghf</code></td>
+                <td><span class="status-badge ok">Uploaded</span></td>
+                <td class="al-src"><a href="https://drive.google.com/file/d/1nrLZwBCCEvZoO_lKamLfoXxkjRrefswP/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
+              </tr>
+              <tr>
+                <td class="al-name">TARA ANJANI</td>
+                <td class="al-type">Image</td>
+                <td class="al-code"><code>asset-20260506165903-xttj4</code></td>
+                <td><span class="status-badge ok">Uploaded</span></td>
+                <td class="al-src"><a href="https://drive.google.com/file/d/1f1qIK8wQp-g0vhycnIg6uM_sH1VdxwxS/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
+              </tr>
+              <tr>
+                <td class="al-name">TARA ANJANI</td>
+                <td class="al-type">Video</td>
+                <td class="al-code"><code>asset-20260506170727-dk2qx</code></td>
+                <td><span class="status-badge ok">Uploaded</span></td>
+                <td class="al-src"><a href="https://drive.google.com/file/d/1ResI0onv065yP-h0uGE9AOiHem1e3Ovn/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
+              </tr>
+              <tr>
+                <td class="al-name">TARA ANJANI</td>
+                <td class="al-type">Audio</td>
+                <td class="al-code"><code>asset-20260506170734-qbqzx</code></td>
+                <td><span class="status-badge ok">Uploaded</span></td>
+                <td class="al-src"><a href="https://drive.google.com/file/d/1nBOXC7BRgXGmdzlUQZHAV9HGQsmzzHne/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
+              </tr>
+              <tr>
+                <td class="al-name">LEE JOON-HO</td>
+                <td class="al-type">Image</td>
+                <td class="al-code"><code>asset-20260506165914-62r8k</code></td>
+                <td><span class="status-badge ok">Uploaded</span></td>
+                <td class="al-src"><a href="https://drive.google.com/file/d/1S1mq7DALeF1sjkdkyPzK2HQsUlsd2l3E/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
+              </tr>
+              <tr>
+                <td class="al-name">PARK MIN-JUN</td>
+                <td class="al-type">Image</td>
+                <td class="al-code"><code>asset-20260506165925-2v2ff</code></td>
+                <td><span class="status-badge ok">Uploaded</span></td>
+                <td class="al-src"><a href="https://drive.google.com/file/d/1441Ld1-s5C-eBBOFu23AkA6RZ5syuvph/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
+              </tr>
+              <tr>
+                <td class="al-name">BU ENDANG</td>
+                <td class="al-type">Image</td>
+                <td class="al-code"><code>asset-20260506165932-57mjt</code></td>
+                <td><span class="status-badge ok">Uploaded</span></td>
+                <td class="al-src"><a href="https://drive.google.com/file/d/17ksWfHqvMT69fQKmfNAKLl-VuspM2kIk/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
+              </tr>
+              <tr>
+                <td class="al-name">GALIH</td>
+                <td class="al-type">Image</td>
+                <td class="al-code"><code>asset-20260506165939-vttjg</code></td>
+                <td><span class="status-badge ok">Uploaded</span></td>
+                <td class="al-src"><a href="https://drive.google.com/file/d/1Fg0XKhImtwpMabOvhGPhnku7nf4aRIHg/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
+              </tr>
+              <tr>
+                <td class="al-name">GALIH</td>
+                <td class="al-type">Audio</td>
+                <td class="al-code"><code>asset-20260506170849-d9g4p</code></td>
+                <td><span class="status-badge ok">Uploaded</span></td>
+                <td class="al-src"><a href="https://drive.google.com/file/d/1iOkutMiKHpF8P3LYzWL-N3_lHuRYhIez/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
+              </tr>
+              <tr>
+                <td class="al-name">MANAGER</td>
+                <td class="al-type">Image</td>
+                <td class="al-code"><code>asset-20260506165952-kjjk7</code></td>
+                <td><span class="status-badge ok">Uploaded</span></td>
+                <td class="al-src"><a href="https://drive.google.com/file/d/1vIBeHrAIcpoBKtM4jlKmKtDBtQTRClFH/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
+              </tr></tbody>
+            </table>
+          </div></section>
 <footer>Production review · regenerate with <code>python3 build_gallery.py</code></footer>
 <script>
   // Tab switcher — single-section view. Click a tab → hide siblings, show target.
