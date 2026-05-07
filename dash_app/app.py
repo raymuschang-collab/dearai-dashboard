@@ -667,6 +667,30 @@ _gallery_cache: dict = {}
 _gallery_cache_lock = threading.Lock()
 
 
+@server.route("/projects")
+def _projects_landing():
+    """CMS landing page — grid of all projects from the master sheet.
+
+    Uses read_projects() (60s cache). Returns a single-page HTML rendered by
+    build_projects_page.render_projects_page. The "+ New Project" button
+    here is a stub until commit 5 (modal + form). For now, a click on it
+    points producers at the master sheet for direct row editing.
+    """
+    from flask import Response
+    from build_projects_page import render_projects_page
+    user_email = session.get("user_email", "") if AUTH_ENABLED else ""
+    try:
+        data = read_projects()
+        html_doc = render_projects_page(data["projects"], user_email=user_email)
+    except Exception as e:
+        return Response(
+            f"<h1>Projects landing failed</h1><p>{type(e).__name__}: {e}</p>",
+            status=500, mimetype="text/html",
+        )
+    return Response(html_doc, mimetype="text/html",
+                    headers={"Cache-Control": "max-age=30, must-revalidate"})
+
+
 @server.route("/gallery/<name>")
 def _gallery(name):
     """Live-build a review gallery from the SOT on demand.
