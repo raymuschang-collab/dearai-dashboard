@@ -1078,6 +1078,171 @@ def _api_upload_asset():
     })
 
 
+@server.route("/api/new-project", methods=["POST"])
+def _api_new_project():
+    """Create a new project. Phase 1 — metadata + blank SOT scaffold only.
+    Script upload + Anthropic shotlist generation come in commits 6-8.
+
+    Body (JSON):
+      title       — display name, required (used to derive sheet/folder names)
+      slug        — URL-safe identifier; auto-derived from title if omitted
+      type        — series | poc | concept | client (default series)
+      parent_show — optional spinoff parent slug
+      notes       — optional free-text
+
+    Returns: {ok, slug, job_id, message}
+
+    Background job:
+      1. Validate slug uniqueness against master sheet
+      2. Run _create_blank_sot.py --name "<title>"
+         (which creates a Drive folder + SOT spreadsheet from the v2.2 template)
+      3. Append a row to the master Projects sheet with status="draft"
+      4. Flush read_projects cache so the new project shows up immediately
+    The /projects landing page polls /debug/jobs to track this job's progress.
+    """
+    from flask import request, jsonify
+    body = request.get_json(silent=True) or {}
+    title = (body.get("title") or "").strip()
+    raw_slug = (body.get("slug") or "").strip()
+    ptype = (body.get("type") or "series").strip().lower()
+    parent_show = (body.get("parent_show") or "").strip()
+    notes = (body.get("notes") or "").strip()
+
+    if not title:
+        return jsonify({"ok": False, "error": "title is required"}), 400
+    if ptype not in {"series", "poc", "concept", "client"}:
+        return jsonify({"ok": False,
+                         "error": f"type must be one of series/poc/concept/client (got {ptype!r})"}), 400
+    if not MASTER_PROJECTS_SHEET_ID:
+        return jsonify({"ok": False,
+                         "error": "MASTER_PROJECTS_SHEET_ID not set on server"}), 500
+
+    # Derive slug from title if not given. Lowercase, alnum + dashes only.
+    if raw_slug:
+        slug = re.sub(r"[^a-z0-9_-]+", "-", raw_slug.lower()).strip("-")
+    else:
+        slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")[:40]
+    if not slug:
+        return jsonify({"ok": False, "error": "could not derive a valid slug from the title"}), 400
+
+    # Uniqueness check against current master sheet
+    existing_slugs = {p["slug"] for p in read_projects(force=True)["projects"]}
+    if slug in existing_slugs:
+        return jsonify({"ok": False,
+                         "error": f"slug '{slug}' already exists. Pick a different one."}), 409
+
+    # Owner email from session if auth is on
+    owner_email = ""
+    if AUTH_ENABLED:
+        try:
+            owner_email = (session.get("user_email") or "").lower()
+        except Exception:
+            pass
+
+    job_id = uuid.uuid4().hex[:8]
+    append_job({
+        "id": job_id,
+        "label": f"new-project {slug} ({title})",
+        "status": "queued",
+        "started": datetime.now(timezone.utc).isoformat(),
+        "log": "",
+        "cmd": f"_create_blank_sot.py --name {title!r}",
+        "kind": "new-project",
+        "slug": slug,
+        "type": ptype,
+        "owner": owner_email,
+    })
+
+    def _run():
+        update_job(job_id, status="running")
+        log_lines: list[str] = []
+        def _log(msg: str):
+            log_lines.append(msg)
+            update_job(job_id, log="\n".join(log_lines[-200:]))
+        try:
+            _log(f"[1/3] _create_blank_sot.py --name {title!r}")
+            # Run as a subprocess — mirrors the storyboard / vidgen pattern.
+            # _create_blank_sot.py prints the new sheet ID and folder ID; we
+            # parse them from stdout.
+            cmd = [PYTHON_BIN, "_create_blank_sot.py", "--name", title]
+            proc = subprocess.run(
+                cmd, cwd=str(PROJECT_ROOT),
+                capture_output=True, text=True, timeout=180,
+            )
+            stdout = proc.stdout or ""
+            stderr = proc.stderr or ""
+            for line in stdout.splitlines():
+                _log(f"  {line}")
+            if proc.returncode != 0:
+                if stderr:
+                    _log(f"  stderr: {stderr[:500]}")
+                raise RuntimeError(f"_create_blank_sot.py exit={proc.returncode}")
+
+            # Parse the sheet ID + folder ID from stdout.
+            # _create_blank_sot.py prints lines like "show folder: <link>" and
+            # "spreadsheet: <link>" — extract the IDs from the URLs.
+            sheet_id = ""
+            folder_id = ""
+            for line in stdout.splitlines():
+                # show folder webViewLink ends in /folders/<id>?...
+                m = re.search(r"folders/([a-zA-Z0-9_-]{20,})", line)
+                if m and not folder_id:
+                    folder_id = m.group(1)
+                # spreadsheet webViewLink ends in /spreadsheets/d/<id>/edit?...
+                m = re.search(r"spreadsheets/d/([a-zA-Z0-9_-]{20,})", line)
+                if m and not sheet_id:
+                    sheet_id = m.group(1)
+            if not sheet_id or not folder_id:
+                raise RuntimeError(
+                    f"could not parse sheet/folder IDs from _create_blank_sot.py output. "
+                    f"sheet={sheet_id!r}, folder={folder_id!r}. stdout: {stdout[:300]}"
+                )
+            _log(f"  ✓ sheet={sheet_id}, folder={folder_id}")
+
+            _log("[2/3] Appending row to master Projects sheet")
+            from auth import get_credentials
+            import gspread
+            gc = gspread.authorize(get_credentials())
+            sh = gc.open_by_key(MASTER_PROJECTS_SHEET_ID)
+            ws = sh.worksheet("Projects")
+            now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+            new_row = [
+                slug, title, ptype, "draft",
+                sheet_id, folder_id, parent_show, owner_email, now_iso,
+                "",                # script_drive_url (commit 6+)
+                "pending",         # shotlist_status
+                notes,
+            ]
+            ws.append_row(new_row, value_input_option="USER_ENTERED",
+                          insert_data_option="INSERT_ROWS",
+                          table_range="A1")
+            _log("  ✓ row appended")
+
+            _log("[3/3] Flushing read_projects cache")
+            with _projects_cache_lock:
+                _projects_cache.pop("data", None)
+            _log("  ✓ cache flushed; new project visible at /projects")
+
+            update_job(job_id, status="done",
+                       log="\n".join(log_lines[-200:]),
+                       ended=datetime.now(timezone.utc).isoformat())
+        except Exception as e:
+            err = f"{type(e).__name__}: {e}"
+            log_lines.append(f"[FAIL] {err}")
+            update_job(job_id, status="failed",
+                       log="\n".join(log_lines[-200:]),
+                       ended=datetime.now(timezone.utc).isoformat())
+
+    threading.Thread(target=_run, daemon=True).start()
+    return jsonify({
+        "ok": True,
+        "slug": slug,
+        "job_id": job_id,
+        "message": f"Queued new project '{slug}'; typical wall time ~30-60s. "
+                    "Check /projects after the job completes.",
+    })
+
+
 @server.route("/gallery/<name>/refresh")
 def _gallery_refresh(name):
     """Force-flush the cached HTML for a single gallery. Use after sheet edits
