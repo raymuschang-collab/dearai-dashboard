@@ -483,6 +483,18 @@ def render_html(data: dict, gallery_name: str = "") -> str:
         'onclick="toggleDarkMode()">🌙</button>'
         if gallery_name else ""
     )
+    # User chip + logout link — `__GALLERY_USER_EMAIL__` is a placeholder that
+    # the Flask /gallery route swaps for the current session's email at serve
+    # time (so per-user identity doesn't leak into the per-gallery HTML cache).
+    # When auth is OFF (env vars unset), the placeholder stays empty and the
+    # whole user-chip block is hidden via the JS-based cleanup at end-of-DOM.
+    user_chip = (
+        '<span id="user-chip" data-email="__GALLERY_USER_EMAIL__" '
+        'title="Logged in as __GALLERY_USER_EMAIL__"></span>'
+        '<a class="refresh" href="/auth/logout" '
+        'title="Sign out of this Google account">Log out</a>'
+        if gallery_name else ""
+    )
 
     # Episode picker — passed in from caller (dash_app/app.py). Standalone CLI
     # builds get an empty list and the dropdown doesn't render. Selecting an
@@ -560,6 +572,20 @@ def render_html(data: dict, gallery_name: str = "") -> str:
     padding: 3px 9px; transition: all 0.15s;
   }}
   a.refresh:hover {{ color: var(--ink); border-color: var(--ink); }}
+  /* User identity chip — shows logged-in Google account email. Hidden when
+     auth is disabled (the [data-email=""] selector handles that). Hover the
+     chip → tooltip with full email (already in title attr). */
+  #user-chip {{
+    display: inline-block;
+    color: var(--muted); font-size: 11px;
+    border: 1px solid var(--line); border-radius: 4px;
+    padding: 3px 9px;
+    max-width: 180px; overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap;
+  }}
+  #user-chip[data-email=""] {{ display: none; }}
+  #user-chip[data-email=""] + a.refresh {{ display: none; }}  /* hide Log out too */
+  #user-chip::before {{ content: attr(data-email); }}
   /* Job-watch banner — appears at top after a Generate click, watches the
      job through /debug/jobs polling, auto-refreshes the gallery on success. */
   #job-banner {{
@@ -847,7 +873,7 @@ def render_html(data: dict, gallery_name: str = "") -> str:
   </div>
 </div>
 <header class="hero">
-  <div class="live-row">{live_chip}{refresh_link}{dark_toggle}{episode_picker}</div>
+  <div class="live-row">{live_chip}{refresh_link}{dark_toggle}{episode_picker}{user_chip}</div>
   <div class="show">{html.escape(data["show"])}</div>
   <h1>{html.escape(data["episode"])}</h1>
   <div class="stats">{stats_html}</div>

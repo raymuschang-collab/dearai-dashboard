@@ -15,5 +15,12 @@ google-api-python-client==2.184.0
 requests==2.32.5
 python-dotenv==1.1.1
 
+# --- Auth (Google OAuth via Authlib) ---
+# Optional at runtime — middleware short-circuits when GOOGLE_CLIENT_ID
+# isn't set, so the app keeps booting on Render even before the user
+# completes the GCP OAuth-client setup. Once env vars land, auth kicks
+# in automatically on the next worker restart.
+authlib==1.6.0
+
 # --- Plotly (Dash transitive but pinned for stability) ---
 plotly==6.7.0

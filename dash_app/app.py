@@ -216,6 +216,156 @@ app = Dash(__name__, title="DearAI — Production Dashboard",
 server = app.server
 
 
+# ============================================================
+# Google OAuth — Flask + Authlib, conditional on env vars.
+# ============================================================
+# When GOOGLE_CLIENT_ID is set, every request must come from a logged-in
+# Google account on the allowlist (domain or individual email). When it's
+# unset, the middleware short-circuits and the app stays open — so deploys
+# don't break before the user finishes GCP OAuth-client setup.
+#
+# Required env vars on Render once you're ready to enforce auth:
+#   GOOGLE_CLIENT_ID     — OAuth 2.0 Web client ID from Google Cloud Console
+#   GOOGLE_CLIENT_SECRET — paired secret
+#   SECRET_KEY           — random 32+ chars for Flask session signing
+#   ALLOWED_DOMAINS      — comma-separated, e.g. "dearai.com"
+#   ALLOWED_EMAILS       — comma-separated specific outsiders (Gmail etc.)
+# At least one of ALLOWED_DOMAINS / ALLOWED_EMAILS must be non-empty,
+# otherwise the allowlist denies everyone (fail closed).
+#
+# Redirect URI to register in Google Cloud Console:
+#   https://<your-render-url>/auth/callback
+# (and http://localhost:8050/auth/callback for local dev).
+
+from datetime import timedelta
+from flask import session, redirect, request, jsonify, Response
+from werkzeug.middleware.proxy_fix import ProxyFix
+
+# Render terminates HTTPS at the edge; Flask sees the inner HTTP. ProxyFix
+# tells Flask to trust the X-Forwarded-* headers so url_for(_external=True)
+# generates https:// URLs (required for OAuth redirect_uri matching).
+server.wsgi_app = ProxyFix(server.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "").strip()
+GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "").strip()
+ALLOWED_DOMAINS = {
+    d.strip().lower()
+    for d in os.environ.get("ALLOWED_DOMAINS", "").split(",")
+    if d.strip()
+}
+ALLOWED_EMAILS = {
+    e.strip().lower()
+    for e in os.environ.get("ALLOWED_EMAILS", "").split(",")
+    if e.strip()
+}
+AUTH_ENABLED = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
+
+if AUTH_ENABLED:
+    server.secret_key = os.environ.get("SECRET_KEY") or os.urandom(32).hex()
+    server.config.update(
+        SESSION_COOKIE_SECURE=True,       # HTTPS-only (Render terminates TLS)
+        SESSION_COOKIE_HTTPONLY=True,     # block JS access
+        SESSION_COOKIE_SAMESITE="Lax",    # OAuth callback works, CSRF blocked
+        PERMANENT_SESSION_LIFETIME=timedelta(days=30),
+    )
+
+    from authlib.integrations.flask_client import OAuth
+    oauth = OAuth(server)
+    oauth.register(
+        name="google",
+        client_id=GOOGLE_CLIENT_ID,
+        client_secret=GOOGLE_CLIENT_SECRET,
+        server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
+        client_kwargs={"scope": "openid email profile"},
+    )
+
+    PUBLIC_PATHS = {"/login", "/auth/callback", "/auth/logout"}
+
+    def _is_allowed_email(email: str) -> bool:
+        """Return True if email matches the allowlist (domain or specific)."""
+        if not email or "@" not in email:
+            return False
+        e = email.lower()
+        if e in ALLOWED_EMAILS:
+            return True
+        domain = e.rsplit("@", 1)[-1]
+        return domain in ALLOWED_DOMAINS
+
+    @server.before_request
+    def _require_login():
+        # Allow OAuth dance + logout endpoints without a session
+        if request.path in PUBLIC_PATHS:
+            return None
+        # Allow Dash's internal _dash-* routes once authed (handled by the
+        # session check below) — they're called from the same browser session
+        # so they ride the cookie automatically.
+        email = session.get("user_email")
+        if email and _is_allowed_email(email):
+            return None
+        # API endpoints get a 401 JSON instead of a redirect (so the gallery's
+        # JS fetch() handlers can detect auth failure cleanly).
+        if request.path.startswith("/api/"):
+            return jsonify({"ok": False, "error": "login required"}), 401
+        # Browser navigation → redirect to /login carrying the original URL
+        # so we can come back after auth completes.
+        next_url = request.url if request.method == "GET" else "/"
+        session["next_url"] = next_url
+        return redirect("/login")
+
+    @server.route("/login")
+    def _login():
+        """Kick off the OAuth flow → redirect to Google's consent screen."""
+        from flask import url_for
+        redirect_uri = url_for("_auth_callback", _external=True)
+        return oauth.google.authorize_redirect(redirect_uri)
+
+    @server.route("/auth/callback")
+    def _auth_callback():
+        """Google redirects here with ?code=…; exchange + verify allowlist."""
+        try:
+            token = oauth.google.authorize_access_token()
+        except Exception as e:
+            return Response(
+                f"<h1>Login failed</h1><p>{type(e).__name__}: {e}</p>"
+                "<p><a href='/login'>Try again</a></p>",
+                status=400, mimetype="text/html",
+            )
+        userinfo = token.get("userinfo") or {}
+        email = (userinfo.get("email") or "").strip().lower()
+        if not _is_allowed_email(email):
+            allowlist_summary = (
+                f"Domains: {sorted(ALLOWED_DOMAINS) or '—'}<br>"
+                f"Specific: {len(ALLOWED_EMAILS)} address(es)"
+            )
+            return Response(
+                f"<h1>Access denied</h1>"
+                f"<p><b>{email or 'unknown account'}</b> is not on the allowlist.</p>"
+                f"<p>{allowlist_summary}</p>"
+                f"<p>Ask your admin to add your email, then "
+                f"<a href='/auth/logout'>log out</a> and try again.</p>",
+                status=403, mimetype="text/html",
+            )
+        session.permanent = True
+        session["user_email"] = email
+        session["user_name"] = userinfo.get("name", "")
+        session["user_picture"] = userinfo.get("picture", "")
+        next_url = session.pop("next_url", "/") or "/"
+        return redirect(next_url)
+
+    @server.route("/auth/logout")
+    def _auth_logout():
+        """Clear the session cookie and bounce back to /login."""
+        session.clear()
+        return redirect("/login")
+
+    print(f"[auth] enabled — domains={sorted(ALLOWED_DOMAINS)} "
+          f"individual={len(ALLOWED_EMAILS)}")
+else:
+    # No GOOGLE_CLIENT_ID set → auth is OFF, app is publicly accessible.
+    # This is the default state until the user finishes GCP setup.
+    print("[auth] DISABLED — set GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET to enable")
+
+
 # Debug route — returns recent failed-job logs as JSON so production
 # regressions can be diagnosed without shell access. Read-only, no auth
 # required (the dashboard URL is already private to the team). Strip if
@@ -345,6 +495,17 @@ def _gallery(name):
         "Cache-Control": f"max-age={int(_GALLERY_TTL)}, must-revalidate",
     }
 
+    def _personalize(html_doc: str) -> str:
+        """Inject the current user's email into the cached HTML at serve time
+        so the hero's user-chip + logout link show who's logged in. The HTML
+        cache is per-gallery (shared across users); per-user data lives in
+        these placeholders that get replaced on every request."""
+        if AUTH_ENABLED:
+            email = session.get("user_email", "")
+        else:
+            email = ""
+        return html_doc.replace("__GALLERY_USER_EMAIL__", email)
+
     # Live-build path
     if safe in GALLERY_REGISTRY:
         sheet_id, show, episode = GALLERY_REGISTRY[safe]
@@ -352,8 +513,11 @@ def _gallery(name):
         with _gallery_cache_lock:
             cached = _gallery_cache.get(safe)
             if cached and (now - cached[0]) < _GALLERY_TTL:
-                return Response(cached[1], mimetype="text/html", headers=cache_headers)
-        # Build fresh — bibles from the series-level sheet, episode tabs from ep sheet
+                return Response(_personalize(cached[1]), mimetype="text/html", headers=cache_headers)
+        # Build fresh — bibles from the series-level sheet, episode tabs from ep sheet.
+        # NOTE: html_doc is cached per-gallery, NOT per-user, so user_email is
+        # injected at serve-time via a string replacement below rather than baked
+        # into the cached HTML.
         try:
             from build_gallery import build_html
             bible_sheet_id = _bible_sheet_for(safe)
@@ -367,14 +531,14 @@ def _gallery(name):
             )
             with _gallery_cache_lock:
                 _gallery_cache[safe] = (now, html_doc)
-            return Response(html_doc, mimetype="text/html", headers=cache_headers)
+            return Response(_personalize(html_doc), mimetype="text/html", headers=cache_headers)
         except Exception as e:
             # Live build failed — try last-known cache value (even if expired)
             with _gallery_cache_lock:
                 stale = _gallery_cache.get(safe)
             if stale:
                 print(f"[gallery] live build failed for {safe} ({e}); serving stale cache ({(now - stale[0]) // 60:.0f} min old)")
-                return Response(stale[1], mimetype="text/html", headers=cache_headers)
+                return Response(_personalize(stale[1]), mimetype="text/html", headers=cache_headers)
             # No cache — try static fallback
             static_path = PROJECT_ROOT / f"{safe}_gallery.html"
             if static_path.exists():
