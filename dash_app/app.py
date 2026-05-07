@@ -407,37 +407,42 @@ def _api_vidgen():
     gallery = body.get("gallery", "")
     if not isinstance(set_n, int) or set_n < 1:
         return jsonify({"ok": False, "error": "missing or invalid 'set'"}), 400
-    if slot not in (1, 2):
-        return jsonify({"ok": False, "error": "slot must be 1 or 2"}), 400
     if gallery not in GALLERY_REGISTRY:
         return jsonify({"ok": False,
                          "error": f"unknown gallery '{gallery}'"}), 400
     sheet_id, _show, _ep = GALLERY_REGISTRY[gallery]
-    job_id = uuid.uuid4().hex[:8]
+
+    # Either V1 or V2 button click fires BOTH slots — one click → 2 videos.
+    # User confirmed they want both iters every time so they can compare.
     # NO --confirm flag — that triggers an interactive y/N input() gate which
-    # crashes the subprocess (no stdin). For button-fired jobs we want
-    # auto-submit; the prompt+refs preview goes to the job log instead, so
-    # users can audit what fired via /debug/jobs.
-    cmd = [PYTHON_BIN, "byteplus_vidgen.py",
-           "--sheet", sheet_id, "--set", str(set_n),
-           "--slot", str(slot)]
-    append_job({
-        "id": job_id,
-        "label": f"vidgen {gallery} set{set_n} V{slot}",
-        "status": "queued",
-        "started": datetime.now(timezone.utc).isoformat(),
-        "log": "",
-        "cmd": " ".join(cmd),
-        "kind": "vidgen",
-        "set": set_n,
-        "slot": slot,
-        "sheet": sheet_id,
-    })
-    threading.Thread(target=run_bg, args=(cmd, job_id), daemon=True).start()
+    # crashes the subprocess (no stdin); auto-submit instead, prompt preview
+    # goes to the job log for /debug/jobs auditing.
+    job_ids = []
+    for s in (1, 2):
+        job_id = uuid.uuid4().hex[:8]
+        cmd = [PYTHON_BIN, "byteplus_vidgen.py",
+               "--sheet", sheet_id, "--set", str(set_n),
+               "--slot", str(s)]
+        append_job({
+            "id": job_id,
+            "label": f"vidgen {gallery} set{set_n} V{s}",
+            "status": "queued",
+            "started": datetime.now(timezone.utc).isoformat(),
+            "log": "",
+            "cmd": " ".join(cmd),
+            "kind": "vidgen",
+            "set": set_n,
+            "slot": s,
+            "sheet": sheet_id,
+        })
+        threading.Thread(target=run_bg, args=(cmd, job_id), daemon=True).start()
+        job_ids.append(job_id)
+
     return jsonify({
         "ok": True,
-        "job_id": job_id,
-        "message": f"Queued V{slot} for {gallery} set {set_n}; check Drive in ~5 min."
+        "job_id": " + ".join(job_ids),
+        "job_ids": job_ids,
+        "message": f"Queued V1+V2 for {gallery} set {set_n}; check Drive in ~5 min."
     })
 
 
