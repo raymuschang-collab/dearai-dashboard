@@ -273,10 +273,17 @@ def render_set_card(s: dict, video_globals: dict | None = None) -> str:
     video_globals = video_globals or {}
     sb_html = ""
     for idx, sb in enumerate(s["sb_iters"], start=1):
-        # Storyboard image (or placeholder)
+        # Storyboard image (or placeholder). Click → open in centered lightbox
+        # at ~90vw / 85vh (not fullscreen — keeps padding, esc/click-out closes).
+        # Use w2400 thumb for sharper detail in the lightbox view.
         if sb:
+            file_id = drive_id(sb["view"])
+            big = thumb(file_id, 2400) if file_id else sb["thumb"]
             sb_html += (
-                f'<a class="thumb wide" href="{html.escape(sb["view"])}" target="_blank">'
+                f'<a class="thumb wide lb-trigger" href="{html.escape(sb["view"])}" '
+                f'data-lb-src="{html.escape(big)}" data-lb-label="Set {s["set"]} · {html.escape(sb["label"])}" '
+                f'data-lb-view="{html.escape(sb["view"])}" '
+                f'onclick="openLightbox(this); return false;">'
                 f'<img src="{html.escape(sb["thumb"])}" alt="{html.escape(sb["label"])}" loading="lazy">'
                 f'<span class="label">{html.escape(sb["label"])}</span>'
                 f'</a>'
@@ -372,8 +379,25 @@ def render_asset_library(assets: list[dict]) -> str:
                 f'<a href="{html.escape(a["source_url"])}" target="_blank" class="al-srclink">view</a>'
                 if a["source_url"] else "<span class='muted'>—</span>"
             )
+            # Tiny thumbnail icon — extracts Drive file_id from source_url and
+            # uses lh3.googleusercontent CDN. Renders as 40×40 inline-block;
+            # placeholder block of same size keeps row alignment when missing
+            # (e.g. video assets that don't render as image thumbs in Drive).
+            thumb_fid = drive_id(a["source_url"]) if a["source_url"] else None
+            if thumb_fid and (a["type"] or "").lower() == "image":
+                thumb_html = (
+                    f'<a href="{html.escape(a["source_url"])}" target="_blank" class="al-thumb">'
+                    f'<img src="{thumb(thumb_fid, 80)}" alt="{html.escape(a["name"])}" loading="lazy">'
+                    f'</a>'
+                )
+            else:
+                # Placeholder for non-image assets (videos, missing) — first
+                # letter of name in a coloured block keeps the row aligned.
+                initial = (a["name"][:1] or "?").upper()
+                thumb_html = f'<span class="al-thumb placeholder" title="no image preview">{html.escape(initial)}</span>'
             rows.append(f'''
               <tr>
+                <td class="al-thumb-cell">{thumb_html}</td>
                 <td class="al-name">{html.escape(a["name"])}</td>
                 <td class="al-type">{html.escape(type_str)}</td>
                 <td class="al-code"><code>{html.escape(code)}</code></td>
@@ -386,7 +410,7 @@ def render_asset_library(assets: list[dict]) -> str:
             <table class="al-table">
               <thead>
                 <tr>
-                  <th>Name</th><th>Type</th><th>Asset Code (BytePlus)</th><th>Status</th><th>Source</th>
+                  <th class="al-thumb-th"></th><th>Name</th><th>Type</th><th>Asset Code (BytePlus)</th><th>Status</th><th>Source</th>
                 </tr>
               </thead>
               <tbody>{"".join(rows)}</tbody>
@@ -431,6 +455,30 @@ def render_html(data: dict, gallery_name: str = "") -> str:
         '<span class="live-chip">LIVE · 30s cache</span>'
         if gallery_name else ""
     )
+    dark_toggle = (
+        '<button id="dark-toggle" class="refresh" type="button" '
+        'title="Toggle dark / light mode (saved in localStorage)" '
+        'onclick="toggleDarkMode()">🌙</button>'
+        if gallery_name else ""
+    )
+
+    # Episode picker — passed in from caller (dash_app/app.py). Standalone CLI
+    # builds get an empty list and the dropdown doesn't render. Selecting an
+    # option navigates the browser to that gallery URL.
+    episodes = data.get("episodes") or []
+    if episodes and gallery_name:
+        opts = "".join(
+            f'<option value="{html.escape(slug)}"'
+            f'{" selected" if slug == gallery_name else ""}>{html.escape(label)}</option>'
+            for slug, label in episodes
+        )
+        episode_picker = (
+            f'<select class="ep-picker" onchange="if(this.value)location.href=\'/gallery/\'+this.value">'
+            f'<option value="" disabled>Switch episode…</option>'
+            f'{opts}</select>'
+        )
+    else:
+        episode_picker = ""
 
     return f'''<!DOCTYPE html>
 <html lang="en">
@@ -443,6 +491,22 @@ def render_html(data: dict, gallery_name: str = "") -> str:
   :root {{
     --bg: #fafafa; --ink: #1a1a1a; --muted: #888; --line: #e5e5e5;
     --accent: #c11647; --chip-bg: #f0f0f0;
+    --card-bg: #ffffff; --code-bg: #f5f5f5; --soft-bg: #f8f8f8;
+    --hero-bg: #ffffff; --table-row-hover: #fafafa;
+    --prompt-global-bg: #f0f4f8; --prompt-loc-bg: #fef7ed; --prompt-loc-text: #7a3a08;
+  }}
+  /* Dark-mode override — toggled by adding [data-theme="dark"] to <html>.
+     Aim is comfortable for night review without losing card-edge clarity. */
+  html[data-theme="dark"] {{
+    --bg: #0f1115; --ink: #e8e8ea; --muted: #8a8d96; --line: #2a2d36;
+    --accent: #ff5577; --chip-bg: #2a2d36;
+    --card-bg: #181b22; --code-bg: #14171d; --soft-bg: #14171d;
+    --hero-bg: #14171d; --table-row-hover: #1d2028;
+    --prompt-global-bg: #1a2230; --prompt-loc-bg: #2a1f12; --prompt-loc-text: #e8b27d;
+  }}
+  html[data-theme="dark"] body {{ color-scheme: dark; }}
+  html[data-theme="dark"] img {{ /* slight desaturation so storyboard whites don't burn */
+    filter: brightness(0.92);
   }}
   * {{ box-sizing: border-box; }}
   body {{
@@ -451,7 +515,7 @@ def render_html(data: dict, gallery_name: str = "") -> str:
   }}
   header.hero {{
     padding: 50px 40px 30px; border-bottom: 1px solid var(--line);
-    background: white;
+    background: var(--hero-bg);
   }}
   header.hero .show {{
     color: var(--muted); font-size: 12px;
@@ -492,7 +556,7 @@ def render_html(data: dict, gallery_name: str = "") -> str:
   #job-banner .close:hover {{ color: white; }}
   nav.toc {{
     position: sticky; top: 0; z-index: 10;
-    background: white; border-bottom: 1px solid var(--line);
+    background: var(--hero-bg); border-bottom: 1px solid var(--line);
     padding: 0 40px;
     display: flex; gap: 0; flex-wrap: wrap;
     justify-content: center;
@@ -519,7 +583,7 @@ def render_html(data: dict, gallery_name: str = "") -> str:
     display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px;
   }}
   .card {{
-    background: white; border: 1px solid var(--line); border-radius: 10px;
+    background: var(--card-bg); border: 1px solid var(--line); border-radius: 10px;
     padding: 14px; display: flex; flex-direction: column; gap: 10px;
   }}
   .card-head h4 {{ margin: 0; font-size: 14px; font-weight: 600; }}
@@ -538,7 +602,7 @@ def render_html(data: dict, gallery_name: str = "") -> str:
     border-radius: 3px;
   }}
   .placeholder {{
-    background: #f5f5f5; border: 1px dashed var(--line); border-radius: 6px;
+    background: var(--code-bg); border: 1px dashed var(--line); border-radius: 6px;
     display: flex; align-items: center; justify-content: center;
     color: var(--muted); font-size: 11px; text-transform: uppercase;
     aspect-ratio: 1/1;
@@ -548,7 +612,7 @@ def render_html(data: dict, gallery_name: str = "") -> str:
   .meta-line b {{ color: var(--ink); }}
 
   .set-card {{
-    background: white; border: 1px solid var(--line); border-radius: 12px;
+    background: var(--card-bg); border: 1px solid var(--line); border-radius: 12px;
     padding: 22px; margin-bottom: 22px;
   }}
   .set-head {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }}
@@ -564,8 +628,8 @@ def render_html(data: dict, gallery_name: str = "") -> str:
   }}
   .set-body {{
     font-family: 'JetBrains Mono', monospace; font-size: 11px;
-    color: #444; line-height: 1.6; white-space: pre-wrap;
-    background: #f8f8f8; padding: 12px; border-radius: 6px;
+    color: var(--ink); line-height: 1.6; white-space: pre-wrap;
+    background: var(--soft-bg); padding: 12px; border-radius: 6px;
     max-height: 500px; overflow-y: auto;
   }}
   .set-prompt {{ display: flex; flex-direction: column; gap: 12px; }}
@@ -576,16 +640,16 @@ def render_html(data: dict, gallery_name: str = "") -> str:
   }}
   .prompt-body {{
     font-family: 'JetBrains Mono', monospace; font-size: 11px;
-    color: #444; line-height: 1.55;
-    background: #f8f8f8; padding: 10px 12px; border-radius: 6px;
+    color: var(--ink); line-height: 1.55;
+    background: var(--soft-bg); padding: 10px 12px; border-radius: 6px;
   }}
-  .prompt-body.global {{ background: #f0f4f8; }}
+  .prompt-body.global {{ background: var(--prompt-global-bg); }}
   .prompt-body.location {{
-    background: #fef7ed; font-weight: 500; color: #7a3a08;
+    background: var(--prompt-loc-bg); font-weight: 500; color: var(--prompt-loc-text);
     font-family: 'Inter', sans-serif; font-size: 12px;
   }}
   .prompt-body.combined {{
-    background: #f8f8f8;
+    background: var(--soft-bg);
     white-space: pre-wrap;
     /* No max-height — show all shots without scroll-trap. Long sets just
        extend the card naturally. */
@@ -611,7 +675,7 @@ def render_html(data: dict, gallery_name: str = "") -> str:
   }}
   .vid-tile iframe {{ width: 100%; height: 100%; border: 0; display: block; }}
   .vid-tile.placeholder {{
-    background: #f5f5f5; border: 1px dashed var(--line);
+    background: var(--code-bg); border: 1px dashed var(--line);
     display: flex; align-items: center; justify-content: center;
     color: var(--muted); font-size: 10px; text-transform: uppercase;
   }}
@@ -630,23 +694,37 @@ def render_html(data: dict, gallery_name: str = "") -> str:
   .al-group-title .al-count {{ color: var(--muted); font-weight: 400; font-size: 12px; }}
   .al-table {{
     width: 100%; border-collapse: collapse;
-    background: white; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--card-bg); border: 1px solid var(--line); border-radius: 8px;
     overflow: hidden; font-size: 12px;
   }}
   .al-table th {{
     text-align: left; padding: 10px 14px;
-    background: #f5f5f5; color: var(--muted);
+    background: var(--code-bg); color: var(--muted);
     font-weight: 500; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
     border-bottom: 1px solid var(--line);
   }}
-  .al-table td {{ padding: 10px 14px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }}
+  .al-table td {{ padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; }}
   .al-table tr:last-child td {{ border-bottom: 0; }}
-  .al-table tr:hover td {{ background: #fafafa; }}
+  .al-table tr:hover td {{ background: var(--table-row-hover); }}
+  .al-thumb-th {{ width: 56px; }}
+  .al-thumb-cell {{ width: 56px; padding: 6px 14px !important; }}
+  .al-thumb {{
+    display: inline-block; width: 40px; height: 40px;
+    border-radius: 6px; overflow: hidden;
+    background: var(--code-bg); border: 1px solid var(--line);
+    text-align: center; line-height: 38px;
+    color: var(--muted); font-weight: 600; font-size: 13px;
+    text-decoration: none;
+  }}
+  .al-thumb img {{ width: 100%; height: 100%; object-fit: cover; display: block; }}
+  .al-thumb.placeholder {{ /* type=video etc — first letter of name as fallback */
+    background: var(--soft-bg);
+  }}
   .al-name {{ font-weight: 500; color: var(--ink); }}
   .al-type {{ color: var(--muted); text-transform: capitalize; }}
   .al-code code {{
     font-family: 'JetBrains Mono', monospace; font-size: 11px;
-    color: #666; background: #f5f5f5; padding: 2px 6px; border-radius: 3px;
+    color: var(--ink); background: var(--code-bg); padding: 2px 6px; border-radius: 3px;
   }}
   .al-srclink {{ color: var(--accent); text-decoration: none; font-size: 11px; }}
   .al-srclink:hover {{ text-decoration: underline; }}
@@ -657,8 +735,70 @@ def render_html(data: dict, gallery_name: str = "") -> str:
   .status-badge.ok    {{ background: #e8f5e9; color: #2e7d32; }}
   .status-badge.warn  {{ background: #fff3e0; color: #e65100; }}
   .status-badge.fail  {{ background: #fde8ec; color: #c11647; }}
-  .status-badge.muted {{ background: #f0f0f0; color: #888; }}
+  .status-badge.muted {{ background: var(--chip-bg); color: var(--muted); }}
+  html[data-theme="dark"] .status-badge.ok    {{ background: #1f3a23; color: #7fc788; }}
+  html[data-theme="dark"] .status-badge.warn  {{ background: #3d2a13; color: #ffb868; }}
+  html[data-theme="dark"] .status-badge.fail  {{ background: #3a1822; color: #ff7a90; }}
   .empty {{ color: var(--muted); font-style: italic; padding: 20px; }}
+
+  /* Episode picker — sits next to ↻ Refresh in the hero. Native <select>
+     styled to match the refresh-link chip so the row reads as one toolbar. */
+  .ep-picker {{
+    color: var(--muted); background: var(--card-bg);
+    border: 1px solid var(--line); border-radius: 4px;
+    font: inherit; font-size: 11px;
+    padding: 3px 9px; cursor: pointer;
+    transition: all 0.15s;
+  }}
+  .ep-picker:hover {{ color: var(--ink); border-color: var(--ink); }}
+
+  /* Lightbox overlay — opens at ~90vw × 85vh (NOT fullscreen). Hidden by
+     default; click-outside / Esc / × button all close. */
+  #lightbox {{
+    display: none;
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(0, 0, 0, 0.85);
+    align-items: center; justify-content: center;
+    padding: 5vh 5vw;
+  }}
+  #lightbox.open {{ display: flex; }}
+  #lightbox .lb-frame {{
+    position: relative;
+    max-width: 90vw; max-height: 85vh;
+    background: var(--card-bg); border-radius: 8px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+    display: flex; flex-direction: column;
+  }}
+  #lightbox img {{
+    display: block; max-width: 100%; max-height: calc(85vh - 50px);
+    width: auto; height: auto; object-fit: contain;
+    border-radius: 8px 8px 0 0;
+    /* Light grid behind the image so transparent PNGs read correctly */
+    background-image: linear-gradient(45deg, #ddd 25%, transparent 25%), linear-gradient(-45deg, #ddd 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ddd 75%), linear-gradient(-45deg, transparent 75%, #ddd 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  }}
+  html[data-theme="dark"] #lightbox img {{
+    filter: brightness(0.95);
+  }}
+  #lightbox .lb-meta {{
+    padding: 12px 16px; border-top: 1px solid var(--line);
+    display: flex; justify-content: space-between; align-items: center;
+    color: var(--muted); font-size: 12px;
+  }}
+  #lightbox .lb-meta #lb-label {{ color: var(--ink); font-weight: 500; }}
+  #lightbox .lb-meta a {{ color: var(--accent); text-decoration: none; }}
+  #lightbox .lb-meta a:hover {{ text-decoration: underline; }}
+  #lightbox .lb-close {{
+    position: absolute; top: -16px; right: -16px; z-index: 1;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--card-bg); border: 1px solid var(--line);
+    color: var(--ink); font-size: 18px; line-height: 1;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }}
+  #lightbox .lb-close:hover {{ background: var(--accent); color: white; border-color: var(--accent); }}
 
   footer {{
     text-align: center; color: var(--muted); font-size: 11px;
@@ -671,8 +811,21 @@ def render_html(data: dict, gallery_name: str = "") -> str:
   <span class="close" onclick="this.parentElement.style.display='none'">×</span>
   <span id="job-banner-text">Watching job…</span>
 </div>
+<!-- Lightbox overlay — click outside / press Esc / click × to close.
+     Sized to ~90vw × 85vh so it's expanded but not fullscreen, keeping
+     a frame of dark backdrop visible around the image. -->
+<div id="lightbox" onclick="closeLightboxIfBackdrop(event)">
+  <div class="lb-frame">
+    <button class="lb-close" type="button" onclick="closeLightbox()" aria-label="Close">×</button>
+    <img id="lb-img" alt="">
+    <div class="lb-meta">
+      <span id="lb-label"></span>
+      <a id="lb-view" href="#" target="_blank" class="lb-view-link">View original on Drive ↗</a>
+    </div>
+  </div>
+</div>
 <header class="hero">
-  <div class="live-row">{live_chip}{refresh_link}</div>
+  <div class="live-row">{live_chip}{refresh_link}{dark_toggle}{episode_picker}</div>
   <div class="show">{html.escape(data["show"])}</div>
   <h1>{html.escape(data["episode"])}</h1>
   <div class="stats">{stats_html}</div>
@@ -818,6 +971,56 @@ def render_html(data: dict, gallery_name: str = "") -> str:
     }}
   }}
 
+  // ===== Lightbox =====
+  // Click a storyboard thumb → expanded view at 90vw × 85vh (not fullscreen).
+  // Esc, click on backdrop, or click × all close.
+  function openLightbox(el) {{
+    const lb = document.getElementById('lightbox');
+    const img = document.getElementById('lb-img');
+    const label = document.getElementById('lb-label');
+    const view = document.getElementById('lb-view');
+    img.src = el.dataset.lbSrc;
+    label.textContent = el.dataset.lbLabel || '';
+    view.href = el.dataset.lbView || '#';
+    lb.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }}
+  function closeLightbox() {{
+    document.getElementById('lightbox').classList.remove('open');
+    document.body.style.overflow = '';
+  }}
+  function closeLightboxIfBackdrop(e) {{
+    // Only close when clicking the dim backdrop, not the image / frame
+    if (e.target.id === 'lightbox') closeLightbox();
+  }}
+  document.addEventListener('keydown', (e) => {{
+    if (e.key === 'Escape') closeLightbox();
+  }});
+
+  // ===== Dark mode =====
+  // Toggle stored in localStorage so it persists across reloads + episodes.
+  // Apply on page load BEFORE first paint (the inline-script runs early).
+  function applyDarkMode(on) {{
+    document.documentElement.setAttribute('data-theme', on ? 'dark' : 'light');
+    const btn = document.getElementById('dark-toggle');
+    if (btn) btn.textContent = on ? '☀' : '🌙';
+  }}
+  function toggleDarkMode() {{
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    applyDarkMode(!isDark);
+    try {{ localStorage.setItem('gallery_dark_mode', !isDark ? '1' : '0'); }} catch (e) {{}}
+  }}
+  // Initial paint: read saved pref or fall back to OS preference
+  (function() {{
+    let saved = null;
+    try {{ saved = localStorage.getItem('gallery_dark_mode'); }} catch (e) {{}}
+    let on;
+    if (saved === '1') on = true;
+    else if (saved === '0') on = false;
+    else on = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    applyDarkMode(on);
+  }})();
+
   // Storyboard gen — fal.ai gpt-image-2, ~2-3 min for 2 iters
   function fireStoryboard(setN, btn) {{
     const gallery = location.pathname.split('/').filter(s => s).pop();
@@ -839,6 +1042,7 @@ def render_html(data: dict, gallery_name: str = "") -> str:
 
 def build_html(sheet_id: str, show: str, episode: str,
                gallery_name: str = "", bible_sheet_id: str | None = None,
+               episodes: list[tuple[str, str]] | None = None,
                verbose: bool = False) -> str:
     """Read a sheet end-to-end and return the rendered gallery HTML as a string.
 
@@ -909,6 +1113,7 @@ def build_html(sheet_id: str, show: str, episode: str,
         "storyboards": storyboards,
         "video_globals": video_globals,
         "asset_library": asset_library,
+        "episodes": episodes or [],
     }
     return render_html(data, gallery_name=gallery_name)
 

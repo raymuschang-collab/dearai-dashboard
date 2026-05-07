@@ -262,6 +262,21 @@ def _bible_sheet_for(gallery_name: str) -> str | None:
     return None
 
 
+def _episodes_for(gallery_name: str) -> list[tuple[str, str]]:
+    """Return [(slug, label)] for all sibling episodes of `gallery_name`,
+    used by the gallery's episode-picker dropdown. Siblings = same series
+    prefix (e.g. all 'sajangnim_*' galleries appear together).
+    Falls back to [] when no series prefix matches."""
+    for prefix in SERIES_BIBLE_SHEETS:
+        if gallery_name.startswith(prefix):
+            return [
+                (slug, entry[2])  # entry[2] = episode title from the registry
+                for slug, entry in GALLERY_REGISTRY.items()
+                if slug.startswith(prefix)
+            ]
+    return []
+
+
 # Live galleries — known names → (sheet_id, show, episode_title).
 # Adding a new ep = one line here + push. /gallery/<name> reads this map and
 # builds the HTML on demand from the SOT (30s in-memory cache for speed).
@@ -342,10 +357,12 @@ def _gallery(name):
         try:
             from build_gallery import build_html
             bible_sheet_id = _bible_sheet_for(safe)
+            episodes = _episodes_for(safe)
             html_doc = build_html(
                 sheet_id, show, episode,
                 gallery_name=safe,
                 bible_sheet_id=bible_sheet_id,
+                episodes=episodes,
                 verbose=False,
             )
             with _gallery_cache_lock:

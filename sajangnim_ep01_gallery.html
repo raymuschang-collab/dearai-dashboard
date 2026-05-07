@@ -9,6 +9,22 @@
   :root {
     --bg: #fafafa; --ink: #1a1a1a; --muted: #888; --line: #e5e5e5;
     --accent: #c11647; --chip-bg: #f0f0f0;
+    --card-bg: #ffffff; --code-bg: #f5f5f5; --soft-bg: #f8f8f8;
+    --hero-bg: #ffffff; --table-row-hover: #fafafa;
+    --prompt-global-bg: #f0f4f8; --prompt-loc-bg: #fef7ed; --prompt-loc-text: #7a3a08;
+  }
+  /* Dark-mode override — toggled by adding [data-theme="dark"] to <html>.
+     Aim is comfortable for night review without losing card-edge clarity. */
+  html[data-theme="dark"] {
+    --bg: #0f1115; --ink: #e8e8ea; --muted: #8a8d96; --line: #2a2d36;
+    --accent: #ff5577; --chip-bg: #2a2d36;
+    --card-bg: #181b22; --code-bg: #14171d; --soft-bg: #14171d;
+    --hero-bg: #14171d; --table-row-hover: #1d2028;
+    --prompt-global-bg: #1a2230; --prompt-loc-bg: #2a1f12; --prompt-loc-text: #e8b27d;
+  }
+  html[data-theme="dark"] body { color-scheme: dark; }
+  html[data-theme="dark"] img { /* slight desaturation so storyboard whites don't burn */
+    filter: brightness(0.92);
   }
   * { box-sizing: border-box; }
   body {
@@ -17,7 +33,7 @@
   }
   header.hero {
     padding: 50px 40px 30px; border-bottom: 1px solid var(--line);
-    background: white;
+    background: var(--hero-bg);
   }
   header.hero .show {
     color: var(--muted); font-size: 12px;
@@ -58,7 +74,7 @@
   #job-banner .close:hover { color: white; }
   nav.toc {
     position: sticky; top: 0; z-index: 10;
-    background: white; border-bottom: 1px solid var(--line);
+    background: var(--hero-bg); border-bottom: 1px solid var(--line);
     padding: 0 40px;
     display: flex; gap: 0; flex-wrap: wrap;
     justify-content: center;
@@ -85,7 +101,7 @@
     display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px;
   }
   .card {
-    background: white; border: 1px solid var(--line); border-radius: 10px;
+    background: var(--card-bg); border: 1px solid var(--line); border-radius: 10px;
     padding: 14px; display: flex; flex-direction: column; gap: 10px;
   }
   .card-head h4 { margin: 0; font-size: 14px; font-weight: 600; }
@@ -104,7 +120,7 @@
     border-radius: 3px;
   }
   .placeholder {
-    background: #f5f5f5; border: 1px dashed var(--line); border-radius: 6px;
+    background: var(--code-bg); border: 1px dashed var(--line); border-radius: 6px;
     display: flex; align-items: center; justify-content: center;
     color: var(--muted); font-size: 11px; text-transform: uppercase;
     aspect-ratio: 1/1;
@@ -114,7 +130,7 @@
   .meta-line b { color: var(--ink); }
 
   .set-card {
-    background: white; border: 1px solid var(--line); border-radius: 12px;
+    background: var(--card-bg); border: 1px solid var(--line); border-radius: 12px;
     padding: 22px; margin-bottom: 22px;
   }
   .set-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
@@ -130,8 +146,8 @@
   }
   .set-body {
     font-family: 'JetBrains Mono', monospace; font-size: 11px;
-    color: #444; line-height: 1.6; white-space: pre-wrap;
-    background: #f8f8f8; padding: 12px; border-radius: 6px;
+    color: var(--ink); line-height: 1.6; white-space: pre-wrap;
+    background: var(--soft-bg); padding: 12px; border-radius: 6px;
     max-height: 500px; overflow-y: auto;
   }
   .set-prompt { display: flex; flex-direction: column; gap: 12px; }
@@ -142,16 +158,16 @@
   }
   .prompt-body {
     font-family: 'JetBrains Mono', monospace; font-size: 11px;
-    color: #444; line-height: 1.55;
-    background: #f8f8f8; padding: 10px 12px; border-radius: 6px;
+    color: var(--ink); line-height: 1.55;
+    background: var(--soft-bg); padding: 10px 12px; border-radius: 6px;
   }
-  .prompt-body.global { background: #f0f4f8; }
+  .prompt-body.global { background: var(--prompt-global-bg); }
   .prompt-body.location {
-    background: #fef7ed; font-weight: 500; color: #7a3a08;
+    background: var(--prompt-loc-bg); font-weight: 500; color: var(--prompt-loc-text);
     font-family: 'Inter', sans-serif; font-size: 12px;
   }
   .prompt-body.combined {
-    background: #f8f8f8;
+    background: var(--soft-bg);
     white-space: pre-wrap;
     /* No max-height — show all shots without scroll-trap. Long sets just
        extend the card naturally. */
@@ -177,7 +193,7 @@
   }
   .vid-tile iframe { width: 100%; height: 100%; border: 0; display: block; }
   .vid-tile.placeholder {
-    background: #f5f5f5; border: 1px dashed var(--line);
+    background: var(--code-bg); border: 1px dashed var(--line);
     display: flex; align-items: center; justify-content: center;
     color: var(--muted); font-size: 10px; text-transform: uppercase;
   }
@@ -196,23 +212,37 @@
   .al-group-title .al-count { color: var(--muted); font-weight: 400; font-size: 12px; }
   .al-table {
     width: 100%; border-collapse: collapse;
-    background: white; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--card-bg); border: 1px solid var(--line); border-radius: 8px;
     overflow: hidden; font-size: 12px;
   }
   .al-table th {
     text-align: left; padding: 10px 14px;
-    background: #f5f5f5; color: var(--muted);
+    background: var(--code-bg); color: var(--muted);
     font-weight: 500; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
     border-bottom: 1px solid var(--line);
   }
-  .al-table td { padding: 10px 14px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+  .al-table td { padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; }
   .al-table tr:last-child td { border-bottom: 0; }
-  .al-table tr:hover td { background: #fafafa; }
+  .al-table tr:hover td { background: var(--table-row-hover); }
+  .al-thumb-th { width: 56px; }
+  .al-thumb-cell { width: 56px; padding: 6px 14px !important; }
+  .al-thumb {
+    display: inline-block; width: 40px; height: 40px;
+    border-radius: 6px; overflow: hidden;
+    background: var(--code-bg); border: 1px solid var(--line);
+    text-align: center; line-height: 38px;
+    color: var(--muted); font-weight: 600; font-size: 13px;
+    text-decoration: none;
+  }
+  .al-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .al-thumb.placeholder { /* type=video etc — first letter of name as fallback */
+    background: var(--soft-bg);
+  }
   .al-name { font-weight: 500; color: var(--ink); }
   .al-type { color: var(--muted); text-transform: capitalize; }
   .al-code code {
     font-family: 'JetBrains Mono', monospace; font-size: 11px;
-    color: #666; background: #f5f5f5; padding: 2px 6px; border-radius: 3px;
+    color: var(--ink); background: var(--code-bg); padding: 2px 6px; border-radius: 3px;
   }
   .al-srclink { color: var(--accent); text-decoration: none; font-size: 11px; }
   .al-srclink:hover { text-decoration: underline; }
@@ -223,8 +253,70 @@
   .status-badge.ok    { background: #e8f5e9; color: #2e7d32; }
   .status-badge.warn  { background: #fff3e0; color: #e65100; }
   .status-badge.fail  { background: #fde8ec; color: #c11647; }
-  .status-badge.muted { background: #f0f0f0; color: #888; }
+  .status-badge.muted { background: var(--chip-bg); color: var(--muted); }
+  html[data-theme="dark"] .status-badge.ok    { background: #1f3a23; color: #7fc788; }
+  html[data-theme="dark"] .status-badge.warn  { background: #3d2a13; color: #ffb868; }
+  html[data-theme="dark"] .status-badge.fail  { background: #3a1822; color: #ff7a90; }
   .empty { color: var(--muted); font-style: italic; padding: 20px; }
+
+  /* Episode picker — sits next to ↻ Refresh in the hero. Native <select>
+     styled to match the refresh-link chip so the row reads as one toolbar. */
+  .ep-picker {
+    color: var(--muted); background: var(--card-bg);
+    border: 1px solid var(--line); border-radius: 4px;
+    font: inherit; font-size: 11px;
+    padding: 3px 9px; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .ep-picker:hover { color: var(--ink); border-color: var(--ink); }
+
+  /* Lightbox overlay — opens at ~90vw × 85vh (NOT fullscreen). Hidden by
+     default; click-outside / Esc / × button all close. */
+  #lightbox {
+    display: none;
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(0, 0, 0, 0.85);
+    align-items: center; justify-content: center;
+    padding: 5vh 5vw;
+  }
+  #lightbox.open { display: flex; }
+  #lightbox .lb-frame {
+    position: relative;
+    max-width: 90vw; max-height: 85vh;
+    background: var(--card-bg); border-radius: 8px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+    display: flex; flex-direction: column;
+  }
+  #lightbox img {
+    display: block; max-width: 100%; max-height: calc(85vh - 50px);
+    width: auto; height: auto; object-fit: contain;
+    border-radius: 8px 8px 0 0;
+    /* Light grid behind the image so transparent PNGs read correctly */
+    background-image: linear-gradient(45deg, #ddd 25%, transparent 25%), linear-gradient(-45deg, #ddd 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ddd 75%), linear-gradient(-45deg, transparent 75%, #ddd 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  }
+  html[data-theme="dark"] #lightbox img {
+    filter: brightness(0.95);
+  }
+  #lightbox .lb-meta {
+    padding: 12px 16px; border-top: 1px solid var(--line);
+    display: flex; justify-content: space-between; align-items: center;
+    color: var(--muted); font-size: 12px;
+  }
+  #lightbox .lb-meta #lb-label { color: var(--ink); font-weight: 500; }
+  #lightbox .lb-meta a { color: var(--accent); text-decoration: none; }
+  #lightbox .lb-meta a:hover { text-decoration: underline; }
+  #lightbox .lb-close {
+    position: absolute; top: -16px; right: -16px; z-index: 1;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--card-bg); border: 1px solid var(--line);
+    color: var(--ink); font-size: 18px; line-height: 1;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+  #lightbox .lb-close:hover { background: var(--accent); color: white; border-color: var(--accent); }
 
   footer {
     text-align: center; color: var(--muted); font-size: 11px;
@@ -237,8 +329,21 @@
   <span class="close" onclick="this.parentElement.style.display='none'">×</span>
   <span id="job-banner-text">Watching job…</span>
 </div>
+<!-- Lightbox overlay — click outside / press Esc / click × to close.
+     Sized to ~90vw × 85vh so it's expanded but not fullscreen, keeping
+     a frame of dark backdrop visible around the image. -->
+<div id="lightbox" onclick="closeLightboxIfBackdrop(event)">
+  <div class="lb-frame">
+    <button class="lb-close" type="button" onclick="closeLightbox()" aria-label="Close">×</button>
+    <img id="lb-img" alt="">
+    <div class="lb-meta">
+      <span id="lb-label"></span>
+      <a id="lb-view" href="#" target="_blank" class="lb-view-link">View original on Drive ↗</a>
+    </div>
+  </div>
+</div>
 <header class="hero">
-  <div class="live-row"><span class="live-chip">LIVE · 30s cache</span><a class="refresh" href="/gallery/sajangnim_ep01/refresh" title="Force-flush server cache + reload (default 30s TTL)">↻ Refresh</a></div>
+  <div class="live-row"><span class="live-chip">LIVE · 30s cache</span><a class="refresh" href="/gallery/sajangnim_ep01/refresh" title="Force-flush server cache + reload (default 30s TTL)">↻ Refresh</a><button id="dark-toggle" class="refresh" type="button" title="Toggle dark / light mode (saved in localStorage)" onclick="toggleDarkMode()">🌙</button></div>
   <div class="show">Diam Diam Aku Cinta Sajangnim</div>
   <h1>Episode 1 — Pelarian Pertama</h1>
   <div class="stats"><b>6</b> characters · <b>8</b> locations · <b>8</b> costume · <b>16</b> props · <b>8</b> effects · <b>12</b> sets</div>
@@ -499,8 +604,8 @@
       <button class="gen-btn" data-set="1" onclick="fireStoryboard(1, this)">
         Generate Storyboard
       </button></div>
-        <div class="set-storyboards"><a class="thumb wide" href="https://drive.google.com/file/d/1O9ysg1KqW0S2MT3IfBEq9CWb9sxwmcB7/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1O9ysg1KqW0S2MT3IfBEq9CWb9sxwmcB7=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><button class="gen-btn vid" data-set="1" data-slot="1" onclick="fireVidgen(1, 1, this)">Generate V1</button><a class="thumb wide" href="https://drive.google.com/file/d/1sbzOJLcZFWAXCCw4g7X5B4DRWehCflx_/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1sbzOJLcZFWAXCCw4g7X5B4DRWehCflx_=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a><button class="gen-btn vid" data-set="1" data-slot="2" onclick="fireVidgen(1, 2, this)">Generate V2</button></div>
-        <div class="set-videos"><div class="vid-tile"><iframe src="https://drive.google.com/file/d/1VBp8MbE5pk-wdpdnXaQ8hlNXyAMdUwFK/preview" allow="autoplay" loading="lazy"></iframe><div class="label">Video 1</div></div><div class="vid-tile"><iframe src="https://drive.google.com/file/d/1WAGmoRKGMfRCfbDKi9DoWi1t0dWO0RtT/preview" allow="autoplay" loading="lazy"></iframe><div class="label">Video 2</div></div></div>
+        <div class="set-storyboards"><a class="thumb wide lb-trigger" href="https://drive.google.com/file/d/1O9ysg1KqW0S2MT3IfBEq9CWb9sxwmcB7/view" data-lb-src="https://lh3.googleusercontent.com/d/1O9ysg1KqW0S2MT3IfBEq9CWb9sxwmcB7=w2400" data-lb-label="Set 1 · Storyboard 1" data-lb-view="https://drive.google.com/file/d/1O9ysg1KqW0S2MT3IfBEq9CWb9sxwmcB7/view" onclick="openLightbox(this); return false;"><img src="https://lh3.googleusercontent.com/d/1O9ysg1KqW0S2MT3IfBEq9CWb9sxwmcB7=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><button class="gen-btn vid" data-set="1" data-slot="1" onclick="fireVidgen(1, 1, this)">Generate V1</button><a class="thumb wide lb-trigger" href="https://drive.google.com/file/d/1sbzOJLcZFWAXCCw4g7X5B4DRWehCflx_/view" data-lb-src="https://lh3.googleusercontent.com/d/1sbzOJLcZFWAXCCw4g7X5B4DRWehCflx_=w2400" data-lb-label="Set 1 · Storyboard 2" data-lb-view="https://drive.google.com/file/d/1sbzOJLcZFWAXCCw4g7X5B4DRWehCflx_/view" onclick="openLightbox(this); return false;"><img src="https://lh3.googleusercontent.com/d/1sbzOJLcZFWAXCCw4g7X5B4DRWehCflx_=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a><button class="gen-btn vid" data-set="1" data-slot="2" onclick="fireVidgen(1, 2, this)">Generate V2</button></div>
+        <div class="set-videos"><div class="vid-tile"><iframe src="https://drive.google.com/file/d/1NlR6Qt4pFeri95JgG3QF4au8g4p4i7G_/preview" allow="autoplay" loading="lazy"></iframe><div class="label">Video 1</div></div><div class="vid-tile"><iframe src="https://drive.google.com/file/d/1WAGmoRKGMfRCfbDKi9DoWi1t0dWO0RtT/preview" allow="autoplay" loading="lazy"></iframe><div class="label">Video 2</div></div></div>
       </div>
     </div>
     <div class="set-card" data-set="2">
@@ -527,7 +632,7 @@
       <button class="gen-btn" data-set="2" onclick="fireStoryboard(2, this)">
         Generate Storyboard
       </button></div>
-        <div class="set-storyboards"><a class="thumb wide" href="https://drive.google.com/file/d/1YzG7Kg8_wLBALbroVWk3tZTmkRO84g3b/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1YzG7Kg8_wLBALbroVWk3tZTmkRO84g3b=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><button class="gen-btn vid" data-set="2" data-slot="1" onclick="fireVidgen(2, 1, this)">Generate V1</button><a class="thumb wide" href="https://drive.google.com/file/d/194pxQjpPlLwllW4kiJD2rQCFPK82j8_O/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/194pxQjpPlLwllW4kiJD2rQCFPK82j8_O=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a><button class="gen-btn vid" data-set="2" data-slot="2" onclick="fireVidgen(2, 2, this)">Generate V2</button></div>
+        <div class="set-storyboards"><a class="thumb wide lb-trigger" href="https://drive.google.com/file/d/1YzG7Kg8_wLBALbroVWk3tZTmkRO84g3b/view" data-lb-src="https://lh3.googleusercontent.com/d/1YzG7Kg8_wLBALbroVWk3tZTmkRO84g3b=w2400" data-lb-label="Set 2 · Storyboard 1" data-lb-view="https://drive.google.com/file/d/1YzG7Kg8_wLBALbroVWk3tZTmkRO84g3b/view" onclick="openLightbox(this); return false;"><img src="https://lh3.googleusercontent.com/d/1YzG7Kg8_wLBALbroVWk3tZTmkRO84g3b=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><button class="gen-btn vid" data-set="2" data-slot="1" onclick="fireVidgen(2, 1, this)">Generate V1</button><a class="thumb wide lb-trigger" href="https://drive.google.com/file/d/194pxQjpPlLwllW4kiJD2rQCFPK82j8_O/view" data-lb-src="https://lh3.googleusercontent.com/d/194pxQjpPlLwllW4kiJD2rQCFPK82j8_O=w2400" data-lb-label="Set 2 · Storyboard 2" data-lb-view="https://drive.google.com/file/d/194pxQjpPlLwllW4kiJD2rQCFPK82j8_O/view" onclick="openLightbox(this); return false;"><img src="https://lh3.googleusercontent.com/d/194pxQjpPlLwllW4kiJD2rQCFPK82j8_O=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a><button class="gen-btn vid" data-set="2" data-slot="2" onclick="fireVidgen(2, 2, this)">Generate V2</button></div>
         <div class="set-videos"><div class="vid-tile placeholder">video pending</div><div class="vid-tile"><iframe src="https://drive.google.com/file/d/1UjNgHAbVhwe6thCpYMjZuha0gWm4F_wa/preview" allow="autoplay" loading="lazy"></iframe><div class="label">Video 2</div></div></div>
       </div>
     </div>
@@ -535,7 +640,7 @@
       <div class="set-head">
         <h3>Set 3 · shots 8-10</h3>
         <div class="set-meta">
-          <span class="chip">Generating</span>
+          <span class="chip">Done</span>
         </div>
       </div>
       <div class="set-grid">
@@ -555,7 +660,7 @@
       <button class="gen-btn" data-set="3" onclick="fireStoryboard(3, this)">
         Generate Storyboard
       </button></div>
-        <div class="set-storyboards"><a class="thumb wide" href="https://drive.google.com/file/d/1y2HKECcxieF_jLJY_H6tm0lUix2PD3Aa/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1y2HKECcxieF_jLJY_H6tm0lUix2PD3Aa=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><button class="gen-btn vid" data-set="3" data-slot="1" onclick="fireVidgen(3, 1, this)">Generate V1</button><a class="thumb wide" href="https://drive.google.com/file/d/14ezlYycArHBOeVhzMjNVs9F1hRsq8nIq/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/14ezlYycArHBOeVhzMjNVs9F1hRsq8nIq=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a><button class="gen-btn vid" data-set="3" data-slot="2" onclick="fireVidgen(3, 2, this)">Generate V2</button></div>
+        <div class="set-storyboards"><a class="thumb wide lb-trigger" href="https://drive.google.com/file/d/1xNYlWw9ZIIXr5Bo5-02uM94KyLdy9kfb/view" data-lb-src="https://lh3.googleusercontent.com/d/1xNYlWw9ZIIXr5Bo5-02uM94KyLdy9kfb=w2400" data-lb-label="Set 3 · Storyboard 1" data-lb-view="https://drive.google.com/file/d/1xNYlWw9ZIIXr5Bo5-02uM94KyLdy9kfb/view" onclick="openLightbox(this); return false;"><img src="https://lh3.googleusercontent.com/d/1xNYlWw9ZIIXr5Bo5-02uM94KyLdy9kfb=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><button class="gen-btn vid" data-set="3" data-slot="1" onclick="fireVidgen(3, 1, this)">Generate V1</button><a class="thumb wide lb-trigger" href="https://drive.google.com/file/d/1dtCsm2Wq8kob5ZIu4sEO-CqzDYx451Oy/view" data-lb-src="https://lh3.googleusercontent.com/d/1dtCsm2Wq8kob5ZIu4sEO-CqzDYx451Oy=w2400" data-lb-label="Set 3 · Storyboard 2" data-lb-view="https://drive.google.com/file/d/1dtCsm2Wq8kob5ZIu4sEO-CqzDYx451Oy/view" onclick="openLightbox(this); return false;"><img src="https://lh3.googleusercontent.com/d/1dtCsm2Wq8kob5ZIu4sEO-CqzDYx451Oy=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a><button class="gen-btn vid" data-set="3" data-slot="2" onclick="fireVidgen(3, 2, this)">Generate V2</button></div>
         <div class="set-videos"><div class="vid-tile"><iframe src="https://drive.google.com/file/d/1X6IHw2iC6x1ysOWJxdsX-5opb-rPZlFh/preview" allow="autoplay" loading="lazy"></iframe><div class="label">Video 1</div></div><div class="vid-tile"><iframe src="https://drive.google.com/file/d/1iA0QpmV4NQQ42iAkB1qSZhj_PJH4RYBt/preview" allow="autoplay" loading="lazy"></iframe><div class="label">Video 2</div></div></div>
       </div>
     </div>
@@ -583,7 +688,7 @@
       <button class="gen-btn" data-set="4" onclick="fireStoryboard(4, this)">
         Generate Storyboard
       </button></div>
-        <div class="set-storyboards"><a class="thumb wide" href="https://drive.google.com/file/d/16c-qYxY3Es_ok3tKk12TOpbraDVSEz_7/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/16c-qYxY3Es_ok3tKk12TOpbraDVSEz_7=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><button class="gen-btn vid" data-set="4" data-slot="1" onclick="fireVidgen(4, 1, this)">Generate V1</button><a class="thumb wide" href="https://drive.google.com/file/d/1OZEfHQD8R-V-vX3DbssPL64y17MN-VEu/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1OZEfHQD8R-V-vX3DbssPL64y17MN-VEu=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a><button class="gen-btn vid" data-set="4" data-slot="2" onclick="fireVidgen(4, 2, this)">Generate V2</button></div>
+        <div class="set-storyboards"><a class="thumb wide lb-trigger" href="https://drive.google.com/file/d/16c-qYxY3Es_ok3tKk12TOpbraDVSEz_7/view" data-lb-src="https://lh3.googleusercontent.com/d/16c-qYxY3Es_ok3tKk12TOpbraDVSEz_7=w2400" data-lb-label="Set 4 · Storyboard 1" data-lb-view="https://drive.google.com/file/d/16c-qYxY3Es_ok3tKk12TOpbraDVSEz_7/view" onclick="openLightbox(this); return false;"><img src="https://lh3.googleusercontent.com/d/16c-qYxY3Es_ok3tKk12TOpbraDVSEz_7=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><button class="gen-btn vid" data-set="4" data-slot="1" onclick="fireVidgen(4, 1, this)">Generate V1</button><a class="thumb wide lb-trigger" href="https://drive.google.com/file/d/1OZEfHQD8R-V-vX3DbssPL64y17MN-VEu/view" data-lb-src="https://lh3.googleusercontent.com/d/1OZEfHQD8R-V-vX3DbssPL64y17MN-VEu=w2400" data-lb-label="Set 4 · Storyboard 2" data-lb-view="https://drive.google.com/file/d/1OZEfHQD8R-V-vX3DbssPL64y17MN-VEu/view" onclick="openLightbox(this); return false;"><img src="https://lh3.googleusercontent.com/d/1OZEfHQD8R-V-vX3DbssPL64y17MN-VEu=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a><button class="gen-btn vid" data-set="4" data-slot="2" onclick="fireVidgen(4, 2, this)">Generate V2</button></div>
         <div class="set-videos"><div class="vid-tile"><iframe src="https://drive.google.com/file/d/1aqUnfpgc62YR-MBwC-VE_ghAZg9p4NWl/preview" allow="autoplay" loading="lazy"></iframe><div class="label">Video 1</div></div><div class="vid-tile"><iframe src="https://drive.google.com/file/d/13K5DkID8jTFZWVcgqyVl2yQK-wCBWP8t/preview" allow="autoplay" loading="lazy"></iframe><div class="label">Video 2</div></div></div>
       </div>
     </div>
@@ -611,7 +716,7 @@
       <button class="gen-btn" data-set="5" onclick="fireStoryboard(5, this)">
         Generate Storyboard
       </button></div>
-        <div class="set-storyboards"><a class="thumb wide" href="https://drive.google.com/file/d/1Z8iDwBCi_kGnbaqmwXAMKB4Ugk8Pec7s/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1Z8iDwBCi_kGnbaqmwXAMKB4Ugk8Pec7s=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><button class="gen-btn vid" data-set="5" data-slot="1" onclick="fireVidgen(5, 1, this)">Generate V1</button><a class="thumb wide" href="https://drive.google.com/file/d/13QJrnQLjw4od_SEgHd2yW1epRD5Ie91Z/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/13QJrnQLjw4od_SEgHd2yW1epRD5Ie91Z=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a><button class="gen-btn vid" data-set="5" data-slot="2" onclick="fireVidgen(5, 2, this)">Generate V2</button></div>
+        <div class="set-storyboards"><a class="thumb wide lb-trigger" href="https://drive.google.com/file/d/1Z8iDwBCi_kGnbaqmwXAMKB4Ugk8Pec7s/view" data-lb-src="https://lh3.googleusercontent.com/d/1Z8iDwBCi_kGnbaqmwXAMKB4Ugk8Pec7s=w2400" data-lb-label="Set 5 · Storyboard 1" data-lb-view="https://drive.google.com/file/d/1Z8iDwBCi_kGnbaqmwXAMKB4Ugk8Pec7s/view" onclick="openLightbox(this); return false;"><img src="https://lh3.googleusercontent.com/d/1Z8iDwBCi_kGnbaqmwXAMKB4Ugk8Pec7s=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><button class="gen-btn vid" data-set="5" data-slot="1" onclick="fireVidgen(5, 1, this)">Generate V1</button><a class="thumb wide lb-trigger" href="https://drive.google.com/file/d/13QJrnQLjw4od_SEgHd2yW1epRD5Ie91Z/view" data-lb-src="https://lh3.googleusercontent.com/d/13QJrnQLjw4od_SEgHd2yW1epRD5Ie91Z=w2400" data-lb-label="Set 5 · Storyboard 2" data-lb-view="https://drive.google.com/file/d/13QJrnQLjw4od_SEgHd2yW1epRD5Ie91Z/view" onclick="openLightbox(this); return false;"><img src="https://lh3.googleusercontent.com/d/13QJrnQLjw4od_SEgHd2yW1epRD5Ie91Z=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a><button class="gen-btn vid" data-set="5" data-slot="2" onclick="fireVidgen(5, 2, this)">Generate V2</button></div>
         <div class="set-videos"><div class="vid-tile"><iframe src="https://drive.google.com/file/d/1gP4_93KV4VDKYvk532_SnBwqIBSAcHS0/preview" allow="autoplay" loading="lazy"></iframe><div class="label">Video 1</div></div><div class="vid-tile"><iframe src="https://drive.google.com/file/d/1PuDzaIQX_F5M9tpwaLTlflftzaDem9mw/preview" allow="autoplay" loading="lazy"></iframe><div class="label">Video 2</div></div></div>
       </div>
     </div>
@@ -639,7 +744,7 @@
       <button class="gen-btn" data-set="6" onclick="fireStoryboard(6, this)">
         Generate Storyboard
       </button></div>
-        <div class="set-storyboards"><a class="thumb wide" href="https://drive.google.com/file/d/1AnSD5sxy5KOKgqLCkv57hxzmTLMUaHaR/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1AnSD5sxy5KOKgqLCkv57hxzmTLMUaHaR=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><button class="gen-btn vid" data-set="6" data-slot="1" onclick="fireVidgen(6, 1, this)">Generate V1</button><a class="thumb wide" href="https://drive.google.com/file/d/1Rjp2SB0B_2DAA0AyKBbmXsaKOEI4GnY7/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1Rjp2SB0B_2DAA0AyKBbmXsaKOEI4GnY7=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a><button class="gen-btn vid" data-set="6" data-slot="2" onclick="fireVidgen(6, 2, this)">Generate V2</button></div>
+        <div class="set-storyboards"><a class="thumb wide lb-trigger" href="https://drive.google.com/file/d/1AnSD5sxy5KOKgqLCkv57hxzmTLMUaHaR/view" data-lb-src="https://lh3.googleusercontent.com/d/1AnSD5sxy5KOKgqLCkv57hxzmTLMUaHaR=w2400" data-lb-label="Set 6 · Storyboard 1" data-lb-view="https://drive.google.com/file/d/1AnSD5sxy5KOKgqLCkv57hxzmTLMUaHaR/view" onclick="openLightbox(this); return false;"><img src="https://lh3.googleusercontent.com/d/1AnSD5sxy5KOKgqLCkv57hxzmTLMUaHaR=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><button class="gen-btn vid" data-set="6" data-slot="1" onclick="fireVidgen(6, 1, this)">Generate V1</button><a class="thumb wide lb-trigger" href="https://drive.google.com/file/d/1Rjp2SB0B_2DAA0AyKBbmXsaKOEI4GnY7/view" data-lb-src="https://lh3.googleusercontent.com/d/1Rjp2SB0B_2DAA0AyKBbmXsaKOEI4GnY7=w2400" data-lb-label="Set 6 · Storyboard 2" data-lb-view="https://drive.google.com/file/d/1Rjp2SB0B_2DAA0AyKBbmXsaKOEI4GnY7/view" onclick="openLightbox(this); return false;"><img src="https://lh3.googleusercontent.com/d/1Rjp2SB0B_2DAA0AyKBbmXsaKOEI4GnY7=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a><button class="gen-btn vid" data-set="6" data-slot="2" onclick="fireVidgen(6, 2, this)">Generate V2</button></div>
         <div class="set-videos"><div class="vid-tile"><iframe src="https://drive.google.com/file/d/19A5Tr34p3b4-dHYjFaTlDh5mEUnxajuh/preview" allow="autoplay" loading="lazy"></iframe><div class="label">Video 1</div></div><div class="vid-tile placeholder">video pending</div></div>
       </div>
     </div>
@@ -647,7 +752,7 @@
       <div class="set-head">
         <h3>Set 7 · shots 29-33</h3>
         <div class="set-meta">
-          <span class="chip">Done</span>
+          <span class="chip">Generating</span>
         </div>
       </div>
       <div class="set-grid">
@@ -667,7 +772,7 @@
       <button class="gen-btn" data-set="7" onclick="fireStoryboard(7, this)">
         Generate Storyboard
       </button></div>
-        <div class="set-storyboards"><a class="thumb wide" href="https://drive.google.com/file/d/1Y8ftpDzY-bkxoxn9vG_8sLEuMyEgbyh5/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1Y8ftpDzY-bkxoxn9vG_8sLEuMyEgbyh5=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><button class="gen-btn vid" data-set="7" data-slot="1" onclick="fireVidgen(7, 1, this)">Generate V1</button><a class="thumb wide" href="https://drive.google.com/file/d/1EEiEdin_17VuRQhRb2CfBvUAeC20Ix7V/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1EEiEdin_17VuRQhRb2CfBvUAeC20Ix7V=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a><button class="gen-btn vid" data-set="7" data-slot="2" onclick="fireVidgen(7, 2, this)">Generate V2</button></div>
+        <div class="set-storyboards"><a class="thumb wide lb-trigger" href="https://drive.google.com/file/d/1Y8ftpDzY-bkxoxn9vG_8sLEuMyEgbyh5/view" data-lb-src="https://lh3.googleusercontent.com/d/1Y8ftpDzY-bkxoxn9vG_8sLEuMyEgbyh5=w2400" data-lb-label="Set 7 · Storyboard 1" data-lb-view="https://drive.google.com/file/d/1Y8ftpDzY-bkxoxn9vG_8sLEuMyEgbyh5/view" onclick="openLightbox(this); return false;"><img src="https://lh3.googleusercontent.com/d/1Y8ftpDzY-bkxoxn9vG_8sLEuMyEgbyh5=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><button class="gen-btn vid" data-set="7" data-slot="1" onclick="fireVidgen(7, 1, this)">Generate V1</button><a class="thumb wide lb-trigger" href="https://drive.google.com/file/d/1EEiEdin_17VuRQhRb2CfBvUAeC20Ix7V/view" data-lb-src="https://lh3.googleusercontent.com/d/1EEiEdin_17VuRQhRb2CfBvUAeC20Ix7V=w2400" data-lb-label="Set 7 · Storyboard 2" data-lb-view="https://drive.google.com/file/d/1EEiEdin_17VuRQhRb2CfBvUAeC20Ix7V/view" onclick="openLightbox(this); return false;"><img src="https://lh3.googleusercontent.com/d/1EEiEdin_17VuRQhRb2CfBvUAeC20Ix7V=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a><button class="gen-btn vid" data-set="7" data-slot="2" onclick="fireVidgen(7, 2, this)">Generate V2</button></div>
         <div class="set-videos"><div class="vid-tile placeholder">video pending</div><div class="vid-tile placeholder">video pending</div></div>
       </div>
     </div>
@@ -695,7 +800,7 @@
       <button class="gen-btn" data-set="8" onclick="fireStoryboard(8, this)">
         Generate Storyboard
       </button></div>
-        <div class="set-storyboards"><a class="thumb wide" href="https://drive.google.com/file/d/1YCtEW5DpOQz91uDvJSHImtxSLLPLQDLQ/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1YCtEW5DpOQz91uDvJSHImtxSLLPLQDLQ=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><button class="gen-btn vid" data-set="8" data-slot="1" onclick="fireVidgen(8, 1, this)">Generate V1</button><a class="thumb wide" href="https://drive.google.com/file/d/1gBx6lwRdDfzyNtfH1R8-QZHvUFoLx8C_/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1gBx6lwRdDfzyNtfH1R8-QZHvUFoLx8C_=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a><button class="gen-btn vid" data-set="8" data-slot="2" onclick="fireVidgen(8, 2, this)">Generate V2</button></div>
+        <div class="set-storyboards"><a class="thumb wide lb-trigger" href="https://drive.google.com/file/d/1YCtEW5DpOQz91uDvJSHImtxSLLPLQDLQ/view" data-lb-src="https://lh3.googleusercontent.com/d/1YCtEW5DpOQz91uDvJSHImtxSLLPLQDLQ=w2400" data-lb-label="Set 8 · Storyboard 1" data-lb-view="https://drive.google.com/file/d/1YCtEW5DpOQz91uDvJSHImtxSLLPLQDLQ/view" onclick="openLightbox(this); return false;"><img src="https://lh3.googleusercontent.com/d/1YCtEW5DpOQz91uDvJSHImtxSLLPLQDLQ=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><button class="gen-btn vid" data-set="8" data-slot="1" onclick="fireVidgen(8, 1, this)">Generate V1</button><a class="thumb wide lb-trigger" href="https://drive.google.com/file/d/1gBx6lwRdDfzyNtfH1R8-QZHvUFoLx8C_/view" data-lb-src="https://lh3.googleusercontent.com/d/1gBx6lwRdDfzyNtfH1R8-QZHvUFoLx8C_=w2400" data-lb-label="Set 8 · Storyboard 2" data-lb-view="https://drive.google.com/file/d/1gBx6lwRdDfzyNtfH1R8-QZHvUFoLx8C_/view" onclick="openLightbox(this); return false;"><img src="https://lh3.googleusercontent.com/d/1gBx6lwRdDfzyNtfH1R8-QZHvUFoLx8C_=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a><button class="gen-btn vid" data-set="8" data-slot="2" onclick="fireVidgen(8, 2, this)">Generate V2</button></div>
         <div class="set-videos"><div class="vid-tile placeholder">video pending</div><div class="vid-tile placeholder">video pending</div></div>
       </div>
     </div>
@@ -723,7 +828,7 @@
       <button class="gen-btn" data-set="9" onclick="fireStoryboard(9, this)">
         Generate Storyboard
       </button></div>
-        <div class="set-storyboards"><a class="thumb wide" href="https://drive.google.com/file/d/1habuA1BF17GSBubRFs9sXM-taxJPNJiT/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1habuA1BF17GSBubRFs9sXM-taxJPNJiT=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><button class="gen-btn vid" data-set="9" data-slot="1" onclick="fireVidgen(9, 1, this)">Generate V1</button><a class="thumb wide" href="https://drive.google.com/file/d/1rk2W9LqeLkQ1UwWw6TfGJIYeYdsnDK6U/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1rk2W9LqeLkQ1UwWw6TfGJIYeYdsnDK6U=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a><button class="gen-btn vid" data-set="9" data-slot="2" onclick="fireVidgen(9, 2, this)">Generate V2</button></div>
+        <div class="set-storyboards"><a class="thumb wide lb-trigger" href="https://drive.google.com/file/d/1habuA1BF17GSBubRFs9sXM-taxJPNJiT/view" data-lb-src="https://lh3.googleusercontent.com/d/1habuA1BF17GSBubRFs9sXM-taxJPNJiT=w2400" data-lb-label="Set 9 · Storyboard 1" data-lb-view="https://drive.google.com/file/d/1habuA1BF17GSBubRFs9sXM-taxJPNJiT/view" onclick="openLightbox(this); return false;"><img src="https://lh3.googleusercontent.com/d/1habuA1BF17GSBubRFs9sXM-taxJPNJiT=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><button class="gen-btn vid" data-set="9" data-slot="1" onclick="fireVidgen(9, 1, this)">Generate V1</button><a class="thumb wide lb-trigger" href="https://drive.google.com/file/d/1rk2W9LqeLkQ1UwWw6TfGJIYeYdsnDK6U/view" data-lb-src="https://lh3.googleusercontent.com/d/1rk2W9LqeLkQ1UwWw6TfGJIYeYdsnDK6U=w2400" data-lb-label="Set 9 · Storyboard 2" data-lb-view="https://drive.google.com/file/d/1rk2W9LqeLkQ1UwWw6TfGJIYeYdsnDK6U/view" onclick="openLightbox(this); return false;"><img src="https://lh3.googleusercontent.com/d/1rk2W9LqeLkQ1UwWw6TfGJIYeYdsnDK6U=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a><button class="gen-btn vid" data-set="9" data-slot="2" onclick="fireVidgen(9, 2, this)">Generate V2</button></div>
         <div class="set-videos"><div class="vid-tile placeholder">video pending</div><div class="vid-tile placeholder">video pending</div></div>
       </div>
     </div>
@@ -751,7 +856,7 @@
       <button class="gen-btn" data-set="10" onclick="fireStoryboard(10, this)">
         Generate Storyboard
       </button></div>
-        <div class="set-storyboards"><a class="thumb wide" href="https://drive.google.com/file/d/1IR1JVM045FN8kvab2zp6roJ7D7TqHf3a/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1IR1JVM045FN8kvab2zp6roJ7D7TqHf3a=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><button class="gen-btn vid" data-set="10" data-slot="1" onclick="fireVidgen(10, 1, this)">Generate V1</button><a class="thumb wide" href="https://drive.google.com/file/d/1OpUb1JvJoB2cAJ194RB_SdPRCnOgFcm7/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1OpUb1JvJoB2cAJ194RB_SdPRCnOgFcm7=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a><button class="gen-btn vid" data-set="10" data-slot="2" onclick="fireVidgen(10, 2, this)">Generate V2</button></div>
+        <div class="set-storyboards"><a class="thumb wide lb-trigger" href="https://drive.google.com/file/d/1IR1JVM045FN8kvab2zp6roJ7D7TqHf3a/view" data-lb-src="https://lh3.googleusercontent.com/d/1IR1JVM045FN8kvab2zp6roJ7D7TqHf3a=w2400" data-lb-label="Set 10 · Storyboard 1" data-lb-view="https://drive.google.com/file/d/1IR1JVM045FN8kvab2zp6roJ7D7TqHf3a/view" onclick="openLightbox(this); return false;"><img src="https://lh3.googleusercontent.com/d/1IR1JVM045FN8kvab2zp6roJ7D7TqHf3a=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><button class="gen-btn vid" data-set="10" data-slot="1" onclick="fireVidgen(10, 1, this)">Generate V1</button><a class="thumb wide lb-trigger" href="https://drive.google.com/file/d/1OpUb1JvJoB2cAJ194RB_SdPRCnOgFcm7/view" data-lb-src="https://lh3.googleusercontent.com/d/1OpUb1JvJoB2cAJ194RB_SdPRCnOgFcm7=w2400" data-lb-label="Set 10 · Storyboard 2" data-lb-view="https://drive.google.com/file/d/1OpUb1JvJoB2cAJ194RB_SdPRCnOgFcm7/view" onclick="openLightbox(this); return false;"><img src="https://lh3.googleusercontent.com/d/1OpUb1JvJoB2cAJ194RB_SdPRCnOgFcm7=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a><button class="gen-btn vid" data-set="10" data-slot="2" onclick="fireVidgen(10, 2, this)">Generate V2</button></div>
         <div class="set-videos"><div class="vid-tile placeholder">video pending</div><div class="vid-tile placeholder">video pending</div></div>
       </div>
     </div>
@@ -779,7 +884,7 @@
       <button class="gen-btn" data-set="11" onclick="fireStoryboard(11, this)">
         Generate Storyboard
       </button></div>
-        <div class="set-storyboards"><a class="thumb wide" href="https://drive.google.com/file/d/1PoBGlV1KltFLU1FR7TDzp9Zfdz5oCZe0/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1PoBGlV1KltFLU1FR7TDzp9Zfdz5oCZe0=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><button class="gen-btn vid" data-set="11" data-slot="1" onclick="fireVidgen(11, 1, this)">Generate V1</button><a class="thumb wide" href="https://drive.google.com/file/d/1v7Uvud-KyTdLYgh7b74M-9X8qje1df1z/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1v7Uvud-KyTdLYgh7b74M-9X8qje1df1z=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a><button class="gen-btn vid" data-set="11" data-slot="2" onclick="fireVidgen(11, 2, this)">Generate V2</button></div>
+        <div class="set-storyboards"><a class="thumb wide lb-trigger" href="https://drive.google.com/file/d/1PoBGlV1KltFLU1FR7TDzp9Zfdz5oCZe0/view" data-lb-src="https://lh3.googleusercontent.com/d/1PoBGlV1KltFLU1FR7TDzp9Zfdz5oCZe0=w2400" data-lb-label="Set 11 · Storyboard 1" data-lb-view="https://drive.google.com/file/d/1PoBGlV1KltFLU1FR7TDzp9Zfdz5oCZe0/view" onclick="openLightbox(this); return false;"><img src="https://lh3.googleusercontent.com/d/1PoBGlV1KltFLU1FR7TDzp9Zfdz5oCZe0=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><button class="gen-btn vid" data-set="11" data-slot="1" onclick="fireVidgen(11, 1, this)">Generate V1</button><a class="thumb wide lb-trigger" href="https://drive.google.com/file/d/1v7Uvud-KyTdLYgh7b74M-9X8qje1df1z/view" data-lb-src="https://lh3.googleusercontent.com/d/1v7Uvud-KyTdLYgh7b74M-9X8qje1df1z=w2400" data-lb-label="Set 11 · Storyboard 2" data-lb-view="https://drive.google.com/file/d/1v7Uvud-KyTdLYgh7b74M-9X8qje1df1z/view" onclick="openLightbox(this); return false;"><img src="https://lh3.googleusercontent.com/d/1v7Uvud-KyTdLYgh7b74M-9X8qje1df1z=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a><button class="gen-btn vid" data-set="11" data-slot="2" onclick="fireVidgen(11, 2, this)">Generate V2</button></div>
         <div class="set-videos"><div class="vid-tile placeholder">video pending</div><div class="vid-tile placeholder">video pending</div></div>
       </div>
     </div>
@@ -807,7 +912,7 @@
       <button class="gen-btn" data-set="12" onclick="fireStoryboard(12, this)">
         Generate Storyboard
       </button></div>
-        <div class="set-storyboards"><a class="thumb wide" href="https://drive.google.com/file/d/1xWNcXe7GN_7g2Y22crUvbXOR05kcxt27/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1xWNcXe7GN_7g2Y22crUvbXOR05kcxt27=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><button class="gen-btn vid" data-set="12" data-slot="1" onclick="fireVidgen(12, 1, this)">Generate V1</button><a class="thumb wide" href="https://drive.google.com/file/d/1maoUUhGeCRDna6JdOhv7ycUch3eGddy0/view" target="_blank"><img src="https://lh3.googleusercontent.com/d/1maoUUhGeCRDna6JdOhv7ycUch3eGddy0=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a><button class="gen-btn vid" data-set="12" data-slot="2" onclick="fireVidgen(12, 2, this)">Generate V2</button></div>
+        <div class="set-storyboards"><a class="thumb wide lb-trigger" href="https://drive.google.com/file/d/1xWNcXe7GN_7g2Y22crUvbXOR05kcxt27/view" data-lb-src="https://lh3.googleusercontent.com/d/1xWNcXe7GN_7g2Y22crUvbXOR05kcxt27=w2400" data-lb-label="Set 12 · Storyboard 1" data-lb-view="https://drive.google.com/file/d/1xWNcXe7GN_7g2Y22crUvbXOR05kcxt27/view" onclick="openLightbox(this); return false;"><img src="https://lh3.googleusercontent.com/d/1xWNcXe7GN_7g2Y22crUvbXOR05kcxt27=w1000" alt="Storyboard 1" loading="lazy"><span class="label">Storyboard 1</span></a><button class="gen-btn vid" data-set="12" data-slot="1" onclick="fireVidgen(12, 1, this)">Generate V1</button><a class="thumb wide lb-trigger" href="https://drive.google.com/file/d/1maoUUhGeCRDna6JdOhv7ycUch3eGddy0/view" data-lb-src="https://lh3.googleusercontent.com/d/1maoUUhGeCRDna6JdOhv7ycUch3eGddy0=w2400" data-lb-label="Set 12 · Storyboard 2" data-lb-view="https://drive.google.com/file/d/1maoUUhGeCRDna6JdOhv7ycUch3eGddy0/view" onclick="openLightbox(this); return false;"><img src="https://lh3.googleusercontent.com/d/1maoUUhGeCRDna6JdOhv7ycUch3eGddy0=w1000" alt="Storyboard 2" loading="lazy"><span class="label">Storyboard 2</span></a><button class="gen-btn vid" data-set="12" data-slot="2" onclick="fireVidgen(12, 2, this)">Generate V2</button></div>
         <div class="set-videos"><div class="vid-tile placeholder">video pending</div><div class="vid-tile placeholder">video pending</div></div>
       </div>
     </div></section><section class="panel" id="assets"><h2>Asset Library</h2>
@@ -816,11 +921,12 @@
             <table class="al-table">
               <thead>
                 <tr>
-                  <th>Name</th><th>Type</th><th>Asset Code (BytePlus)</th><th>Status</th><th>Source</th>
+                  <th class="al-thumb-th"></th><th>Name</th><th>Type</th><th>Asset Code (BytePlus)</th><th>Status</th><th>Source</th>
                 </tr>
               </thead>
               <tbody>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">H</span></td>
                 <td class="al-name">Hanbyeol Bistro Kitchen</td>
                 <td class="al-type">scene</td>
                 <td class="al-code"><code>asset-20260505195135-n6nfz</code></td>
@@ -828,6 +934,7 @@
                 <td class="al-src"><a href="https://drive.google.com/file/d/10wivkLHQMHUrouoTx9Kml9CV9lWnWpYX/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">H</span></td>
                 <td class="al-name">Hanbyeol Dressing Room</td>
                 <td class="al-type">scene</td>
                 <td class="al-code"><code>asset-20260505195140-57vqd</code></td>
@@ -835,6 +942,7 @@
                 <td class="al-src"><a href="https://drive.google.com/file/d/1qULgOP8GD1QrJc31Eq_OmZXSaj1DuWmy/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">W</span></td>
                 <td class="al-name">Walk-In Cooler</td>
                 <td class="al-type">scene</td>
                 <td class="al-code"><code>asset-20260505195146-kntgj</code></td>
@@ -842,6 +950,7 @@
                 <td class="al-src"><a href="https://drive.google.com/file/d/1diYBNQpWi1bG_XfM4C_w9qmG71TXfzl0/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">J</span></td>
                 <td class="al-name">Joon-Ho&#x27;s Office</td>
                 <td class="al-type">scene</td>
                 <td class="al-code"><code>asset-20260505195152-5tsdr</code></td>
@@ -849,6 +958,7 @@
                 <td class="al-src"><a href="https://drive.google.com/file/d/18jiO12bVsNviNAxEOGg_mhwF9PefsC08/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">H</span></td>
                 <td class="al-name">Hanbyeol Storage Room</td>
                 <td class="al-type">scene</td>
                 <td class="al-code"><code>asset-20260505195158-8p7kh</code></td>
@@ -856,6 +966,7 @@
                 <td class="al-src"><a href="https://drive.google.com/file/d/1OTqk9ED9NljmEdEp1etCtD9X5Zk16G4h/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">A</span></td>
                 <td class="al-name">Alley Behind Hanbyeol</td>
                 <td class="al-type">scene</td>
                 <td class="al-code"><code>asset-20260505195204-g8hzz</code></td>
@@ -863,6 +974,7 @@
                 <td class="al-src"><a href="https://drive.google.com/file/d/1uWUm645YEmhWxZy1_10yFCOIBCyBkHvY/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">T</span></td>
                 <td class="al-name">Tara&#x27;s Mampang Apartment</td>
                 <td class="al-type">scene</td>
                 <td class="al-code"><code>asset-20260505195210-pq72k</code></td>
@@ -870,6 +982,7 @@
                 <td class="al-src"><a href="https://drive.google.com/file/d/1IsexbI4Xhgr1GQA9k7QSfZYukXgdJ30x/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">H</span></td>
                 <td class="al-name">Hanbyeol Pass Station</td>
                 <td class="al-type">scene</td>
                 <td class="al-code"><code>asset-20260505195216-svvtc</code></td>
@@ -883,11 +996,12 @@
             <table class="al-table">
               <thead>
                 <tr>
-                  <th>Name</th><th>Type</th><th>Asset Code (BytePlus)</th><th>Status</th><th>Source</th>
+                  <th class="al-thumb-th"></th><th>Name</th><th>Type</th><th>Asset Code (BytePlus)</th><th>Status</th><th>Source</th>
                 </tr>
               </thead>
               <tbody>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">C</span></td>
                 <td class="al-name">Chef&#x27;s knife</td>
                 <td class="al-type">prop</td>
                 <td class="al-code"><code>—</code></td>
@@ -895,6 +1009,7 @@
                 <td class="al-src"><span class='muted'>—</span></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">W</span></td>
                 <td class="al-name">Wooden cutting board</td>
                 <td class="al-type">prop</td>
                 <td class="al-code"><code>—</code></td>
@@ -902,6 +1017,7 @@
                 <td class="al-src"><span class='muted'>—</span></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">5</span></td>
                 <td class="al-name">5kg garlic heap</td>
                 <td class="al-type">prop</td>
                 <td class="al-code"><code>—</code></td>
@@ -909,6 +1025,7 @@
                 <td class="al-src"><span class='muted'>—</span></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">E</span></td>
                 <td class="al-name">Earthen clay pot (kimchi jjigae)</td>
                 <td class="al-type">prop</td>
                 <td class="al-code"><code>—</code></td>
@@ -916,6 +1033,7 @@
                 <td class="al-src"><span class='muted'>—</span></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">T</span></td>
                 <td class="al-name">Tray of marinated short ribs</td>
                 <td class="al-type">prop</td>
                 <td class="al-code"><code>—</code></td>
@@ -923,6 +1041,7 @@
                 <td class="al-src"><span class='muted'>—</span></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">B</span></td>
                 <td class="al-name">Bibimbap bowl</td>
                 <td class="al-type">prop</td>
                 <td class="al-code"><code>—</code></td>
@@ -930,6 +1049,7 @@
                 <td class="al-src"><span class='muted'>—</span></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">S</span></td>
                 <td class="al-name">Stack of clean plates</td>
                 <td class="al-type">prop</td>
                 <td class="al-code"><code>—</code></td>
@@ -937,6 +1057,7 @@
                 <td class="al-src"><span class='muted'>—</span></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">J</span></td>
                 <td class="al-name">Joon-ho&#x27;s notebook</td>
                 <td class="al-type">prop</td>
                 <td class="al-code"><code>—</code></td>
@@ -944,6 +1065,7 @@
                 <td class="al-src"><span class='muted'>—</span></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">C</span></td>
                 <td class="al-name">Coffee cup</td>
                 <td class="al-type">prop</td>
                 <td class="al-code"><code>—</code></td>
@@ -951,6 +1073,7 @@
                 <td class="al-src"><span class='muted'>—</span></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">C</span></td>
                 <td class="al-name">Cigarette</td>
                 <td class="al-type">prop</td>
                 <td class="al-code"><code>—</code></td>
@@ -958,6 +1081,7 @@
                 <td class="al-src"><span class='muted'>—</span></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">T</span></td>
                 <td class="al-name">Trash bag</td>
                 <td class="al-type">prop</td>
                 <td class="al-code"><code>—</code></td>
@@ -965,6 +1089,7 @@
                 <td class="al-src"><span class='muted'>—</span></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">P</span></td>
                 <td class="al-name">Pot of doenjang stew</td>
                 <td class="al-type">prop</td>
                 <td class="al-code"><code>—</code></td>
@@ -972,6 +1097,7 @@
                 <td class="al-src"><span class='muted'>—</span></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">B</span></td>
                 <td class="al-name">Banchan steel rack</td>
                 <td class="al-type">prop</td>
                 <td class="al-code"><code>—</code></td>
@@ -979,6 +1105,7 @@
                 <td class="al-src"><span class='muted'>—</span></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">H</span></td>
                 <td class="al-name">Halmoni Park photo</td>
                 <td class="al-type">prop</td>
                 <td class="al-code"><code>—</code></td>
@@ -986,6 +1113,7 @@
                 <td class="al-src"><span class='muted'>—</span></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">H</span></td>
                 <td class="al-name">Hyundai 1992-1995 photo</td>
                 <td class="al-type">prop</td>
                 <td class="al-code"><code>—</code></td>
@@ -993,6 +1121,7 @@
                 <td class="al-src"><span class='muted'>—</span></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">H</span></td>
                 <td class="al-name">Hanbyeol Logo (brand mark)</td>
                 <td class="al-type">prop</td>
                 <td class="al-code"><code>—</code></td>
@@ -1006,11 +1135,12 @@
             <table class="al-table">
               <thead>
                 <tr>
-                  <th>Name</th><th>Type</th><th>Asset Code (BytePlus)</th><th>Status</th><th>Source</th>
+                  <th class="al-thumb-th"></th><th>Name</th><th>Type</th><th>Asset Code (BytePlus)</th><th>Status</th><th>Source</th>
                 </tr>
               </thead>
               <tbody>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">W</span></td>
                 <td class="al-name">White junior chef coat (Tara EP01)</td>
                 <td class="al-type">costume</td>
                 <td class="al-code"><code>—</code></td>
@@ -1018,6 +1148,7 @@
                 <td class="al-src"><a href="https://drive.google.com/file/d/1PZzoP_E_ftGZ-JH8LwIj8ZV3w5STSpdD/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">W</span></td>
                 <td class="al-name">White junior chef coat (Tara, broken-in)</td>
                 <td class="al-type">costume</td>
                 <td class="al-code"><code>—</code></td>
@@ -1025,6 +1156,7 @@
                 <td class="al-src"><span class='muted'>—</span></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">T</span></td>
                 <td class="al-name">Tara casual (apartment)</td>
                 <td class="al-type">costume</td>
                 <td class="al-code"><code>—</code></td>
@@ -1032,6 +1164,7 @@
                 <td class="al-src"><span class='muted'>—</span></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">S</span></td>
                 <td class="al-name">Sous chef whites (Min-jun)</td>
                 <td class="al-type">costume</td>
                 <td class="al-code"><code>—</code></td>
@@ -1039,6 +1172,7 @@
                 <td class="al-src"><span class='muted'>—</span></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">E</span></td>
                 <td class="al-name">Executive chef whites (Joon-ho)</td>
                 <td class="al-type">costume</td>
                 <td class="al-code"><code>—</code></td>
@@ -1046,6 +1180,7 @@
                 <td class="al-src"><span class='muted'>—</span></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">I</span></td>
                 <td class="al-name">Indonesian kitchen lead (Bu Endang)</td>
                 <td class="al-type">costume</td>
                 <td class="al-code"><code>—</code></td>
@@ -1053,6 +1188,7 @@
                 <td class="al-src"><span class='muted'>—</span></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">L</span></td>
                 <td class="al-name">Line cook whites (Galih)</td>
                 <td class="al-type">costume</td>
                 <td class="al-code"><code>—</code></td>
@@ -1060,6 +1196,7 @@
                 <td class="al-src"><span class='muted'>—</span></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">J</span></td>
                 <td class="al-name">Joon-ho&#x27;s casual (alley scene)</td>
                 <td class="al-type">costume</td>
                 <td class="al-code"><code>—</code></td>
@@ -1073,11 +1210,12 @@
             <table class="al-table">
               <thead>
                 <tr>
-                  <th>Name</th><th>Type</th><th>Asset Code (BytePlus)</th><th>Status</th><th>Source</th>
+                  <th class="al-thumb-th"></th><th>Name</th><th>Type</th><th>Asset Code (BytePlus)</th><th>Status</th><th>Source</th>
                 </tr>
               </thead>
               <tbody>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">K</span></td>
                 <td class="al-name">Kitchen steam</td>
                 <td class="al-type">effect</td>
                 <td class="al-code"><code>—</code></td>
@@ -1085,6 +1223,7 @@
                 <td class="al-src"><span class='muted'>—</span></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">K</span></td>
                 <td class="al-name">Knife glint</td>
                 <td class="al-type">effect</td>
                 <td class="al-code"><code>—</code></td>
@@ -1092,6 +1231,7 @@
                 <td class="al-src"><span class='muted'>—</span></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">B</span></td>
                 <td class="al-name">Blood drop bloom</td>
                 <td class="al-type">effect</td>
                 <td class="al-code"><code>—</code></td>
@@ -1099,6 +1239,7 @@
                 <td class="al-src"><span class='muted'>—</span></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">C</span></td>
                 <td class="al-name">Cigarette smoke curl</td>
                 <td class="al-type">effect</td>
                 <td class="al-code"><code>—</code></td>
@@ -1106,6 +1247,7 @@
                 <td class="al-src"><span class='muted'>—</span></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">H</span></td>
                 <td class="al-name">Heat shimmer</td>
                 <td class="al-type">effect</td>
                 <td class="al-code"><code>—</code></td>
@@ -1113,6 +1255,7 @@
                 <td class="al-src"><span class='muted'>—</span></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">O</span></td>
                 <td class="al-name">Oil sizzle / wok flare</td>
                 <td class="al-type">effect</td>
                 <td class="al-code"><code>—</code></td>
@@ -1120,6 +1263,7 @@
                 <td class="al-src"><span class='muted'>—</span></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">S</span></td>
                 <td class="al-name">Sodium lamp glow (alley)</td>
                 <td class="al-type">effect</td>
                 <td class="al-code"><code>—</code></td>
@@ -1127,6 +1271,7 @@
                 <td class="al-src"><span class='muted'>—</span></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">C</span></td>
                 <td class="al-name">Cooler breath</td>
                 <td class="al-type">effect</td>
                 <td class="al-code"><code>—</code></td>
@@ -1140,11 +1285,12 @@
             <table class="al-table">
               <thead>
                 <tr>
-                  <th>Name</th><th>Type</th><th>Asset Code (BytePlus)</th><th>Status</th><th>Source</th>
+                  <th class="al-thumb-th"></th><th>Name</th><th>Type</th><th>Asset Code (BytePlus)</th><th>Status</th><th>Source</th>
                 </tr>
               </thead>
               <tbody>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">T</span></td>
                 <td class="al-name">TARA ANJANI</td>
                 <td class="al-type">character</td>
                 <td class="al-code"><code>asset-20260505195221-bzhtj</code></td>
@@ -1152,6 +1298,7 @@
                 <td class="al-src"><a href="https://drive.google.com/file/d/1-8I7NQa7cEG0vP8N7hh3LvZE5-WPR2P2/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">L</span></td>
                 <td class="al-name">LEE JOON-HO</td>
                 <td class="al-type">character</td>
                 <td class="al-code"><code>asset-20260505195233-927n4</code></td>
@@ -1159,6 +1306,7 @@
                 <td class="al-src"><a href="https://drive.google.com/file/d/1mCYXN9JFJsaHuz0e9nrsmM4v-OC09Lfo/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">P</span></td>
                 <td class="al-name">PARK MIN-JUN</td>
                 <td class="al-type">character</td>
                 <td class="al-code"><code>asset-20260505195245-tzk8r</code></td>
@@ -1166,6 +1314,7 @@
                 <td class="al-src"><a href="https://drive.google.com/file/d/1jnf5zpEKXxJxkDEEkzbEkseVHuevOIQO/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">B</span></td>
                 <td class="al-name">BU ENDANG</td>
                 <td class="al-type">character</td>
                 <td class="al-code"><code>asset-20260505195256-wnv6s</code></td>
@@ -1173,6 +1322,7 @@
                 <td class="al-src"><a href="https://drive.google.com/file/d/1SjlJWcHSHZ00VJTCHlmc5gbYp03gHrPR/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">G</span></td>
                 <td class="al-name">GALIH</td>
                 <td class="al-type">character</td>
                 <td class="al-code"><code>asset-20260505195306-mhvhw</code></td>
@@ -1180,6 +1330,7 @@
                 <td class="al-src"><a href="https://drive.google.com/file/d/1H7jqiIWMxS-vldsNgGSvmch_vT_gqwj_/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">P</span></td>
                 <td class="al-name">PARK MIN-JUN</td>
                 <td class="al-type">Video</td>
                 <td class="al-code"><code>asset-20260506170719-kkghf</code></td>
@@ -1187,6 +1338,7 @@
                 <td class="al-src"><a href="https://drive.google.com/file/d/1nrLZwBCCEvZoO_lKamLfoXxkjRrefswP/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><a href="https://drive.google.com/file/d/1f1qIK8wQp-g0vhycnIg6uM_sH1VdxwxS/view?usp=drivesdk" target="_blank" class="al-thumb"><img src="https://lh3.googleusercontent.com/d/1f1qIK8wQp-g0vhycnIg6uM_sH1VdxwxS=w80" alt="TARA ANJANI" loading="lazy"></a></td>
                 <td class="al-name">TARA ANJANI</td>
                 <td class="al-type">Image</td>
                 <td class="al-code"><code>asset-20260506165903-xttj4</code></td>
@@ -1194,6 +1346,7 @@
                 <td class="al-src"><a href="https://drive.google.com/file/d/1f1qIK8wQp-g0vhycnIg6uM_sH1VdxwxS/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">T</span></td>
                 <td class="al-name">TARA ANJANI</td>
                 <td class="al-type">Video</td>
                 <td class="al-code"><code>asset-20260506170727-dk2qx</code></td>
@@ -1201,6 +1354,7 @@
                 <td class="al-src"><a href="https://drive.google.com/file/d/1ResI0onv065yP-h0uGE9AOiHem1e3Ovn/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">T</span></td>
                 <td class="al-name">TARA ANJANI</td>
                 <td class="al-type">Audio</td>
                 <td class="al-code"><code>asset-20260506170734-qbqzx</code></td>
@@ -1208,6 +1362,7 @@
                 <td class="al-src"><a href="https://drive.google.com/file/d/1nBOXC7BRgXGmdzlUQZHAV9HGQsmzzHne/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><a href="https://drive.google.com/file/d/1S1mq7DALeF1sjkdkyPzK2HQsUlsd2l3E/view?usp=drivesdk" target="_blank" class="al-thumb"><img src="https://lh3.googleusercontent.com/d/1S1mq7DALeF1sjkdkyPzK2HQsUlsd2l3E=w80" alt="LEE JOON-HO" loading="lazy"></a></td>
                 <td class="al-name">LEE JOON-HO</td>
                 <td class="al-type">Image</td>
                 <td class="al-code"><code>asset-20260506165914-62r8k</code></td>
@@ -1215,6 +1370,7 @@
                 <td class="al-src"><a href="https://drive.google.com/file/d/1S1mq7DALeF1sjkdkyPzK2HQsUlsd2l3E/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><a href="https://drive.google.com/file/d/1441Ld1-s5C-eBBOFu23AkA6RZ5syuvph/view?usp=drivesdk" target="_blank" class="al-thumb"><img src="https://lh3.googleusercontent.com/d/1441Ld1-s5C-eBBOFu23AkA6RZ5syuvph=w80" alt="PARK MIN-JUN" loading="lazy"></a></td>
                 <td class="al-name">PARK MIN-JUN</td>
                 <td class="al-type">Image</td>
                 <td class="al-code"><code>asset-20260506165925-2v2ff</code></td>
@@ -1222,6 +1378,7 @@
                 <td class="al-src"><a href="https://drive.google.com/file/d/1441Ld1-s5C-eBBOFu23AkA6RZ5syuvph/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><a href="https://drive.google.com/file/d/17ksWfHqvMT69fQKmfNAKLl-VuspM2kIk/view?usp=drivesdk" target="_blank" class="al-thumb"><img src="https://lh3.googleusercontent.com/d/17ksWfHqvMT69fQKmfNAKLl-VuspM2kIk=w80" alt="BU ENDANG" loading="lazy"></a></td>
                 <td class="al-name">BU ENDANG</td>
                 <td class="al-type">Image</td>
                 <td class="al-code"><code>asset-20260506165932-57mjt</code></td>
@@ -1229,6 +1386,7 @@
                 <td class="al-src"><a href="https://drive.google.com/file/d/17ksWfHqvMT69fQKmfNAKLl-VuspM2kIk/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><a href="https://drive.google.com/file/d/1Fg0XKhImtwpMabOvhGPhnku7nf4aRIHg/view?usp=drivesdk" target="_blank" class="al-thumb"><img src="https://lh3.googleusercontent.com/d/1Fg0XKhImtwpMabOvhGPhnku7nf4aRIHg=w80" alt="GALIH" loading="lazy"></a></td>
                 <td class="al-name">GALIH</td>
                 <td class="al-type">Image</td>
                 <td class="al-code"><code>asset-20260506165939-vttjg</code></td>
@@ -1236,6 +1394,7 @@
                 <td class="al-src"><a href="https://drive.google.com/file/d/1Fg0XKhImtwpMabOvhGPhnku7nf4aRIHg/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><span class="al-thumb placeholder" title="no image preview">G</span></td>
                 <td class="al-name">GALIH</td>
                 <td class="al-type">Audio</td>
                 <td class="al-code"><code>asset-20260506170849-d9g4p</code></td>
@@ -1243,6 +1402,7 @@
                 <td class="al-src"><a href="https://drive.google.com/file/d/1iOkutMiKHpF8P3LYzWL-N3_lHuRYhIez/view?usp=drivesdk" target="_blank" class="al-srclink">view</a></td>
               </tr>
               <tr>
+                <td class="al-thumb-cell"><a href="https://drive.google.com/file/d/1vIBeHrAIcpoBKtM4jlKmKtDBtQTRClFH/view?usp=drivesdk" target="_blank" class="al-thumb"><img src="https://lh3.googleusercontent.com/d/1vIBeHrAIcpoBKtM4jlKmKtDBtQTRClFH=w80" alt="MANAGER" loading="lazy"></a></td>
                 <td class="al-name">MANAGER</td>
                 <td class="al-type">Image</td>
                 <td class="al-code"><code>asset-20260506165952-kjjk7</code></td>
@@ -1389,6 +1549,56 @@
       setTimeout(() => { btn.disabled = false; btn.textContent = orig; btn.classList.remove('error'); }, 8000);
     }
   }
+
+  // ===== Lightbox =====
+  // Click a storyboard thumb → expanded view at 90vw × 85vh (not fullscreen).
+  // Esc, click on backdrop, or click × all close.
+  function openLightbox(el) {
+    const lb = document.getElementById('lightbox');
+    const img = document.getElementById('lb-img');
+    const label = document.getElementById('lb-label');
+    const view = document.getElementById('lb-view');
+    img.src = el.dataset.lbSrc;
+    label.textContent = el.dataset.lbLabel || '';
+    view.href = el.dataset.lbView || '#';
+    lb.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeLightbox() {
+    document.getElementById('lightbox').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  function closeLightboxIfBackdrop(e) {
+    // Only close when clicking the dim backdrop, not the image / frame
+    if (e.target.id === 'lightbox') closeLightbox();
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeLightbox();
+  });
+
+  // ===== Dark mode =====
+  // Toggle stored in localStorage so it persists across reloads + episodes.
+  // Apply on page load BEFORE first paint (the inline-script runs early).
+  function applyDarkMode(on) {
+    document.documentElement.setAttribute('data-theme', on ? 'dark' : 'light');
+    const btn = document.getElementById('dark-toggle');
+    if (btn) btn.textContent = on ? '☀' : '🌙';
+  }
+  function toggleDarkMode() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    applyDarkMode(!isDark);
+    try { localStorage.setItem('gallery_dark_mode', !isDark ? '1' : '0'); } catch (e) {}
+  }
+  // Initial paint: read saved pref or fall back to OS preference
+  (function() {
+    let saved = null;
+    try { saved = localStorage.getItem('gallery_dark_mode'); } catch (e) {}
+    let on;
+    if (saved === '1') on = true;
+    else if (saved === '0') on = false;
+    else on = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    applyDarkMode(on);
+  })();
 
   // Storyboard gen — fal.ai gpt-image-2, ~2-3 min for 2 iters
   function fireStoryboard(setN, btn) {
