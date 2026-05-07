@@ -244,9 +244,27 @@ def _debug_jobs():
     return jsonify({"count": len(out), "jobs": out})
 
 
+# Series-level bible source. Per the MEMORY.md production standard, bibles
+# (CHARACTERS / LOCATIONS / COSTUME / PROPS / EFFECTS / Asset Library) live
+# at the SERIES level — typically on the ep 1 sheet. Episode sheets only
+# carry their per-episode tabs (Shotlist / Storyboard Prompts / Video Prompts).
+# This map says: "for galleries whose name starts with X, read bibles from
+# this sheet ID." Lookup is by gallery-name prefix.
+SERIES_BIBLE_SHEETS = {
+    "sajangnim_": "1iygU-7XAwhVKykkTYXHAqwBh0wD1d7Zk2s6OGfnLXCc",  # ep01 = sajangnim bible
+}
+
+
+def _bible_sheet_for(gallery_name: str) -> str | None:
+    for prefix, sid in SERIES_BIBLE_SHEETS.items():
+        if gallery_name.startswith(prefix):
+            return sid
+    return None
+
+
 # Live galleries — known names → (sheet_id, show, episode_title).
 # Adding a new ep = one line here + push. /gallery/<name> reads this map and
-# builds the HTML on demand from the SOT (5-min in-memory cache for speed).
+# builds the HTML on demand from the SOT (30s in-memory cache for speed).
 GALLERY_REGISTRY = {
     "sajangnim_ep01": (
         "1iygU-7XAwhVKykkTYXHAqwBh0wD1d7Zk2s6OGfnLXCc",
@@ -320,10 +338,16 @@ def _gallery(name):
             cached = _gallery_cache.get(safe)
             if cached and (now - cached[0]) < _GALLERY_TTL:
                 return Response(cached[1], mimetype="text/html", headers=cache_headers)
-        # Build fresh
+        # Build fresh — bibles from the series-level sheet, episode tabs from ep sheet
         try:
             from build_gallery import build_html
-            html_doc = build_html(sheet_id, show, episode, gallery_name=safe, verbose=False)
+            bible_sheet_id = _bible_sheet_for(safe)
+            html_doc = build_html(
+                sheet_id, show, episode,
+                gallery_name=safe,
+                bible_sheet_id=bible_sheet_id,
+                verbose=False,
+            )
             with _gallery_cache_lock:
                 _gallery_cache[safe] = (now, html_doc)
             return Response(html_doc, mimetype="text/html", headers=cache_headers)

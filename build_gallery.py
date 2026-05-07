@@ -73,8 +73,13 @@ def preview(file_id: str | None) -> str:
 
 # ===== Sheet readers =====
 def read_characters(sh) -> list[dict]:
-    """CHARACTERS bible — col A=Name, T=Iter1, U=Iter2, V=Status (23-col schema)."""
-    ws = sh.worksheet("CHARACTERS")
+    """CHARACTERS bible — col A=Name, T=Iter1, U=Iter2, V=Status (23-col schema).
+    Returns [] if the sheet has no CHARACTERS tab (e.g. an episode sheet that
+    delegates bibles to a series-level bible sheet)."""
+    try:
+        ws = sh.worksheet("CHARACTERS")
+    except Exception:
+        return []
     rows = ws.get_all_records()
     out = []
     for r in rows:
@@ -97,8 +102,12 @@ def read_characters(sh) -> list[dict]:
 
 
 def read_locations(sh) -> list[dict]:
-    """LOCATIONS — col A=Name, B=Shot Size, J=Iter 1, K=Iter 2 (header row 4)."""
-    ws = sh.worksheet("LOCATIONS")
+    """LOCATIONS — col A=Name, B=Shot Size, J=Iter 1, K=Iter 2 (header row 4).
+    Returns [] if the sheet has no LOCATIONS tab."""
+    try:
+        ws = sh.worksheet("LOCATIONS")
+    except Exception:
+        return []
     raw = ws.get("A5:O100", value_render_option="FORMATTED_VALUE")
     by_name: dict[str, dict] = {}
     for r in raw:
@@ -829,7 +838,8 @@ def render_html(data: dict, gallery_name: str = "") -> str:
 
 
 def build_html(sheet_id: str, show: str, episode: str,
-               gallery_name: str = "", verbose: bool = False) -> str:
+               gallery_name: str = "", bible_sheet_id: str | None = None,
+               verbose: bool = False) -> str:
     """Read a sheet end-to-end and return the rendered gallery HTML as a string.
 
     Used both by the CLI (main) and by the Dash app's live /gallery route.
@@ -839,24 +849,37 @@ def build_html(sheet_id: str, show: str, episode: str,
     route uses to look up this gallery; passing it enables the LIVE chip + the
     /gallery/<name>/refresh button + the auto-refresh-on-job-complete watcher.
     Standalone CLI builds (where the HTML is opened off disk) leave it blank
-    so those features render as no-ops."""
+    so those features render as no-ops.
+
+    `bible_sheet_id` — when provided + different from sheet_id, the bible tabs
+    (CHARACTERS / LOCATIONS / COSTUME / PROPS / EFFECTS / Asset Library) are
+    read from THIS sheet instead of the episode sheet. This matches the
+    series-centric production standard from MEMORY.md: bibles live at the
+    series level (typically the ep 1 sheet), per-episode tabs (Shotlist /
+    Storyboard Prompts / Video Prompts) live on each individual ep sheet.
+    Default = read everything from sheet_id (back-compat for ep 1)."""
     def log(msg):
         if verbose:
             print(msg)
 
     gc = gspread.authorize(get_credentials())
     sh = gc.open_by_key(sheet_id)
+    if bible_sheet_id and bible_sheet_id != sheet_id:
+        bsh = gc.open_by_key(bible_sheet_id)
+        log(f"  (bibles ← {bible_sheet_id[:12]}…, episode-tabs ← {sheet_id[:12]}…)")
+    else:
+        bsh = sh
 
     log("  • characters")
-    characters = read_characters(sh)
+    characters = read_characters(bsh)
     log(f"    {len(characters)} chars")
     log("  • locations")
-    locations = read_locations(sh)
+    locations = read_locations(bsh)
     log(f"    {len(locations)} locs")
     log("  • costume / props / effects")
-    costume = read_simple_bible(sh, "COSTUME")
-    props = read_simple_bible(sh, "PROPS")
-    effects = read_simple_bible(sh, "EFFECTS")
+    costume = read_simple_bible(bsh, "COSTUME")
+    props = read_simple_bible(bsh, "PROPS")
+    effects = read_simple_bible(bsh, "EFFECTS")
     log(f"    {len(costume)} costume · {len(props)} props · {len(effects)} effects")
     log("  • storyboards")
     storyboards = read_storyboards(sh)
@@ -864,7 +887,7 @@ def build_html(sheet_id: str, show: str, episode: str,
     log("  • video globals")
     video_globals = read_video_globals(sh)
     log("  • asset library")
-    asset_library = read_asset_library(sh)
+    asset_library = read_asset_library(bsh)
     log(f"    {len(asset_library)} entries")
 
     data = {
