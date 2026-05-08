@@ -373,13 +373,22 @@ def log_expense(task_id: str, model: str, duration: int, resolution: str):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("--mentions", required=True,
+    ap.add_argument("--mentions",
                     help="Comma-separated @-mentions or asset names. "
-                         "Example: '@tara,@kitchen,@bibimbap'")
-    ap.add_argument("--body", required=True,
-                    help="Free-form prompt body describing the scene.")
+                         "Example: '@tara,@kitchen,@bibimbap'. Required unless "
+                         "--from-set is used (where mentions are auto-detected).")
+    ap.add_argument("--body",
+                    help="Free-form prompt body describing the scene. "
+                         "Required unless --from-set is used.")
+    ap.add_argument("--from-set", type=int, default=None,
+                    help="Pull body + globals from Storyboard Prompts!set N. "
+                         "If set, --body is auto-filled from SP!J{10+N}. "
+                         "--mentions can still be passed to OVERRIDE the auto-"
+                         "detected refs (everyday case: same set body, swap "
+                         "out a character or location).")
     ap.add_argument("--storyboard", default=None,
-                    help="Optional Drive URL to use as composition anchor.")
+                    help="Optional Drive URL to use as composition anchor. "
+                         "If --from-set is used, auto-pulls SP!G{row} (Iter 1).")
     ap.add_argument("--sheet", default=DEFAULT_BIBLE_SHEET,
                     help=f"Bible sheet ID (default: {DEFAULT_BIBLE_SHEET[:20]}…)")
     ap.add_argument("--resolution", default="480p",
@@ -403,10 +412,88 @@ def main():
     print(f"=== Vidgen Freeform — {datetime.now().strftime('%H:%M:%S')} ===")
     print(f"  reading Asset Library from {args.sheet[:20]}…")
     gc = gspread.authorize(get_credentials())
+
+    # If --from-set provided, pull body + globals + storyboard ref from
+    # the bible sheet's Storyboard Prompts + Video Prompts tabs. This is
+    # the hybrid pattern: locked-shotlist body + (optional) ref override.
+    if args.from_set is not None:
+        sh_for_set = gc.open_by_key(args.sheet)
+        try:
+            sp = sh_for_set.worksheet("Storyboard Prompts")
+            sp_row = 10 + args.from_set  # row 11 = set 1
+            row_cells = sp.get(f"A{sp_row}:N{sp_row}",
+                                value_render_option="FORMATTED_VALUE")
+            if not row_cells or not row_cells[0]:
+                sys.exit(f"--from-set {args.from_set}: row {sp_row} is empty")
+            row_cells = (row_cells[0] + [""] * 14)[:14]
+            sp_body = row_cells[9]   # SP!J = body
+            sp_sb_url = row_cells[6] # SP!G = Iter 1 storyboard
+
+            vp = sh_for_set.worksheet("Video Prompts")
+            globals_block = vp.get("A1:B6", value_render_option="FORMATTED_VALUE")
+            global_camera = global_audio = global_setting = ""
+            for r in globals_block:
+                r = (r + ["", ""])[:2]
+                label = (r[0] or "").strip().lower()
+                val = r[1] or ""
+                if label == "camera global":
+                    global_camera = val
+                elif label == "audio/dialogue global":
+                    global_audio = val
+                elif label == "setting global":
+                    global_setting = val
+
+            # Compose body = globals + per-shot list (mirrors what
+            # byteplus_vidgen.py does internally, so the prompt structure
+            # is identical to a set-based fire).
+            composed_body_parts = [s for s in (
+                global_camera, global_audio, global_setting, sp_body) if s]
+            args.body = args.body or "\n\n".join(composed_body_parts)
+            if not args.storyboard and sp_sb_url:
+                args.storyboard = sp_sb_url
+            print(f"  --from-set {args.from_set}: pulled body from SP!J{sp_row} "
+                  f"+ globals from Video Prompts!B1:B3"
+                  + (f" + storyboard SP!G{sp_row}" if sp_sb_url else ""))
+        except Exception as e:
+            sys.exit(f"--from-set {args.from_set} failed: {e}")
+
+    if not args.body:
+        sys.exit("--body is required (or use --from-set N)")
+    if not args.mentions:
+        # When --from-set is used without --mentions, auto-detect from body
+        # by scanning Asset Library names against the body text (same logic
+        # byteplus_vidgen.py uses).
+        if args.from_set is not None:
+            print(f"  --mentions not set; auto-detecting from body…")
+            args.mentions = ""  # let the resolver fall through with empty list
+        else:
+            sys.exit("--mentions is required (or use --from-set with auto-detect)")
+
     asset_lib = load_asset_library(gc, args.sheet)
     print(f"  loaded {len(asset_lib)} active assets")
 
     raw_mentions = [t.strip() for t in args.mentions.split(",") if t.strip()]
+    # If empty and --from-set, scan the body for known names
+    if not raw_mentions and args.from_set is not None:
+        body_lc = args.body.lower()
+        for a in asset_lib:
+            nlow = a["name"].lower()
+            if len(nlow) >= 4 and nlow in body_lc:
+                raw_mentions.append(a["name"])
+        # Also try CHARACTERS first-word matching (e.g. "MIN-JUN" in body
+        # matches "PARK MIN-JUN" in Asset Library)
+        for a in asset_lib:
+            if a["bible_tab"] != "CHARACTERS":
+                continue
+            for word in re.findall(r"[A-Za-z][\w\-]+", a["name"]):
+                if len(word) >= 4 and re.search(
+                        r"\b" + re.escape(word) + r"\b", args.body, re.IGNORECASE):
+                    if a["name"] not in raw_mentions:
+                        raw_mentions.append(a["name"])
+                    break
+        # Dedup by name
+        raw_mentions = list(dict.fromkeys(raw_mentions))
+        print(f"  auto-detected {len(raw_mentions)} mention(s): {', '.join(raw_mentions[:6])}")
     resolved = []
     for m in raw_mentions:
         matches = resolve_mention(m, asset_lib)

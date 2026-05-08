@@ -111,6 +111,45 @@ python3 byteplus_vidgen.py \
   --set 9 --slot 1 --resolution 480p
 ```
 
+This auto-pulls body + globals + storyboard ref from the sheet, auto-detects
+character/location/prop refs from the body text, and writes V1/V2 URLs
+back to SP!M/N. Ideal for production runs that match the locked shotlist.
+
+### Hybrid mode — set's body but with custom refs
+
+When the team wants to **keep set 1's body** but override which characters /
+locations / props attach (e.g. "fire the set 5 dialogue but with @galih
+instead of @minjun, in the alley not the kitchen"):
+
+> "Fire vidgen using set 5's body, but only @tara and @galih in the @alley. 480p, 15s."
+
+Claude calls:
+
+```bash
+python3 vidgen_freeform.py \
+  --from-set 5 \
+  --mentions "@tara,@galih,@alley" \
+  --resolution 480p --duration 15
+```
+
+`--from-set 5` pulls **body + globals + Iter 1 storyboard** from
+`Storyboard Prompts!{row 15}` and `Video Prompts!B1:B3` automatically.
+Then `--mentions` OVERRIDES the auto-detected refs with what you specified.
+
+If you OMIT `--mentions` while using `--from-set`, the script falls back to
+auto-detection (same behavior as `byteplus_vidgen.py`):
+
+> "Fire vidgen using set 5's body as a freeform run"
+
+```bash
+python3 vidgen_freeform.py --from-set 5 --resolution 480p
+```
+
+Use this hybrid path when:
+- You want to test a what-if (different cast, different setting)
+- You want to render the same body without writing back to the sheet
+- The shotlist body is fine but BytePlus stuck a wrong ref last time
+
 ---
 
 ## Project sheet IDs (Sajangnim)
