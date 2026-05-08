@@ -662,11 +662,9 @@ def render_html(data: dict, gallery_name: str = "") -> str:
         toc_items = []
         reviewed_count = 0
         for s in d["storyboards"]:
-            # Video iframes + dots removed — gallery is read-only review now.
-            # TOC progress bar now reflects: SB1, SB2, mentions detected, reviewed.
-            sb1 = bool(s["sb_iters"][0])
-            sb2 = bool(s["sb_iters"][1])
-            mentions_count = len(s.get("mentions") or [])
+            # TOC dot = single indicator for "is storyboard generated".
+            # If either SB1 or SB2 exists, the dot is green; otherwise grey.
+            sb_done = bool(s["sb_iters"][0]) or bool(s["sb_iters"][1])
             reviewed = bool(s.get("reviewed"))
             if reviewed:
                 reviewed_count += 1
@@ -681,9 +679,8 @@ def render_html(data: dict, gallery_name: str = "") -> str:
                 f'{review_mark}'
                 f'<span class="toc-num">Set {s["set"]}</span>'
                 f'<span class="toc-bar">'
-                f'<span class="dot {"ok" if sb1 else "todo"}" title="SB1"></span>'
-                f'<span class="dot {"ok" if sb2 else "todo"}" title="SB2"></span>'
-                f'<span class="dot {"ok" if mentions_count else "todo"}" title="{mentions_count} bible refs"></span>'
+                f'<span class="dot {"ok" if sb_done else "todo"}" '
+                f'title="storyboard {"generated" if sb_done else "pending"}"></span>'
                 f'</span></a>'
             )
         toc_html = (
