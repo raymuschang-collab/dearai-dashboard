@@ -241,13 +241,86 @@ def read_storyboards(sh) -> list[dict]:
     J=Body, K=Bahasa Body, L=Location, M=Video Iter1, N=Video Iter2,
     O=Reviewed (TRUE/FALSE checkbox), P=Comments (free text).
 
-    O and P are producer-controlled review fields — empty rows mean the
-    set hasn't been reviewed yet. The gallery exposes these as a
-    checkbox + textarea per set; both also live in the sheet so the
-    team can edit directly there.
+    Also detects bible refs (CHARACTERS / LOCATIONS / PROPS / COSTUME /
+    EFFECTS) mentioned in each set's body so the gallery can render
+    @-mention pills under each storyboard for one-click asset code copy.
     """
     ws = sh.worksheet("Storyboard Prompts")
     raw = ws.get("A11:P100", value_render_option="FORMATTED_VALUE")
+
+    # Build asset-name → (bible_tab, codes-by-type) map from Asset Library
+    # so we can detect refs per set body and surface them as pills.
+    al_index: dict[str, dict] = {}
+    try:
+        al_rows = sh.worksheet("Asset Library").get(
+            "A5:F500", value_render_option="FORMATTED_VALUE")
+        for r in al_rows:
+            if not r or not r[0].strip():
+                continue
+            r = r + [""] * 6
+            if r[5].strip() != "Uploaded":
+                continue
+            name = r[0].strip()
+            entry = al_index.setdefault(name, {
+                "bible_tab": r[1].strip(), "codes": {}
+            })
+            atype = r[4].strip().lower()
+            entry["codes"].setdefault(atype, []).append(r[2].strip())
+    except Exception:
+        pass
+
+    def detect_mentions(body: str) -> list[dict]:
+        """Find which Asset Library entries are referenced by this body.
+        Returns a sorted list of {name, bible_tab, codes_csv} pills."""
+        if not body:
+            return []
+        body_lc = body.lower()
+        hits: list[dict] = []
+        seen = set()
+        for name, info in al_index.items():
+            if name in seen:
+                continue
+            matched = False
+            # Whole-name match
+            if re.search(r"\b" + re.escape(name) + r"\b", body, re.IGNORECASE):
+                matched = True
+            # Token split for character-style names
+            if not matched and info["bible_tab"] == "CHARACTERS":
+                for word in re.findall(r"[A-Za-z][\w\-]+", name):
+                    if len(word) >= 4 and re.search(
+                            r"\b" + re.escape(word) + r"\b", body, re.IGNORECASE):
+                        matched = True
+                        break
+            # Owner-character auto-attach for COSTUME / PROPS
+            if not matched and info["bible_tab"] in ("COSTUME", "PROPS"):
+                m = re.search(r"\(([^)]+)\)", name)
+                if m:
+                    owner = m.group(1)
+                    for word in re.findall(r"[A-Za-z][\w\-]+", owner):
+                        if len(word) >= 4 and re.search(
+                                r"\b" + re.escape(word) + r"\b", body, re.IGNORECASE):
+                            matched = True
+                            break
+            if not matched and info["bible_tab"] in ("COSTUME", "PROPS", "EFFECTS"):
+                cleaned = re.sub(r"\s*\([^)]+\)", "", name).strip().lower()
+                if cleaned and len(cleaned) >= 4 and cleaned in body_lc:
+                    matched = True
+            if matched:
+                seen.add(name)
+                # Flatten codes across all media types into one CSV the user
+                # can paste into a Claude prompt
+                all_codes = []
+                for atype in ("image", "video", "audio"):
+                    all_codes.extend(info["codes"].get(atype, []))
+                hits.append({
+                    "name": name, "bible_tab": info["bible_tab"],
+                    "codes_csv": ",".join(all_codes),
+                })
+        bible_order = {"CHARACTERS": 0, "COSTUME": 1, "LOCATIONS": 2,
+                        "PROPS": 3, "EFFECTS": 4}
+        hits.sort(key=lambda h: (bible_order.get(h["bible_tab"], 99), h["name"]))
+        return hits
+
     out = []
     for r in raw:
         r = r + [""] * 16
@@ -255,30 +328,27 @@ def read_storyboards(sh) -> list[dict]:
             continue
         sb1 = drive_id(r[6])
         sb2 = drive_id(r[7])
-        v1 = drive_id(r[12])
-        v2 = drive_id(r[13])
         # Reviewed: TRUE/FALSE in the sheet renders as 'TRUE' / 'FALSE'
         # under FORMATTED_VALUE. Treat anything case-insensitive 'true'
         # as checked; everything else (empty, FALSE, garbage) is unchecked.
         reviewed_raw = (r[14] or "").strip().lower()
         reviewed = reviewed_raw in ("true", "yes", "1", "✓", "x", "done")
         comments = (r[15] or "").strip()
+        body = r[9] or ""
+        mentions = detect_mentions(body)
         out.append({
             "set": int(r[0]),
             "shots": r[1],
-            "body": r[9],          # SP!J — body-only English
+            "body": body,           # SP!J — body-only English
             "body_bahasa": r[10],   # SP!K
             "location": r[11],
             "status": r[5],
             "reviewed": reviewed,
             "comments": comments,
+            "mentions": mentions,
             "sb_iters": [
                 {"label": "Storyboard 1", "thumb": thumb(sb1), "view": view(sb1)} if sb1 else None,
                 {"label": "Storyboard 2", "thumb": thumb(sb2), "view": view(sb2)} if sb2 else None,
-            ],
-            "videos": [
-                {"label": "Video 1", "preview": preview(v1), "view": view(v1)} if v1 else None,
-                {"label": "Video 2", "preview": preview(v2), "view": view(v2)} if v2 else None,
             ],
         })
     return out
@@ -382,15 +452,44 @@ _SECTION_TO_BIBLE = {
 
 def render_set_card(s: dict, video_globals: dict | None = None) -> str:
     video_globals = video_globals or {}
+    # @-mention pills aggregating ALL the bible refs detected in this set's
+    # body. Click any pill → copies the full asset code(s) for that name
+    # to clipboard, ready for the team to paste into a Claude prompt.
+    # Codes resolve LIVE from the Asset Library (no hardcoded values), so
+    # asset swaps propagate automatically.
+    mention_pills_html = ""
+    for m in s.get("mentions") or []:
+        if not m.get("codes_csv"):
+            continue
+        # Normalize a friendly @-handle from the canonical name
+        handle = re.sub(r"\s*\([^)]+\)", "", m["name"]).strip()
+        handle = re.sub(r"\s+", "-", handle).lower()
+        bible_short = {
+            "CHARACTERS": "char", "LOCATIONS": "loc",
+            "COSTUME": "attire", "PROPS": "prop", "EFFECTS": "fx",
+        }.get(m["bible_tab"], m["bible_tab"][:4].lower())
+        mention_pills_html += (
+            f'<span class="mention-pill {bible_short}" '
+            f'data-name="{html.escape(m["name"])}" '
+            f'data-codes="{html.escape(m["codes_csv"])}" '
+            f'onclick="copyMentionCodes(this)" '
+            f'title="Click to copy all asset codes for {html.escape(m["name"])}">'
+            f'@{html.escape(handle)}'
+            f'</span>'
+        )
+    if not mention_pills_html:
+        mention_pills_html = '<span class="mention-empty">no bible refs detected in body</span>'
+
+    # Storyboard rendering (image only; iframes + Generate buttons removed).
+    # Below each storyboard, a row of @-mention pills surfaces the bible
+    # refs the team needs for vidgen — each pill copies its asset code(s).
     sb_html = ""
     for idx, sb in enumerate(s["sb_iters"], start=1):
-        # Storyboard image (or placeholder). Click → open in centered lightbox
-        # at ~90vw / 85vh (not fullscreen — keeps padding, esc/click-out closes).
-        # Use w2400 thumb for sharper detail in the lightbox view.
         if sb:
             file_id = drive_id(sb["view"])
             big = thumb(file_id, 2400) if file_id else sb["thumb"]
             sb_html += (
+                f'<div class="sb-block">'
                 f'<a class="thumb wide lb-trigger" href="{html.escape(sb["view"])}" '
                 f'data-lb-src="{html.escape(big)}" data-lb-label="Set {s["set"]} · {html.escape(sb["label"])}" '
                 f'data-lb-view="{html.escape(sb["view"])}" '
@@ -398,26 +497,16 @@ def render_set_card(s: dict, video_globals: dict | None = None) -> str:
                 f'<img src="{html.escape(sb["thumb"])}" alt="{html.escape(sb["label"])}" loading="lazy">'
                 f'<span class="label">{html.escape(sb["label"])}</span>'
                 f'</a>'
-            )
-        else:
-            sb_html += '<div class="thumb wide placeholder">storyboard pending</div>'
-        # Generate V<n> button — fires BytePlus Seedance 2.0 with this SB as ref
-        sb_html += (
-            f'<button class="gen-btn vid" data-set="{s["set"]}" data-slot="{idx}" '
-            f'onclick="fireVidgen({s["set"]}, {idx}, this)">Generate V{idx}</button>'
-        )
-
-    vid_html = ""
-    for v in s["videos"]:
-        if v:
-            vid_html += (
-                f'<div class="vid-tile">'
-                f'<iframe src="{html.escape(v["preview"])}" allow="autoplay" loading="lazy"></iframe>'
-                f'<div class="label">{html.escape(v["label"])}</div>'
+                f'<div class="mention-row">{mention_pills_html}</div>'
                 f'</div>'
             )
         else:
-            vid_html += '<div class="vid-tile placeholder">video pending</div>'
+            sb_html += (
+                f'<div class="sb-block">'
+                f'<div class="thumb wide placeholder">storyboard pending</div>'
+                f'<div class="mention-row">{mention_pills_html}</div>'
+                f'</div>'
+            )
 
     # Three-section prompt layout: VIDEO GLOBAL → LOCATION → COMBINED PROMPT.
     # Globals come from Video Prompts B1/B2/B4 (camera/audio/setting),
@@ -443,10 +532,7 @@ def render_set_card(s: dict, video_globals: dict | None = None) -> str:
       <div class="prompt-section">
         <div class="prompt-label">COMBINED PROMPT</div>
         <div class="prompt-body combined">{body_html}</div>
-      </div>
-      <button class="gen-btn" data-set="{s["set"]}" onclick="fireStoryboard({s["set"]}, this)">
-        Generate Storyboard
-      </button>'''
+      </div>'''
 
     # Reviewed checkbox + comments — interactive review controls. State
     # persists to SP!O (TRUE/FALSE) and SP!P (free text) via /api/set-review.
@@ -488,7 +574,6 @@ def render_set_card(s: dict, video_globals: dict | None = None) -> str:
       <div class="set-grid">
         <div class="set-prompt">{prompt_html}</div>
         <div class="set-storyboards">{sb_html}</div>
-        <div class="set-videos">{vid_html}</div>
       </div>
       {comments_html}
     </div>'''
@@ -577,10 +662,11 @@ def render_html(data: dict, gallery_name: str = "") -> str:
         toc_items = []
         reviewed_count = 0
         for s in d["storyboards"]:
+            # Video iframes + dots removed — gallery is read-only review now.
+            # TOC progress bar now reflects: SB1, SB2, mentions detected, reviewed.
             sb1 = bool(s["sb_iters"][0])
             sb2 = bool(s["sb_iters"][1])
-            v1  = bool(s["videos"][0])
-            v2  = bool(s["videos"][1])
+            mentions_count = len(s.get("mentions") or [])
             reviewed = bool(s.get("reviewed"))
             if reviewed:
                 reviewed_count += 1
@@ -597,8 +683,7 @@ def render_html(data: dict, gallery_name: str = "") -> str:
                 f'<span class="toc-bar">'
                 f'<span class="dot {"ok" if sb1 else "todo"}" title="SB1"></span>'
                 f'<span class="dot {"ok" if sb2 else "todo"}" title="SB2"></span>'
-                f'<span class="dot {"ok" if v1 else "todo"}" title="V1"></span>'
-                f'<span class="dot {"ok" if v2 else "todo"}" title="V2"></span>'
+                f'<span class="dot {"ok" if mentions_count else "todo"}" title="{mentions_count} bible refs"></span>'
                 f'</span></a>'
             )
         toc_html = (
@@ -1011,9 +1096,36 @@ def render_html(data: dict, gallery_name: str = "") -> str:
     .set-toc {{ display: none; }}
   }}
   .set-grid {{
-    display: grid; grid-template-columns: minmax(260px, 1fr) minmax(320px, 1.4fr) minmax(180px, 0.7fr);
-    gap: 18px; align-items: start;
+    display: grid; grid-template-columns: minmax(280px, 1fr) minmax(360px, 1.6fr);
+    gap: 24px; align-items: start;
   }}
+
+  /* Storyboard block — image + @-mention pill row */
+  .sb-block {{ display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }}
+  .mention-row {{
+    display: flex; flex-wrap: wrap; gap: 4px;
+    padding: 4px 0;
+  }}
+  .mention-empty {{ font-size: 10px; color: var(--muted); font-style: italic; padding: 2px 0; }}
+  .mention-pill {{
+    display: inline-flex; align-items: center;
+    padding: 3px 9px; border-radius: 999px;
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    border: 1px solid var(--line); cursor: pointer;
+    transition: all 0.12s; user-select: none;
+    background: var(--soft-bg);
+  }}
+  .mention-pill:hover {{ border-color: var(--accent); background: var(--chip-bg); }}
+  .mention-pill.copied {{
+    background: #2e8c4f; color: white; border-color: #2e8c4f;
+    font-style: normal;
+  }}
+  /* Color tags by bible category */
+  .mention-pill.char  {{ color: #2c4f6e; background: #e6eef7; border-color: #c6dbe9; }}
+  .mention-pill.attire{{ color: #6e2c5a; background: #f7e6f0; border-color: #e9c6dc; }}
+  .mention-pill.loc   {{ color: #4f6e2c; background: #eef7e6; border-color: #dbe9c6; }}
+  .mention-pill.prop  {{ color: #6e562c; background: #f7efe6; border-color: #e9d7c6; }}
+  .mention-pill.fx    {{ color: #6e2c2c; background: #f7e6e6; border-color: #e9c6c6; }}
   .set-body {{
     font-family: 'JetBrains Mono', monospace; font-size: 11px;
     color: var(--ink); line-height: 1.6; white-space: pre-wrap;
@@ -1664,6 +1776,28 @@ def render_html(data: dict, gallery_name: str = "") -> str:
       submitBtn.disabled = false;
       submitBtn.textContent = 'Upload';
     }}
+  }}
+
+  // Click-to-copy on @-mention pills under each storyboard. Pulls the
+  // canonical name + ALL associated BytePlus asset codes (image + video
+  // + audio for chars; single image for everything else) from the pill's
+  // data-codes attr, copies a structured snippet to clipboard, flashes
+  // green for 1.5s. The team pastes the result directly into a Claude
+  // prompt (`@tara → asset-...sx786, asset-...tkskm, asset-...5vhnf`).
+  function copyMentionCodes(el) {{
+    const name = el.dataset.name;
+    const codes = el.dataset.codes;
+    if (!codes) return;
+    const snippet = `${{name}}: ${{codes}}`;
+    navigator.clipboard.writeText(snippet).then(() => {{
+      el.classList.add('copied');
+      const orig = el.textContent;
+      el.textContent = '✓ copied';
+      setTimeout(() => {{
+        el.classList.remove('copied');
+        el.textContent = orig;
+      }}, 1500);
+    }}).catch(() => alert('Copy failed: ' + snippet));
   }}
 
   // Click-to-copy on bible asset code pills. Pulls the full code from the

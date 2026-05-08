@@ -1,0 +1,267 @@
+# DearAI Shotlist Workflows — Claude Code Operating Manual
+
+This file is auto-loaded by Claude Code at session start. It tells Claude
+how to drive the production pipeline using `@`-mentions in natural language.
+
+If you're a teammate setting up for the first time, read **TEAM_CLAUDE_SETUP.md**
+first — it walks you through clone + .env + token.json. Then come back here.
+
+---
+
+## What you can do in plain English
+
+**Generate a video freeform:**
+> *"Fire a video of @tara plating a bibimbap bowl in the @kitchen, 480p 15s"*
+
+**Generate a video for a specific shotlist set:**
+> *"Run vidgen for sajangnim ep01 set 9 V1"*
+
+**Validate the Asset Library:**
+> *"Validate all asset codes against BytePlus and clean up stale ones"*
+
+**Probe spend:**
+> *"What's our BytePlus spend so far this month?"*
+
+Claude reads this file + the live Asset Library tab and figures out the rest.
+
+---
+
+## The `@`-mention system
+
+When you `@`-mention an asset name in a vidgen request, Claude resolves it
+**live from the Asset Library tab** on the bible sheet. No hardcoded codes.
+Update an asset → next mention picks up the new code automatically.
+
+### Recognized mention patterns
+
+| Pattern | Resolves to |
+|---|---|
+| `@tara`, `@TARA`, `@tara-anjani` | TARA ANJANI (image + video + audio) |
+| `@minjun`, `@park-min-jun`, `@MIN-JUN` | PARK MIN-JUN (image + video + voice) |
+| `@galih` | GALIH (image + video + audio) |
+| `@joon-ho`, `@joonho` | LEE JOON-HO |
+| `@bu-endang`, `@endang` | BU ENDANG |
+| `@manager` | MANAGER |
+| `@kitchen`, `@hanbyeol-kitchen` | INT. Kitchen 4 (Hanbyeol Bistro Kitchen) |
+| `@cooler`, `@chiller` | INT. Chiller V01 (Walk-In Cooler) |
+| `@locker`, `@dressing-room` | INT. Locker Room (Hanbyeol Dressing Room) |
+| `@office`, `@joon-ho-office` | INT. Office Lee Joon Ho |
+| `@storage` | INT. Storage 4 |
+| `@alley`, `@back-alley` | EXT. Back Alley |
+| `@apartment`, `@tara-apartment` | Studio Apartment Day |
+| `@bibimbap`, `@bibimbap-bowl` | Bibimbap bowl |
+| `@kimchi-pot`, `@earthen-pot` | Earthen clay pot (kimchi jjigae) |
+| `@knife`, `@chefs-knife` | Chef's knife |
+| `@thermos`, `@coffee-cup` | Coffee cup |
+| `@cigarette` | Cigarette |
+| `@logo`, `@hanbyeol-logo` | Hanbyeol Logo |
+
+For attire, mention the character — the relevant costume auto-attaches via
+the owner-character pattern (e.g., "Sous chef whites (Min-jun)" attaches when
+@minjun is mentioned).
+
+### Match strategy (for unrecognized tokens)
+
+Claude resolves any `@<token>` via this order:
+1. **Exact normalized name match** in Asset Library
+2. **Substring contains** (token in name OR name in token, ≥4 chars)
+3. **Token-split fuzzy** match on words ≥3 chars
+
+If a mention can't be resolved, Claude warns inline and skips it.
+
+---
+
+## How to invoke vidgen via Claude
+
+### Freeform mode (recommended for ad-hoc requests)
+
+Tell Claude something like:
+
+> "Fire a vidgen of @tara serving food at the @kitchen pass while @minjun
+> watches. 480p, 15s, vertical."
+
+Claude will:
+1. Parse the `@`-mentions: `@tara`, `@kitchen`, `@minjun`
+2. Resolve each against Asset Library
+3. Build a Seedance 2 prompt with proper identity binding
+4. Submit to BytePlus
+5. Download the MP4 and (if requested) upload to Drive
+6. Return the URL
+
+The script Claude calls under the hood:
+
+```bash
+python3 vidgen_freeform.py \
+  --mentions "@tara,@kitchen,@minjun" \
+  --body "Tara serves food at the kitchen pass while MIN-JUN watches" \
+  --resolution 480p --duration 15 --aspect 9:16
+```
+
+### Set-based mode (locked to the shotlist)
+
+For production runs against a specific set in the Storyboard Prompts tab:
+
+> "Fire vidgen for Sajangnim ep01 set 9 slot 1 at 480p"
+
+Claude calls:
+
+```bash
+python3 byteplus_vidgen.py \
+  --sheet 1iygU-7XAwhVKykkTYXHAqwBh0wD1d7Zk2s6OGfnLXCc \
+  --set 9 --slot 1 --resolution 480p
+```
+
+---
+
+## Project sheet IDs (Sajangnim)
+
+| Sheet | ID |
+|---|---|
+| **Bible / EP01 master** | `1iygU-7XAwhVKykkTYXHAqwBh0wD1d7Zk2s6OGfnLXCc` |
+| EP02 — Garam Jadi Gula | `1DlnYVqa_6S4ogcaBEtjoWw5tBjrB7wPHjkMFPR5fad4` |
+| EP03 — Kalau Aku Pergi | `10wcCajzknstf79pvUs9UuS28ayvVG7k_SPe8KLqyy9I` |
+| EP04 — Pukul Lima Pagi | `1khTYtHShiI1z0caqouZUQW3eZKnihScxIG7IQo3l3w4` |
+| EP05 — Mata yang Mengamati | `1_lm-ztYiZKHODRzg0g_N3Ms6HC0Mb8WANjRblVWnnfg` |
+| EP06 — Sajangnim Sudah Tahu | `1ZIYUMH_o6PpN1-KDiEiBRT6NZcp1uO6EjEt7L13pQFI` |
+
+The bible sheet is the source of truth for **all bibles + Asset Library**.
+Episode sheets only carry per-episode Shotlist + Storyboard Prompts.
+
+---
+
+## Asset Library = source of truth
+
+Every `@`-mention resolves against the Asset Library tab. Rules to keep
+the system reliable:
+
+1. **Don't hardcode asset codes anywhere** — codes change, names don't.
+2. **Asset Library Status column matters** — only `Uploaded` rows are
+   considered live. Mark stale entries `Replaced`.
+3. **Names in Asset Library should match bible names** — TARA ANJANI in
+   CHARACTERS bible should appear as TARA ANJANI in Asset Library, not
+   "TARA" or "Tara". Vidgen matches by name.
+4. **Multiple media per character is fine** — TARA can have image + video
+   + audio rows, all using the same `name=TARA ANJANI`. Vidgen pulls all
+   of them on `@tara`.
+
+When the Asset Library drifts (BytePlus deletes assets behind your back,
+team renames things, etc.), run the validator:
+
+> "Validate Asset Library and clean up stale rows"
+
+Claude runs:
+
+```bash
+python3 validate_asset_library.py --sheet 1iygU-7XAwhVKykkTYXHAqwBh0wD1d7Zk2s6OGfnLXCc
+```
+
+This probes every Uploaded row against BytePlus, marks orphans `Replaced`,
+and reports a diff.
+
+---
+
+## What if Claude forgets / something breaks?
+
+Claude doesn't have memory between sessions, but **CLAUDE.md (this file)
+is auto-loaded on every new session**. So as long as this file stays at
+the repo root, every Claude session reads it.
+
+If Claude is acting confused or unfamiliar with the workflow:
+1. Tell it: "Read CLAUDE.md and TEAM_BYTEPLUS_VIDGEN.md"
+2. Or run `/init` to force a re-scan of the project
+
+Worst-case fallback: drop into the Terminal directly. Every workflow has a
+CLI script that works without Claude:
+
+| Workflow | CLI fallback |
+|---|---|
+| Freeform vidgen | `python3 vidgen_freeform.py --mentions ... --body ...` |
+| Set-based vidgen | `python3 byteplus_vidgen.py --sheet ... --set N --slot N` |
+| Resume crashed jobs | `python3 byteplus_vidgen_resume.py` |
+| Validate Asset Library | `python3 validate_asset_library.py --sheet ...` |
+| Storyboard generation | `python3 storyboard_generate.py --sheet ...` |
+| Spend tally | `cat .byteplus_expense.json \| python3 -m json.tool` |
+
+---
+
+## Common patterns
+
+### "Quick fire" — just generate something
+
+> "Make a quick test video of @tara walking through the @kitchen, 4s, 480p"
+
+### Voice override
+
+If you want a character's voice on someone else's body:
+
+> "Fire @tara face with @minjun voice, walking through the kitchen"
+
+(Claude will ATTACH @tara's video + @minjun's audio, prompt clarifies.)
+
+### Multi-character scenes
+
+> "Vidgen of @tara at the pass, @minjun yelling at her, @galih watching from the line. 15s 480p"
+
+3 character bundles + voice for whoever speaks. Storyboard composition
+lives in the body description; cumulative video budget enforces 15s cap.
+
+### High-res deliverable
+
+> "Re-fire set 9 V1 at 1080p with confirm gate"
+
+Adds `--resolution 1080p --confirm` so you can review the prompt before paying.
+
+### Bahasa locale
+
+> "Fire @tara at the kitchen pass, dialogue in Bahasa Jakarta"
+
+Body text in Bahasa is fine — Seedance handles trilingual EN/ID/KO out of
+the box. Voice ref drives accent.
+
+---
+
+## What Claude should NOT do automatically
+
+- **Do not delete BytePlus assets** unless explicitly asked. Use Replaced
+  status in Asset Library instead.
+- **Do not modify bible tabs** (CHARACTERS, LOCATIONS, etc.) without
+  confirmation. Asset codes auto-update there but other fields are
+  human-edited.
+- **Do not run vidgen at 1080p without `--confirm`**. 1080p is 2.6× more
+  expensive; always preview the prompt first.
+- **Do not retry failed jobs without checking why they failed**. A 15s
+  budget bust or a stale asset code needs a fix, not a retry.
+
+---
+
+## Architecture quick reference
+
+```
+Drive 01. Assets/                   ← raw media files
+  ├── Character/<NAME>/             (image + video + audio per character)
+  ├── Location/<sub>/                (location refs by zone)
+  ├── Costume/                       (attire refs, parenthetical owner)
+  ├── Props/                         (props)
+  └── Effects/                       (FX)
+
+Bible Sheet (1iygU-...)              ← logical schema + status
+  ├── CHARACTERS / LOCATIONS / etc.  (bible rows w/ Asset Code col)
+  └── Asset Library                  (single source of truth: name → code)
+
+BytePlus virtual library             ← actual binary assets
+  └── group sajangnim-bibles         (resolved via asset:// URI scheme)
+
+Episode sheets (1-EPcY1... etc.)     ← per-episode shotlist + storyboard prompts
+  └── Storyboard Prompts             (set-by-set, M=V1, N=V2)
+
+Render dashboard                     ← review only (vidgen click-fire is unreliable)
+  https://dearai-dashboard.onrender.com
+```
+
+For everyday vidgen: **stay in Claude Code on your laptop**. The dashboard
+is for review/audit, not for generation triggers (Render's worker process
+is too unstable for the long-running BytePlus calls).
+
+---
+
+— Last updated: 2026-05-08
