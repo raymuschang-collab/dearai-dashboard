@@ -411,6 +411,36 @@ def _debug_jobs():
     return jsonify({"count": len(out), "jobs": out})
 
 
+@server.route("/api/vidgen-resume", methods=["POST"])
+def _api_vidgen_resume():
+    """Crash-recovery for vidgen tasks.
+
+    When the gallery watcher hits MAX_ATTEMPTS without seeing a job flip
+    to done — and the sheet-status fallback also doesn't find a URL —
+    that almost always means: BytePlus succeeded, but the subprocess
+    died between the BytePlus succeed and the Drive/sheet writeback.
+    The task_id was persisted to .byteplus_pending.json at submit time
+    (by byteplus_vidgen.py) so we can pick it back up here.
+
+    Spawns byteplus_vidgen_resume.py as a background subprocess. The
+    resume script walks every entry in .byteplus_pending.json and runs
+    the post-submit pipeline (GetTask → download → Drive → sheet write)
+    for each one BytePlus reports as succeeded.
+
+    Body: empty (no params needed)
+    Returns: {"ok": true, "started": <pid>}
+    """
+    from flask import jsonify
+    cmd = [PYTHON_BIN, "byteplus_vidgen_resume.py"]
+    try:
+        proc = subprocess.Popen(cmd, cwd=str(PROJECT_ROOT),
+                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                 text=True, bufsize=1, start_new_session=True)
+        return jsonify({"ok": True, "started_pid": proc.pid})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @server.route("/api/set-review", methods=["POST"])
 def _api_set_review():
     """Persist per-set review state from the gallery to the SP sheet.

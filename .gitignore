@@ -10,6 +10,8 @@ service-account*.json
 
 # --- Local logs / state ---
 .byteplus_expense.json
+.byteplus_pending.json
+.byteplus_asset_durations.json
 .dash_jobs.json
 *.log
 .DS_Store

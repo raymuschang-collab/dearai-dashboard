@@ -107,6 +107,19 @@ ITER_TO_COL = {3: "J", 4: "K"}  # storyboard iter URL columns
 
 EXPENSE_LOG = HERE / ".byteplus_expense.json"
 
+# Pending-task ledger for crash recovery. byteplus_vidgen.py writes a row
+# here the moment BytePlus accepts a task_id (BEFORE the multi-minute
+# download / Drive / sheet-write pipeline). If the subprocess dies after
+# this point — Render redeploy, gunicorn worker bounce, OOM — the entry
+# survives and `byteplus_vidgen_resume.py` can pick it up later, query
+# BytePlus for the result, and complete the writeback.
+#
+# Schema: {"pending": [{task_id, sheet, set, slot, duration, resolution,
+#   aspect, fast, submitted_at, status}, ...]}
+# Status flow: submitted → done (entry removed). If terminal failure on
+# resume, status is set to "failed" and entry is removed after logging.
+PENDING_LOG = HERE / ".byteplus_pending.json"
+
 # Cache for video-asset durations (probed once, reused forever). Keyed by
 # asset_code if available, else source_url. Values are float seconds, or
 # null when probing failed (we still cache the null so we don't re-probe
@@ -217,23 +230,90 @@ def enforce_video_budget(ref_urls: list[dict],
         return ref_urls
 
     print(f"  ⚠ cumulative video-ref duration {total:.1f}s exceeds "
-          f"{max_seconds:.1f}s budget — trimming from end")
+          f"{max_seconds:.1f}s budget — dropping longest first")
     out = list(ref_urls)
-    # Walk backwards through the list, dropping video entries until the
-    # remaining total fits. This preserves CHARACTERS-first ordering set
-    # by the caller (identity refs survive; scenery / bg refs die first).
-    i = len(out) - 1
-    while total > max_seconds and i >= 0:
-        if out[i].get("type") == "video":
-            d = _dur(out[i])
-            url = (out[i].get("url") or "")[:60]
-            print(f"    drop {url}{'…' if len(out[i].get('url',''))>60 else ''} ({d:.1f}s)")
-            out.pop(i)
-            total -= d
-        i -= 1
+    # Drop the LONGEST video ref first. This protects legitimate short
+    # refs (4-5s face loops) from being killed by one rogue 30s+ video,
+    # which is what happens when "drop from end" hits a list with one
+    # giant ref hidden in it.
+    while total > max_seconds:
+        # Find the index of the longest video ref currently in the list
+        longest_ix = -1
+        longest_d = -1.0
+        for i, ru in enumerate(out):
+            if ru.get("type") != "video":
+                continue
+            d = _dur(ru)
+            if d > longest_d:
+                longest_d = d
+                longest_ix = i
+        if longest_ix < 0:
+            # No more video refs but total still over budget —
+            # impossible unless _duration was negative; bail.
+            break
+        url = (out[longest_ix].get("url") or "")[:60]
+        ellipsis = "…" if len(out[longest_ix].get("url", "")) > 60 else ""
+        print(f"    drop {url}{ellipsis} ({longest_d:.1f}s)")
+        out.pop(longest_ix)
+        total -= longest_d
     print(f"  ✓ post-trim cumulative video-ref duration: {total:.1f}s "
           f"({sum(1 for r in out if r.get('type')=='video')} video refs kept)")
     return out
+
+
+def _load_pending() -> dict:
+    if not PENDING_LOG.exists():
+        return {"pending": []}
+    try:
+        d = json.loads(PENDING_LOG.read_text())
+        if not isinstance(d, dict) or "pending" not in d:
+            return {"pending": []}
+        return d
+    except Exception:
+        return {"pending": []}
+
+
+def _save_pending(data: dict):
+    try:
+        PENDING_LOG.write_text(json.dumps(data, indent=2))
+    except Exception as e:
+        print(f"  ⚠ couldn't persist pending log: {e}")
+
+
+def persist_pending(task_id: str, sheet_id: str, set_num: int, slot: int,
+                    duration: int, resolution: str, aspect: str,
+                    fast: bool):
+    """Record a freshly-submitted BytePlus task so it survives subprocess
+    death between submit and writeback. Idempotent: re-running with the
+    same task_id replaces the prior entry."""
+    data = _load_pending()
+    data["pending"] = [e for e in data["pending"]
+                        if e.get("task_id") != task_id]
+    data["pending"].append({
+        "task_id": task_id,
+        "sheet": sheet_id,
+        "set": set_num,
+        "slot": slot,
+        "duration": duration,
+        "resolution": resolution,
+        "aspect": aspect,
+        "fast": fast,
+        "submitted_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "status": "submitted",
+    })
+    _save_pending(data)
+
+
+def remove_pending(task_id: str):
+    """Mark a task as complete by dropping its entry from the ledger.
+    Called from main() after the sheet write succeeds — if the script
+    dies before this, the entry persists and resume picks it up."""
+    data = _load_pending()
+    before = len(data["pending"])
+    data["pending"] = [e for e in data["pending"]
+                        if e.get("task_id") != task_id]
+    if len(data["pending"]) != before:
+        _save_pending(data)
 
 
 def parse_sheet_id(s: str) -> str:
@@ -722,20 +802,86 @@ def main():
     sb_directive = ("Follow the storyboard reference for composition, framing, "
                     "and blocking on every shot." if sb_url else "")
 
-    # Reference-identity binding block — compact one-line-per-ref format.
-    # Numbers match content[] order so Seedance can resolve "#3" back to
-    # the right asset. Cross-asset identity binding (e.g. "same person as
-    # #2") is preserved as a short tag — without it Seedance can scramble
-    # face/voice → character mapping when a character has multiple refs.
+    # Reference-identity binding — split-role design.
     #
-    # Format:  #N MEDIA: NAME (TAG) — short hint
+    # When a character has BOTH a still image AND a video face-loop in
+    # the Asset Library, Seedance gets conflicting signals and faces
+    # flicker. New rule: video defines FACE/identity, image defines
+    # ATTIRE/wardrobe. To avoid double-anchoring the same character,
+    # we DROP the character's own still image when their video exists
+    # (the video already carries the appearance signal); image slots
+    # then fill with COSTUME / LOCATION / PROPS / EFFECTS bible refs
+    # which are about clothes/sets/objects, not identity.
+    #
+    # Format:  #N MEDIA: NAME — ROLE (short hint)
     # Examples:
-    #   #1 image: STORYBOARD (composition anchor)
-    #   #2 image: TARA (CHAR · attire+hair)
-    #   #3 video: TARA (CHAR · face — bind to #2)
-    #   #4 audio: TARA (CHAR · voice — use for all TARA dialogue)
-    #   #5 image: PARK MIN-JUN (CHAR)
-    #   #6 image: Peasant Bazaar (LOC · background)
+    #   #1 image: STORYBOARD — composition anchor (camera, blocking, depth)
+    #   #2 video: PARK MIN-JUN — FACE (sous chef / antagonist)
+    #   #3 audio: PARK MIN-JUN — VOICE
+    #   #4 image: Sous chef whites (Min-jun) — ATTIRE (worn by Min-jun)
+    #   #5 image: Hanbyeol Bistro Kitchen — LOCATION (background)
+
+    # Build a "has video" map per character, then drop redundant char-image
+    # rows. Asset Library!E may store either a media type ('Video'/'Image'/
+    # 'Audio') or a category label ('character'/'costume'/'scene'/...). We
+    # resolve to the actual MEDIA TYPE the same way the existing code does
+    # (URL extension fallback, audio/voice synonym, default=image) so the
+    # filter doesn't mis-classify rows tagged with a category.
+    def _resolve_media(rec):
+        atype = (rec.get("asset_type") or "").lower()
+        url_l = (rec.get("source_url") or "").lower()
+        if atype == "video" or url_l.endswith((".mp4", ".mov", ".webm")):
+            return "video"
+        if atype in ("audio", "voice") or url_l.endswith((".mp3", ".wav", ".m4a")):
+            return "audio"
+        return "image"
+
+    char_has_video = {r.get("name", "") for r in refs
+                       if r.get("bible_tab") == "CHARACTERS"
+                       and _resolve_media(r) == "video"}
+    filtered_refs = []
+    for r in refs:
+        if (r.get("bible_tab") == "CHARACTERS"
+                and _resolve_media(r) == "image"
+                and r.get("name") in char_has_video):
+            print(f"  ⤳ skipping char-image {r['name']} (video face-loop already attached)")
+            continue
+        filtered_refs.append(r)
+
+    # Rebuild ref_urls in the new filtered order. The storyboard slot
+    # (always at index 0 if present) is preserved; bible refs are
+    # rebuilt cleanly so the budget enforcer + identity binding both
+    # see the same trimmed list.
+    new_ref_urls = [ref_urls[0]] if sb_url and ref_urls else []
+    for r in filtered_refs:
+        asset_code = (r.get("asset_code") or "").strip()
+        source_url = (r.get("source_url") or "").strip()
+        atype = (r.get("asset_type") or "").lower()
+        if asset_code:
+            url = (asset_code if asset_code.startswith("asset://")
+                   else f"asset://{asset_code}")
+        elif source_url:
+            url = source_url
+        else:
+            continue
+        if atype == "video" or url.lower().endswith((".mp4", ".mov", ".webm")):
+            media = "video"
+        elif atype in ("audio", "voice") or url.lower().endswith((".mp3", ".wav", ".m4a")):
+            media = "audio"
+        else:
+            media = "image"
+        entry = {
+            "type": media, "url": url,
+            "role": {"video": "reference_video",
+                     "audio": "reference_audio",
+                     "image": "reference_image"}[media],
+        }
+        if media == "video":
+            entry["_duration"] = get_asset_duration(asset_code, source_url)
+        new_ref_urls.append(entry)
+    ref_urls = enforce_video_budget(new_ref_urls)
+    refs = filtered_refs
+
     id_binding_lines = []
     if ref_urls:
         try:
@@ -744,14 +890,10 @@ def main():
                              if r.get("Name")}
         except Exception:
             char_by_name = {}
-        # Track the first IMAGE index per character so subsequent
-        # video/audio refs of the same character can bind to it ("face
-        # belongs to person at #2"). Resets per call.
-        first_image_ix: dict[str, int] = {}
         ref_ix = 1
         if sb_url:
             id_binding_lines.append(
-                f"#{ref_ix} image: STORYBOARD (composition anchor — camera, blocking, depth)")
+                f"#{ref_ix} image: STORYBOARD — composition anchor (camera, blocking, depth)")
             ref_ix += 1
         for r in refs:
             name = r.get("name", "")
@@ -766,31 +908,36 @@ def main():
 
             if tab == "CHARACTERS":
                 bible_row = char_by_name.get(name, {})
-                # One short identity hint — role-or-archetype is the most
-                # useful single field for grounding identity. Dropped:
-                # age/wardrobe/personality (they bloat the prompt and
-                # the still reference image already encodes wardrobe+hair).
                 role = (bible_row.get("Role / Archetype")
                          or bible_row.get("Role", "") or "").strip()
-                if media == "image":
-                    if name not in first_image_ix:
-                        first_image_ix[name] = ref_ix
-                    extras = ["attire+hair"]
-                    if role:
-                        extras.insert(0, role.lower())
-                    tag = f"CHAR · {', '.join(extras)}"
-                    id_binding_lines.append(f"#{ref_ix} image: {name} ({tag})")
-                elif media == "video":
-                    bind = first_image_ix.get(name)
-                    bind_str = f" — bind to #{bind}" if bind else ""
+                role_hint = f" ({role.lower()})" if role else ""
+                if media == "video":
                     id_binding_lines.append(
-                        f"#{ref_ix} video: {name} (CHAR · face{bind_str})")
+                        f"#{ref_ix} video: {name} — FACE{role_hint}")
                 elif media == "audio":
                     id_binding_lines.append(
-                        f"#{ref_ix} audio: {name} (CHAR · voice — use for all {name} dialogue)")
+                        f"#{ref_ix} audio: {name} — VOICE (use for all {name} dialogue)")
+                else:  # image — only when char has no video (fallback)
+                    id_binding_lines.append(
+                        f"#{ref_ix} image: {name} — IDENTITY{role_hint} (no video face-loop available)")
+            elif tab == "COSTUME":
+                # Attire anchor. If the bible name is "Sous chef whites (Min-jun)",
+                # extract the parenthetical character ref so the prompt says
+                # "worn by Min-jun" — links the attire to a specific character.
+                worn_by = ""
+                m = re.search(r"\(([^)]+)\)", name)
+                if m:
+                    worn_by = f" (worn by {m.group(1).strip()})"
+                clean_name = re.sub(r"\s*\([^)]+\)", "", name).strip()
+                id_binding_lines.append(
+                    f"#{ref_ix} {media}: {clean_name} — ATTIRE{worn_by}")
             elif tab == "LOCATIONS":
                 id_binding_lines.append(
-                    f"#{ref_ix} {media}: {name} (LOC · background)")
+                    f"#{ref_ix} {media}: {name} — LOCATION (background)")
+            elif tab == "PROPS":
+                id_binding_lines.append(f"#{ref_ix} {media}: {name} — PROP")
+            elif tab == "EFFECTS":
+                id_binding_lines.append(f"#{ref_ix} {media}: {name} — FX")
             else:
                 id_binding_lines.append(
                     f"#{ref_ix} {media}: {name} ({tab[:4]})")
@@ -829,6 +976,12 @@ def main():
     if err:
         sys.exit(f"\n  ✗ {err}")
     print(f"  task_id: {task_id}")
+
+    # CRITICAL — persist task_id before any long-running step so a
+    # subprocess death between here and the sheet write doesn't lose
+    # the work. byteplus_vidgen_resume.py will pick this up next run.
+    persist_pending(task_id, sheet_id, args.set_num, args.slot,
+                     args.duration, args.resolution, args.aspect, args.fast)
 
     print(f"\n  Polling (typical: 30-180s)...")
     result, err = poll_task(task_id)
@@ -932,6 +1085,10 @@ def main():
     log_expense(task_id, "fast" if args.fast else "standard", args.duration, args.resolution,
                 args.aspect, args.set_num, args.slot)
     print(f"  ✓ expense logged → .byteplus_expense.json")
+
+    # All writeback steps survived → the task is fully persisted, can
+    # remove its entry from the pending ledger.
+    remove_pending(task_id)
 
     print(f"\n=== DONE — Set {args.set_num} slot {args.slot} ===")
 

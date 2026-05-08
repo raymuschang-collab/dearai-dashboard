@@ -1316,11 +1316,17 @@ def render_html(data: dict, gallery_name: str = "") -> str:
     // just never recorded it. Eliminates the false "watcher gave up" red
     // banner on jobs that actually completed.
     const FALLBACK_INTERVAL = 5;  // every 5 ticks = ~40s — quota-friendly
+    let resumeFired = false;
     async function tick() {{
       attempts++;
       if (attempts > MAX_ATTEMPTS) {{
-        // Last-chance sheet check before declaring failure. If the URL
-        // landed any time in the last 12 min, refresh anyway.
+        // Last-chance flow when MAX_ATTEMPTS hits:
+        //   1. Sheet-check fallback (URL landed but parent died after writeback)
+        //   2. /api/vidgen-resume (URL didn't land — BytePlus task succeeded
+        //      but parent died BEFORE writeback; resume picks up the
+        //      task_id from .byteplus_pending.json and completes it)
+        //   3. Wait one more interval, sheet-check again
+        //   4. Only then show red banner
         const sweep = await sheetCheckFallback(Array.from(remaining));
         if (sweep && Object.values(sweep).some(v => v && v.done)) {{
           for (const [id, v] of Object.entries(sweep)) {{
@@ -1337,7 +1343,17 @@ def render_html(data: dict, gallery_name: str = "") -> str:
             return;
           }}
         }}
-        text.textContent = `${{label}} — watcher gave up after ${{MAX_ATTEMPTS}} polls. Check /debug/jobs manually then click ↻ Refresh.`;
+        if (!resumeFired) {{
+          // Try crash recovery — fire vidgen-resume, then give it a
+          // window to finish before declaring failure.
+          resumeFired = true;
+          text.textContent = `${{label}} — running crash recovery (vidgen-resume)…`;
+          try {{ await fetch('/api/vidgen-resume', {{method: 'POST'}}); }} catch (e) {{}}
+          attempts = MAX_ATTEMPTS - 30;  // give it 30 more polls (~4 min)
+          setTimeout(tick, 8000);
+          return;
+        }}
+        text.textContent = `${{label}} — watcher gave up after ${{MAX_ATTEMPTS}} polls + recovery attempt. Check /debug/jobs manually then click ↻ Refresh.`;
         banner.classList.add('error');
         return;
       }}
