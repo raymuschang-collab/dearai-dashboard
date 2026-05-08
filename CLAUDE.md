@@ -10,17 +10,23 @@ first — it walks you through clone + .env + token.json. Then come back here.
 
 ## What you can do in plain English
 
-**Generate a video freeform:**
-> *"Fire a video of @tara plating a bibimbap bowl in the @kitchen, 480p 15s"*
+**Vidgen — locked to shotlist:**
+> *"Vidgen set 9 V1"*  →  `byteplus_vidgen.py --set 9 --slot 1`
 
-**Generate a video for a specific shotlist set:**
-> *"Run vidgen for sajangnim ep01 set 9 V1"*
+**Vidgen — set body with custom refs (hybrid):**
+> *"Vidgen set 1 references @tara @galih @alley"*  →  `vidgen_freeform.py --from-set 1 --mentions "@tara,@galih,@alley"`
+
+**Vidgen — pure freeform:**
+> *"Fire a video of @tara plating bibimbap in the @kitchen, 480p 15s"*  →  `vidgen_freeform.py --mentions "@tara,@bibimbap,@kitchen" --body "..."`
+
+**Storyboard / image gen — regenerate a set:**
+> *"Image gen set 1 V1 and V2"*  →  `storyboard_generate.py --set 1 --force`
 
 **Validate the Asset Library:**
-> *"Validate all asset codes against BytePlus and clean up stale ones"*
+> *"Validate all asset codes against BytePlus and clean up stale ones"*  →  `validate_asset_library.py --apply`
 
 **Probe spend:**
-> *"What's our BytePlus spend so far this month?"*
+> *"What's our BytePlus spend so far this month?"*  →  reads `.byteplus_expense.json`
 
 Claude reads this file + the live Asset Library tab and figures out the rest.
 
@@ -114,6 +120,55 @@ python3 byteplus_vidgen.py \
 This auto-pulls body + globals + storyboard ref from the sheet, auto-detects
 character/location/prop refs from the body text, and writes V1/V2 URLs
 back to SP!M/N. Ideal for production runs that match the locked shotlist.
+
+### Natural-language shorthand patterns
+
+The team will phrase requests tersely. Claude should recognize these:
+
+| What the team types | Maps to |
+|---|---|
+| `vidgen set 1` | locked: `byteplus_vidgen.py --set 1 --slot 1` |
+| `vidgen set 1 V1` or `vidgen set 1 slot 1` | locked: same as above |
+| `vidgen set 1 V2` | locked: `byteplus_vidgen.py --set 1 --slot 2` |
+| `vidgen set 1 V1 and V2` | locked: fire both slots sequentially |
+| `vidgen set 1 references @tara @galih @alley` | hybrid: `vidgen_freeform.py --from-set 1 --mentions "@tara,@galih,@alley"` |
+| `vidgen set 1 with @tara only` | hybrid: same, with one mention |
+| `vidgen set 1 1080p` | locked, but at 1080p delivery resolution |
+| `vidgen @tara plating bibimbap, kitchen` | freeform: `vidgen_freeform.py --mentions "@tara,@bibimbap,@kitchen" --body "..."` |
+| `image gen set 1 V1 and V2` | regen: `storyboard_generate.py --set 1 --force` |
+| `image gen set 1` (alone) | regen: same as above (force both iters) |
+| `regenerate storyboard for set 5` | regen: `storyboard_generate.py --set 5 --force` |
+
+When the team says **"references"**, **"refs"**, or lists @-mentions explicitly,
+they want hybrid mode (override the auto-detected refs). When they don't, they
+want locked mode (use what's in the shotlist).
+
+### Storyboard regen mode
+
+Regenerating storyboards for an existing set is a separate flow from vidgen.
+Use this when:
+- The first auto-generated storyboard came out wrong
+- The body/dialogue changed, so the storyboard needs to reflect the new content
+- Iter 1 looks great but iter 2 is unusable (regen iter 2 only — TBD flag)
+
+> *"Image gen set 5 V1 and V2"*
+
+Claude calls:
+
+```bash
+python3 storyboard_generate.py \
+  --sheet 1iygU-7XAwhVKykkTYXHAqwBh0wD1d7Zk2s6OGfnLXCc \
+  --set 5 --force
+```
+
+The script:
+- Reads SP!C{row} (the storyboard prompt body)
+- Uses Higgsfield gpt_image_2 (16:9, 1K, 2 iterations)
+- Uploads to `<show>/storyboards/set-NN/`
+- Writes G/H URLs back to the sheet
+- Sets Status to Done
+
+Wall time: ~2-3 min per set (both iters fire in parallel).
 
 ### Hybrid mode — set's body but with custom refs
 
