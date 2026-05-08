@@ -356,6 +356,20 @@ def _build_location_aliases(sh) -> dict[str, list[str]]:
     return out
 
 
+def _owner_matches_body(owner: str, body: str) -> bool:
+    """Does an owner-character name (e.g. "Min-jun", "Park Min-jun") appear
+    in the body? Uses the same word-extraction logic CHARACTERS rows use:
+    any word ≥4 chars from the owner string is searched as a whole-word
+    case-insensitive match. Returns True on first hit."""
+    if not owner:
+        return False
+    for word in re.findall(r"[A-Za-z][\w\-]+", owner):
+        if len(word) >= 4 and re.search(
+                r"\b" + re.escape(word) + r"\b", body, re.IGNORECASE):
+            return True
+    return False
+
+
 def detect_bible_refs(body: str, sh) -> list[dict]:
     """
     Walk Asset Library tab, find which bible entries are mentioned in body.
@@ -367,6 +381,13 @@ def detect_bible_refs(body: str, sh) -> list[dict]:
       2. CHARACTERS — split name, match any word ≥4 chars (so
          "TARA ANJANI" matches body "TARA"; "LEE JOON-HO" matches "JOON-HO")
       3. LOCATIONS — match any alias from LOCATIONS!O (built once per call)
+      4. COSTUME / PROPS — owner-character auto-attach: when the entry's
+         name carries a parenthetical owner (e.g. "Sous chef whites
+         (Min-jun)"), the row matches whenever that owner-character
+         appears in the body. Same word-extraction logic as CHARACTERS.
+         Bibles can also be matched by substring on the parenthetical-
+         stripped name (e.g. body says "bibimbap" → matches PROPS row
+         "Bibimbap bowl").
     """
     try:
         ws = sh.worksheet("Asset Library")
@@ -427,6 +448,26 @@ def detect_bible_refs(body: str, sh) -> list[dict]:
                 if alias in body_lc:
                     matched = True
                     break
+        # 4a. COSTUME / PROPS — owner-character auto-attach.
+        #     Pattern: entry name carries "(Owner-name)" parenthetical
+        #     (e.g. "Sous chef whites (Min-jun)"). When the owner appears
+        #     in the body (whole-word match on any ≥4-char part), the
+        #     attire / prop attaches automatically. Lets the team write
+        #     character-anchored bibles without listing wardrobe in every
+        #     prompt.
+        if not matched and bible_tab in ("COSTUME", "PROPS"):
+            owner_match = re.search(r"\(([^)]+)\)", name)
+            if owner_match and _owner_matches_body(owner_match.group(1), body):
+                matched = True
+        # 4b. COSTUME / PROPS — substring fallback on the cleaned name.
+        #     Strip parenthetical first ("Bibimbap bowl (kitchen)" →
+        #     "Bibimbap bowl"), then look for that substring in the body
+        #     case-insensitively. Multi-word phrases match as substrings
+        #     ("salted fish" matches "salted fish stand").
+        if not matched and bible_tab in ("COSTUME", "PROPS", "EFFECTS"):
+            cleaned = re.sub(r"\s*\([^)]+\)", "", name).strip().lower()
+            if cleaned and len(cleaned) >= 4 and cleaned in body_lc:
+                matched = True
 
         if matched:
             if asset_code:
@@ -442,12 +483,15 @@ def detect_bible_refs(body: str, sh) -> list[dict]:
             })
     # Group refs so all of one character's assets are bunched together.
     # Sort key:
-    #   1. bible_tab order: CHARACTERS first, then LOCATIONS, then other bibles.
+    #   1. bible_tab order: CHARACTERS first (identity), then COSTUME
+    #      (attire — matters more than background for character consistency),
+    #      then LOCATIONS, PROPS, EFFECTS. When the MAX_REFS cap forces a
+    #      drop, attire survives over scenery.
     #   2. within CHARACTERS: by name (alphabetical, deterministic).
     #   3. within same name: image (locks attire/hair) → video (locks face)
     #      → audio (locks voice). Same intra-character order every time so the
     #      prompt's binding numbers (#2, #3, …) stay consistent set-to-set.
-    _BIBLE_ORDER = {"CHARACTERS": 0, "LOCATIONS": 1, "COSTUME": 2,
+    _BIBLE_ORDER = {"CHARACTERS": 0, "COSTUME": 1, "LOCATIONS": 2,
                      "PROPS": 3, "EFFECTS": 4}
     _MEDIA_ORDER = {"image": 0, "video": 1, "audio": 2, "voice": 2}
     detected.sort(key=lambda r: (
@@ -551,10 +595,13 @@ def submit_seedance_task(prompt: str, ref_urls: list[dict], aspect_ratio: str = 
     #    → upload to private asset library, use asset://asset-<id>
     #  - non-face plain HTTPS URLs (storyboards, locations, props) pass
     #    cleanly — DON'T skip them or composition refs never reach Seedance
-    #  - cap at 6 refs total — Seedance 2.0 starts to dilute identity past
-    #    that. Order is preserved (storyboard first, then chars, then
-    #    locations) so the most-specific anchors get priority slots.
-    MAX_REFS = 6
+    #  - cap at 8 refs total — leaves room for storyboard + 3 chars'
+    #    face/voice + 2 attire/location refs after the face/attire split
+    #    rewire. Original cap of 6 was tight enough that COSTUME refs
+    #    fell off the end. Order is preserved by detect_bible_refs() sort
+    #    (CHARACTERS → COSTUME → LOCATIONS → PROPS → EFFECTS) so most-
+    #    specific anchors get priority slots when the cap bites.
+    MAX_REFS = 8
     content = [{"type": "text", "text": prompt}]
     accepted_refs = []
     for ref in ref_urls or []:
