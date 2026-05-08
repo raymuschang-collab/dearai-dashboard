@@ -1775,6 +1775,56 @@ def render_html(data: dict, gallery_name: str = "") -> str:
     }}
   }}
 
+  // Sheet-edit auto-refresh poll. Captures the sheet modifiedTime on page
+  // load via /api/sheet-mtime, then polls every 30s. If the mtime moves
+  // (someone edited the SP / shotlist / Asset Library — e.g. via Claude
+  // Code on their laptop), shows a non-intrusive banner inviting the user
+  // to refresh. We don't auto-reload because it would lose scroll +
+  // active-tab state mid-read; a one-click banner is the right balance.
+  (async function startSheetMtimePoll() {{
+    if (!window.fetch) return;
+    const gallery = location.pathname.split('/').filter(s => s).pop();
+    if (!gallery) return;
+    let baselineMtime = null;
+    try {{
+      const r = await fetch('/api/sheet-mtime?gallery=' + encodeURIComponent(gallery), {{cache: 'no-store'}});
+      const j = await r.json();
+      baselineMtime = j.mtime || null;
+    }} catch (e) {{ return; }}
+    if (!baselineMtime) return;
+
+    function showRefreshBanner() {{
+      let bar = document.getElementById('sheet-edit-banner');
+      if (bar) return;  // already showing
+      bar = document.createElement('div');
+      bar.id = 'sheet-edit-banner';
+      bar.style.cssText = (
+        'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);' +
+        'z-index:90;padding:10px 18px;border-radius:999px;cursor:pointer;' +
+        'background:#1a1a1a;color:#fff;font-size:13px;font-weight:500;' +
+        'box-shadow:0 4px 16px rgba(0,0,0,0.25);user-select:none;' +
+        'display:flex;align-items:center;gap:10px;'
+      );
+      bar.innerHTML = '<span style="font-size:14px">↻</span> Sheet updated — click to refresh';
+      bar.onclick = () => {{
+        // Save scroll + active tab so the reload doesn't lose UI state
+        sessionStorage.setItem('gallery_scroll_y', String(window.scrollY));
+        const activeTab = document.querySelector('nav.toc .tab.active');
+        if (activeTab) sessionStorage.setItem('gallery_active_tab', activeTab.dataset.tab);
+        location.href = '/gallery/' + gallery + '/refresh';
+      }};
+      document.body.appendChild(bar);
+    }}
+
+    setInterval(async () => {{
+      try {{
+        const r = await fetch('/api/sheet-mtime?gallery=' + encodeURIComponent(gallery), {{cache: 'no-store'}});
+        const j = await r.json();
+        if (j.mtime && j.mtime !== baselineMtime) showRefreshBanner();
+      }} catch (e) {{ /* transient — retry next tick */ }}
+    }}, 30000);
+  }})();
+
   // Click-to-copy on @-mention pills under each storyboard. Pulls the
   // canonical name + ALL associated BytePlus asset codes (image + video
   // + audio for chars; single image for everything else) from the pill's

@@ -411,6 +411,34 @@ def _debug_jobs():
     return jsonify({"count": len(out), "jobs": out})
 
 
+@server.route("/api/sheet-mtime")
+def _api_sheet_mtime():
+    """Lightweight poll endpoint: return the modifiedTime of a gallery's
+    sheet so the gallery JS can detect external edits (e.g. someone
+    editing the body in Claude Code) and prompt for a refresh.
+
+    Query: ?gallery=<slug>
+    Returns: {"mtime": "2026-05-08T12:34:56.789Z"} or {"error": "..."}.
+
+    Drive API mtime updates on any cell edit anywhere in the sheet. This
+    is exactly what we want — text changes / new assets / status flips /
+    @-mention swaps all trigger the same update signal.
+    """
+    from flask import jsonify, request
+    gallery = (request.args.get("gallery") or "").strip()
+    if not gallery or gallery not in GALLERY_REGISTRY:
+        return jsonify({"error": "unknown gallery"}), 400
+    sheet_id, _show, _ep = GALLERY_REGISTRY[gallery]
+    try:
+        from googleapiclient.discovery import build
+        from auth import get_credentials
+        drive = build("drive", "v3", credentials=get_credentials())
+        meta = drive.files().get(fileId=sheet_id, fields="modifiedTime").execute()
+        return jsonify({"mtime": meta.get("modifiedTime", "")})
+    except Exception as e:
+        return jsonify({"error": str(e)[:200]}), 500
+
+
 @server.route("/api/vidgen-resume", methods=["POST"])
 def _api_vidgen_resume():
     """Crash-recovery for vidgen tasks.
