@@ -483,6 +483,17 @@ def _api_set_review():
     except Exception as e:
         return jsonify({"ok": False, "error": f"sheet open: {e}"}), 500
 
+    # Ensure the SP tab has at least 16 columns (A through P) before we
+    # try to write to O/P. Many production sheets ship with 14 cols
+    # (A=Set#, B=Range, … N=Video Iter 2) — extending here makes the
+    # checkbox/comments feature work without a manual schema migration.
+    if ws.col_count < 16:
+        try:
+            ws.add_cols(16 - ws.col_count)
+        except Exception as e:
+            return jsonify({"ok": False,
+                             "error": f"sheet expand cols: {e}"}), 500
+
     row = 10 + set_n
     updates = []
 
