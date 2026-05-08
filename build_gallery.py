@@ -91,26 +91,36 @@ def preview(file_id: str | None) -> str:
 
 # ===== Sheet readers =====
 def read_characters(sh) -> list[dict]:
-    """CHARACTERS bible — col A=Name, T=Iter1, U=Iter2, V=Status (23-col schema).
+    """CHARACTERS bible — col A=Name, T=Iter1, U=Iter2, V=Status,
+    Z=Image Code, AA=Video Code, AB=Audio Code (post-2026-05-08 schema).
     Returns [] if the sheet has no CHARACTERS tab (e.g. an episode sheet that
     delegates bibles to a series-level bible sheet)."""
     try:
         ws = sh.worksheet("CHARACTERS")
     except Exception:
         return []
-    rows = ws.get_all_records()
+    # Read raw cells so we can index past col_count (asset code cols may be
+    # beyond what get_all_records returns). Cols A-AB = 28 columns.
+    raw = ws.get("A1:AB30", value_render_option="FORMATTED_VALUE")
+    if not raw or len(raw) < 2:
+        return []
+    headers = raw[0] + [""] * 28
     out = []
-    for r in rows:
-        name = (r.get("Name") or "").strip()
+    for r in raw[1:]:
+        r = r + [""] * 28
+        name = (r[0] or "").strip()
         if not name:
             continue
-        i1 = drive_id(r.get("Iter 1 URL (white bg)") or r.get("Iter 1 URL") or "")
-        i2 = drive_id(r.get("Iter 2 URL (white bg)") or r.get("Iter 2 URL") or "")
+        i1 = drive_id(r[19])  # T = Iter 1 URL (white bg)
+        i2 = drive_id(r[20])  # U = Iter 2 URL (white bg)
         out.append({
             "name": name,
-            "role": r.get("Role / Archetype", "") or "",
-            "age":  r.get("Age", "") or "",
-            "wardrobe": r.get("Wardrobe", "") or "",
+            "role": r[2] or "",   # C = Role / Archetype
+            "age":  r[3] or "",
+            "wardrobe": r[11] or "",  # L = Wardrobe
+            "image_code": (r[25] or "").strip(),  # Z
+            "video_code": (r[26] or "").strip(),  # AA
+            "audio_code": (r[27] or "").strip(),  # AB
             "iters": [
                 {"label": "Iter 1", "thumb": thumb(i1), "view": view(i1)} if i1 else None,
                 {"label": "Iter 2", "thumb": thumb(i2), "view": view(i2)} if i2 else None,
@@ -126,10 +136,10 @@ def read_locations(sh) -> list[dict]:
         ws = sh.worksheet("LOCATIONS")
     except Exception:
         return []
-    raw = ws.get("A5:O100", value_render_option="FORMATTED_VALUE")
+    raw = ws.get("A5:P100", value_render_option="FORMATTED_VALUE")
     by_name: dict[str, dict] = {}
     for r in raw:
-        r = r + [""] * 15
+        r = r + [""] * 16
         name = (r[0] or "").strip()
         if not name:
             continue
@@ -141,21 +151,24 @@ def read_locations(sh) -> list[dict]:
             if fid:
                 iters.append({"label": label, "thumb": thumb(fid), "view": view(fid)})
         if name not in by_name:
-            by_name[name] = {"name": name, "description": r[3] or "", "iters": []}
+            by_name[name] = {"name": name, "description": r[3] or "",
+                              "asset_code": (r[15] or "").strip(),  # P = Asset Code
+                              "iters": []}
         by_name[name]["iters"].extend(iters)
     return list(by_name.values())
 
 
 def read_simple_bible(sh, tab: str) -> list[dict]:
-    """COSTUME / PROPS / EFFECTS — col A=Name, B=Worn By, G=Iter1, H=Iter2 (header row 5)."""
+    """COSTUME / PROPS / EFFECTS — col A=Name, B=Worn By, G=Iter1, H=Iter2,
+    L=Asset Code (header row 5; post-2026-05-08 schema)."""
     try:
         ws = sh.worksheet(tab)
     except Exception:
         return []
-    raw = ws.get("A6:K100", value_render_option="FORMATTED_VALUE")
+    raw = ws.get("A6:L100", value_render_option="FORMATTED_VALUE")
     out = []
     for r in raw:
-        r = r + [""] * 11
+        r = r + [""] * 12
         name = (r[0] or "").strip()
         if not name:
             continue
@@ -165,6 +178,7 @@ def read_simple_bible(sh, tab: str) -> list[dict]:
             "name": name,
             "used_by": r[1] or "",
             "description": r[2] or "",
+            "asset_code": (r[11] or "").strip(),  # L = Asset Code
             "iters": [
                 {"label": "Iter 1", "thumb": thumb(i1), "view": view(i1)} if i1 else None,
                 {"label": "Iter 2", "thumb": thumb(i2), "view": view(i2)} if i2 else None,
@@ -273,7 +287,15 @@ def read_storyboards(sh) -> list[dict]:
 # ===== HTML rendering =====
 
 def render_card_grid(items: list[dict], kind: str) -> str:
-    """Generic bible card grid — used for chars / locations / costume / props / fx."""
+    """Generic bible card grid — used for chars / locations / costume / props / fx.
+
+    Renders BytePlus asset codes alongside the bible metadata. Characters get
+    three slots (image / video / audio) since each character can have multiple
+    refs. Locations / costume / props / effects get a single slot.
+
+    Click an asset code to copy it — the JS handler at the page level (see
+    `copyToClipboard` in the gallery template) is the one that actually does
+    the copy + flashes a tooltip."""
     cards = []
     for it in items:
         iters_html = ""
@@ -292,10 +314,56 @@ def render_card_grid(items: list[dict], kind: str) -> str:
         for k in ("role", "age", "used_by", "description"):
             if it.get(k):
                 meta_lines.append(f'<div class="meta-line"><b>{k}:</b> {html.escape(str(it[k]))}</div>')
+
+        # Asset codes — character cards get 3 slots; others get 1.
+        codes_html = ""
+        if kind == "char":
+            slots = [("img", "Image", it.get("image_code")),
+                      ("vid", "Video", it.get("video_code")),
+                      ("aud", "Audio", it.get("audio_code"))]
+            pills = []
+            for cls, label, code in slots:
+                if code:
+                    short = code.split("-")[-1] if "-" in code else code[-6:]
+                    pills.append(
+                        f'<span class="asset-pill ok" data-code="{html.escape(code)}" '
+                        f'onclick="copyAssetCode(this)" title="Click to copy {html.escape(code)}">'
+                        f'<b>{label}</b> · {html.escape(short)}'
+                        f'</span>'
+                    )
+                else:
+                    pills.append(
+                        f'<span class="asset-pill missing" title="No {label.lower()} ref uploaded">'
+                        f'<b>{label}</b> · —'
+                        f'</span>'
+                    )
+            codes_html = f'<div class="asset-codes">{"".join(pills)}</div>'
+        else:
+            code = (it.get("asset_code") or "").strip()
+            if code:
+                short = code.split("-")[-1] if "-" in code else code[-6:]
+                codes_html = (
+                    f'<div class="asset-codes">'
+                    f'<span class="asset-pill ok" data-code="{html.escape(code)}" '
+                    f'onclick="copyAssetCode(this)" title="Click to copy {html.escape(code)}">'
+                    f'<b>BytePlus</b> · {html.escape(short)}'
+                    f'</span>'
+                    f'</div>'
+                )
+            else:
+                codes_html = (
+                    '<div class="asset-codes">'
+                    '<span class="asset-pill missing" title="Not yet uploaded to BytePlus">'
+                    '<b>BytePlus</b> · —'
+                    '</span>'
+                    '</div>'
+                )
+
         cards.append(f'''
         <div class="card {kind}-card">
           <div class="card-head"><h4>{html.escape(it["name"])}</h4></div>
           <div class="card-iters">{iters_html}</div>
+          {codes_html}
           {"".join(meta_lines)}
         </div>''')
     return '<div class="card-grid">' + "".join(cards) + "</div>"
@@ -772,6 +840,32 @@ def render_html(data: dict, gallery_name: str = "") -> str:
   .thumb.wide.placeholder {{ aspect-ratio: 16/9; }}
   .meta-line {{ font-size: 11px; color: var(--muted); }}
   .meta-line b {{ color: var(--ink); }}
+
+  /* Asset code pills — surface each bible row's BytePlus asset code(s)
+     so producers can copy them directly into prompts or test calls. */
+  .asset-codes {{ display: flex; gap: 4px; flex-wrap: wrap; margin: 4px 0 2px; }}
+  .asset-pill {{
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace; font-size: 9px;
+    letter-spacing: 0.02em;
+    border: 1px solid var(--line);
+    cursor: pointer; transition: all 0.12s;
+    user-select: none;
+  }}
+  .asset-pill b {{
+    font-family: -apple-system, "SF Pro Text", system-ui, sans-serif;
+    font-size: 9px; letter-spacing: 0.04em; text-transform: uppercase;
+  }}
+  .asset-pill.ok {{ background: var(--soft-bg); color: var(--ink); }}
+  .asset-pill.ok:hover {{ background: var(--chip-bg); border-color: var(--accent); }}
+  .asset-pill.ok.copied {{
+    background: #2e8c4f; color: white; border-color: #2e8c4f;
+  }}
+  .asset-pill.missing {{
+    background: transparent; color: var(--muted);
+    border-style: dashed; cursor: default;
+  }}
 
   .set-card {{
     background: var(--card-bg); border: 1px solid var(--line); border-radius: 12px;
@@ -1570,6 +1664,26 @@ def render_html(data: dict, gallery_name: str = "") -> str:
       submitBtn.disabled = false;
       submitBtn.textContent = 'Upload';
     }}
+  }}
+
+  // Click-to-copy on bible asset code pills. Pulls the full code from the
+  // pill's data-code, copies to clipboard, flashes a green confirmation.
+  // The pill UI shows only the last segment (e.g. "k4rrz") to stay compact;
+  // copying gives the full asset-... id needed for vidgen ref attachment.
+  function copyAssetCode(el) {{
+    const code = el.dataset.code;
+    if (!code) return;
+    navigator.clipboard.writeText(code).then(() => {{
+      el.classList.add('copied');
+      const orig = el.innerHTML;
+      el.innerHTML = '<b>Copied</b> · ' + code.split('-').pop();
+      setTimeout(() => {{
+        el.classList.remove('copied');
+        el.innerHTML = orig;
+      }}, 1200);
+    }}).catch(() => {{
+      alert('Code: ' + code);
+    }});
   }}
 
   // Storyboard gen — fal.ai gpt-image-2, ~2-3 min for 2 iters
