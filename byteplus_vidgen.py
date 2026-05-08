@@ -107,6 +107,134 @@ ITER_TO_COL = {3: "J", 4: "K"}  # storyboard iter URL columns
 
 EXPENSE_LOG = HERE / ".byteplus_expense.json"
 
+# Cache for video-asset durations (probed once, reused forever). Keyed by
+# asset_code if available, else source_url. Values are float seconds, or
+# null when probing failed (we still cache the null so we don't re-probe
+# every run — clear the cache file to retry).
+DURATION_CACHE = HERE / ".byteplus_asset_durations.json"
+
+# BytePlus rejects vidgen submissions when the SUM of video_url ref
+# durations exceeds 15s. We use 14s as a soft cap so a 1s clock-drift
+# / rounding fuzz doesn't push us over.
+VIDEO_BUDGET_SECONDS = 14.0
+# Conservative fallback when ffprobe can't read a URL — most refs we've
+# uploaded are 4.9s shorts, but anything legacy can be longer. Treat
+# unknowns as 5s so the enforcer still keeps trimming when it has to.
+VIDEO_UNKNOWN_FALLBACK = 5.0
+
+
+def _load_duration_cache() -> dict:
+    if DURATION_CACHE.exists():
+        try:
+            return json.loads(DURATION_CACHE.read_text())
+        except Exception:
+            return {}
+    return {}
+
+
+def _save_duration_cache(cache: dict):
+    try:
+        DURATION_CACHE.write_text(json.dumps(cache, indent=2, sort_keys=True))
+    except Exception as e:
+        print(f"  ⚠ couldn't persist duration cache: {e}")
+
+
+def _drive_direct_download(url: str) -> str:
+    """Convert a Drive /file/d/ID/view URL into the uc?export=download form
+    that ffprobe can stream from. Pass through other URLs unchanged."""
+    if not url:
+        return url
+    m = re.search(r"/file/d/([a-zA-Z0-9_-]+)", url)
+    if m:
+        return f"https://drive.google.com/uc?export=download&id={m.group(1)}"
+    m = re.search(r"[?&]id=([a-zA-Z0-9_-]+)", url)
+    if m and "drive.google.com" in url:
+        return f"https://drive.google.com/uc?export=download&id={m.group(1)}"
+    return url
+
+
+def _probe_video_duration(url: str, timeout: int = 30) -> float | None:
+    """Probe a video URL with ffprobe. Returns float seconds or None on any
+    failure (missing ffprobe, network error, non-video URL, etc.)."""
+    if not url:
+        return None
+    import shutil
+    import subprocess
+    if not shutil.which("ffprobe"):
+        return None
+    probe_url = _drive_direct_download(url)
+    try:
+        proc = subprocess.run(
+            ["ffprobe", "-v", "error",
+             "-show_entries", "format=duration",
+             "-of", "default=noprint_wrappers=1:nokey=1",
+             probe_url],
+            capture_output=True, text=True, timeout=timeout,
+        )
+        s = (proc.stdout or "").strip()
+        if not s:
+            return None
+        return float(s)
+    except Exception:
+        return None
+
+
+def get_asset_duration(asset_code: str, source_url: str) -> float | None:
+    """Cached duration lookup. Returns seconds or None when unknown.
+    Probes ffprobe against source_url on cache miss; caches the result
+    (including misses, so we don't re-probe every run)."""
+    cache = _load_duration_cache()
+    key = (asset_code or source_url or "").strip()
+    if not key:
+        return None
+    if key in cache:
+        v = cache.get(key)
+        return float(v) if v is not None else None
+    dur = _probe_video_duration(source_url) if source_url else None
+    cache[key] = dur  # may be None
+    _save_duration_cache(cache)
+    return dur
+
+
+def enforce_video_budget(ref_urls: list[dict],
+                         max_seconds: float = VIDEO_BUDGET_SECONDS) -> list[dict]:
+    """BytePlus enforces a hard 15s cap on the SUM of all video_url ref
+    durations. When the cumulative budget would be exceeded, drop video
+    refs from the END of the list (lowest priority — characters are added
+    first, locations last) until we fit under `max_seconds`.
+
+    Each video entry should carry an `_duration` field (set by the caller).
+    Unknown durations fall back to VIDEO_UNKNOWN_FALLBACK so the enforcer
+    still trims aggressively when probing fails."""
+    def _dur(ru: dict) -> float:
+        d = ru.get("_duration")
+        if d is None:
+            return VIDEO_UNKNOWN_FALLBACK
+        return float(d)
+
+    total = sum(_dur(ru) for ru in ref_urls if ru.get("type") == "video")
+    if total <= max_seconds:
+        return ref_urls
+
+    print(f"  ⚠ cumulative video-ref duration {total:.1f}s exceeds "
+          f"{max_seconds:.1f}s budget — trimming from end")
+    out = list(ref_urls)
+    # Walk backwards through the list, dropping video entries until the
+    # remaining total fits. This preserves CHARACTERS-first ordering set
+    # by the caller (identity refs survive; scenery / bg refs die first).
+    i = len(out) - 1
+    while total > max_seconds and i >= 0:
+        if out[i].get("type") == "video":
+            d = _dur(out[i])
+            url = (out[i].get("url") or "")[:60]
+            print(f"    drop {url}{'…' if len(out[i].get('url',''))>60 else ''} ({d:.1f}s)")
+            out.pop(i)
+            total -= d
+        i -= 1
+    print(f"  ✓ post-trim cumulative video-ref duration: {total:.1f}s "
+          f"({sum(1 for r in out if r.get('type')=='video')} video refs kept)")
+    return out
+
 
 def parse_sheet_id(s: str) -> str:
     m = re.search(r"/spreadsheets/d/([a-zA-Z0-9_-]+)", s)
@@ -564,13 +692,29 @@ def main():
             media = "audio"
         else:
             media = "image"
-        ref_urls.append({
+        entry = {
             "type": media,
             "url": url,
             "role": {"video": "reference_video",
                      "audio": "reference_audio",
                      "image": "reference_image"}[media],
-        })
+        }
+        # For video refs, attach the probed duration so the cumulative
+        # 15s budget enforcer below can decide what to keep / drop.
+        # source_url (Drive) is the only thing we can ffprobe — asset://
+        # codes are opaque to ffprobe.
+        if media == "video":
+            dur = get_asset_duration(asset_code, source_url)
+            entry["_duration"] = dur
+            print(f"    duration: {dur:.1f}s" if dur is not None
+                  else f"    duration: unknown (fallback {VIDEO_UNKNOWN_FALLBACK:.1f}s)")
+        ref_urls.append(entry)
+
+    # Enforce BytePlus's hard 15s cumulative video-ref cap. Drops video
+    # refs from the end of the list until the sum fits under the soft cap
+    # (14s, leaves 1s clock-drift margin). Image / audio refs are not
+    # affected — only video_url entries count toward the budget.
+    ref_urls = enforce_video_budget(ref_urls)
 
     # Build prompt
     # Composition directive — sits below the camera global so Seedance sees
@@ -578,12 +722,20 @@ def main():
     sb_directive = ("Follow the storyboard reference for composition, framing, "
                     "and blocking on every shot." if sb_url else "")
 
-    # Reference-identity binding block — auto-built from CHARACTERS bible.
-    # Without explicit ref→character mapping Seedance can scramble identities
-    # (face matched to wrong character). Numbered to align with the
-    # `image_url`/`video_url` order in content[]: storyboard is #1, then each
-    # subsequent ref gets #2, #3, …. Locations are skipped — only chars need
-    # this binding because identity confusion is the failure mode.
+    # Reference-identity binding block — compact one-line-per-ref format.
+    # Numbers match content[] order so Seedance can resolve "#3" back to
+    # the right asset. Cross-asset identity binding (e.g. "same person as
+    # #2") is preserved as a short tag — without it Seedance can scramble
+    # face/voice → character mapping when a character has multiple refs.
+    #
+    # Format:  #N MEDIA: NAME (TAG) — short hint
+    # Examples:
+    #   #1 image: STORYBOARD (composition anchor)
+    #   #2 image: TARA (CHAR · attire+hair)
+    #   #3 video: TARA (CHAR · face — bind to #2)
+    #   #4 audio: TARA (CHAR · voice — use for all TARA dialogue)
+    #   #5 image: PARK MIN-JUN (CHAR)
+    #   #6 image: Peasant Bazaar (LOC · background)
     id_binding_lines = []
     if ref_urls:
         try:
@@ -592,56 +744,59 @@ def main():
                              if r.get("Name")}
         except Exception:
             char_by_name = {}
-        ref_ix = 1  # storyboard is #1 (or 0 if no SB); refs follow
+        # Track the first IMAGE index per character so subsequent
+        # video/audio refs of the same character can bind to it ("face
+        # belongs to person at #2"). Resets per call.
+        first_image_ix: dict[str, int] = {}
+        ref_ix = 1
         if sb_url:
-            id_binding_lines.append(f"- Reference image #{ref_ix} = STORYBOARD pencil sketch — composition anchor for camera angle, blocking, depth.")
+            id_binding_lines.append(
+                f"#{ref_ix} image: STORYBOARD (composition anchor — camera, blocking, depth)")
             ref_ix += 1
         for r in refs:
             name = r.get("name", "")
             tab = r.get("bible_tab", "")
             atype = (r.get("asset_type") or "").lower()
-            # Asset Library!E stores a CATEGORY ("character"/"scene"/"video"
-            # /"voice"/"prop"/etc.). For the prompt-binding label we want
-            # the MEDIA type — "image" / "video" / "audio" — to match
-            # Seedance's content[] `type` field exactly.
             if atype == "video":
                 media = "video"
             elif atype in ("audio", "voice"):
                 media = "audio"
             else:
                 media = "image"
-            label = f"Reference {media} #{ref_ix}"
+
             if tab == "CHARACTERS":
                 bible_row = char_by_name.get(name, {})
-                desc_parts = [
-                    bible_row.get("Role / Archetype") or bible_row.get("Role", ""),
-                    bible_row.get("Age", ""),
-                    bible_row.get("Wardrobe", ""),
-                    bible_row.get("Personality", ""),
-                ]
-                desc = ", ".join(str(p).strip() for p in desc_parts
-                                  if p and str(p).strip())
-                if media == "video":
+                # One short identity hint — role-or-archetype is the most
+                # useful single field for grounding identity. Dropped:
+                # age/wardrobe/personality (they bloat the prompt and
+                # the still reference image already encodes wardrobe+hair).
+                role = (bible_row.get("Role / Archetype")
+                         or bible_row.get("Role", "") or "").strip()
+                if media == "image":
+                    if name not in first_image_ix:
+                        first_image_ix[name] = ref_ix
+                    extras = ["attire+hair"]
+                    if role:
+                        extras.insert(0, role.lower())
+                    tag = f"CHAR · {', '.join(extras)}"
+                    id_binding_lines.append(f"#{ref_ix} image: {name} ({tag})")
+                elif media == "video":
+                    bind = first_image_ix.get(name)
+                    bind_str = f" — bind to #{bind}" if bind else ""
                     id_binding_lines.append(
-                        f"- {label} = {name} face loop — use this to anchor {name}'s "
-                        f"identity in every shot where {name} appears. Wardrobe, "
-                        f"attire, and hair come from the still {name} reference image.")
+                        f"#{ref_ix} video: {name} (CHAR · face{bind_str})")
                 elif media == "audio":
                     id_binding_lines.append(
-                        f"- {label} = {name} voice sample — use this voice for ALL "
-                        f"dialogue spoken by {name}. Match the timbre, accent, and "
-                        f"cadence in the sample. Other characters' dialogue uses "
-                        f"their own voice references or default voices.")
-                else:
-                    id_binding_lines.append(
-                        f"- {label} = {name}" + (f" — {desc}" if desc else ""))
+                        f"#{ref_ix} audio: {name} (CHAR · voice — use for all {name} dialogue)")
             elif tab == "LOCATIONS":
                 id_binding_lines.append(
-                    f"- {label} = {name} (location / background reference)")
+                    f"#{ref_ix} {media}: {name} (LOC · background)")
             else:
-                id_binding_lines.append(f"- {label} = {name} ({tab})")
+                id_binding_lines.append(
+                    f"#{ref_ix} {media}: {name} ({tab[:4]})")
             ref_ix += 1
-    id_binding = ("Reference identities:\n" + "\n".join(id_binding_lines)
+    id_binding = ("Reference identities (numbers match content[] order):\n"
+                   + "\n".join(id_binding_lines)
                    if id_binding_lines else "")
 
     realism = ("Documentary editorial photography aesthetic, natural skin texture, "
