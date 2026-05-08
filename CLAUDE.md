@@ -8,25 +8,42 @@ first — it walks you through clone + .env + token.json. Then come back here.
 
 ---
 
-## What you can do in plain English
+## What you can do in plain English (or Bahasa Indonesia)
+
+**Both languages work.** The team can type in English, Bahasa Indonesia,
+or mix — Claude resolves intent from the verb + set number + @-mentions.
+The actual prompt body sent to Seedance can also be in Bahasa; the model
+handles trilingual EN/ID/KO natively.
 
 **Vidgen — locked to shotlist:**
-> *"Vidgen set 9 V1"*  →  `byteplus_vidgen.py --set 9 --slot 1`
+> EN: *"Vidgen set 9 V1"*
+> ID: *"Buat video set 9 V1"* / *"Vidgen set 9"*
+> →  `byteplus_vidgen.py --set 9 --slot 1`
 
 **Vidgen — set body with custom refs (hybrid):**
-> *"Vidgen set 1 references @tara @galih @alley"*  →  `vidgen_freeform.py --from-set 1 --mentions "@tara,@galih,@alley"`
+> EN: *"Vidgen set 1 references @tara @galih @alley"*
+> ID: *"Vidgen set 1 referensi @tara @galih @alley"* / *"Vidgen set 1 dengan @tara dan @galih di @alley"*
+> →  `vidgen_freeform.py --from-set 1 --mentions "@tara,@galih,@alley"`
 
 **Vidgen — pure freeform:**
-> *"Fire a video of @tara plating bibimbap in the @kitchen, 480p 15s"*  →  `vidgen_freeform.py --mentions "@tara,@bibimbap,@kitchen" --body "..."`
+> EN: *"Fire a video of @tara plating bibimbap in the @kitchen, 480p 15s"*
+> ID: *"Buat video @tara menata bibimbap di @kitchen, 480p 15s"*
+> →  `vidgen_freeform.py --mentions "@tara,@bibimbap,@kitchen" --body "..."`
 
 **Storyboard / image gen — regenerate a set:**
-> *"Image gen set 1 V1 and V2"*  →  `storyboard_generate.py --set 1 --force`
+> EN: *"Image gen set 1 V1 and V2"*
+> ID: *"Buat gambar set 1"* / *"Ulang storyboard set 1"*
+> →  `storyboard_generate.py --set 1 --force`
 
 **Validate the Asset Library:**
-> *"Validate all asset codes against BytePlus and clean up stale ones"*  →  `validate_asset_library.py --apply`
+> EN: *"Validate all asset codes against BytePlus and clean up stale ones"*
+> ID: *"Validasi semua kode aset di BytePlus, bersihkan yang sudah tidak aktif"*
+> →  `validate_asset_library.py --apply`
 
 **Probe spend:**
-> *"What's our BytePlus spend so far this month?"*  →  reads `.byteplus_expense.json`
+> EN: *"What's our BytePlus spend so far this month?"*
+> ID: *"Berapa total pengeluaran BytePlus bulan ini?"*
+> → reads `.byteplus_expense.json`
 
 Claude reads this file + the live Asset Library tab and figures out the rest.
 
@@ -123,7 +140,10 @@ back to SP!M/N. Ideal for production runs that match the locked shotlist.
 
 ### Natural-language shorthand patterns
 
-The team will phrase requests tersely. Claude should recognize these:
+The team will phrase requests tersely, in English or Bahasa Indonesia.
+Claude should recognize all of these:
+
+#### English
 
 | What the team types | Maps to |
 |---|---|
@@ -139,9 +159,101 @@ The team will phrase requests tersely. Claude should recognize these:
 | `image gen set 1` (alone) | regen: same as above (force both iters) |
 | `regenerate storyboard for set 5` | regen: `storyboard_generate.py --set 5 --force` |
 
-When the team says **"references"**, **"refs"**, or lists @-mentions explicitly,
-they want hybrid mode (override the auto-detected refs). When they don't, they
-want locked mode (use what's in the shotlist).
+#### Bahasa Indonesia
+
+| What the team types | Maps to |
+|---|---|
+| `buat video set 1` / `vidgen set 1` | locked: `byteplus_vidgen.py --set 1 --slot 1` |
+| `vidgen set 1 V1` / `buat video set 1 slot 1` | locked: same as above |
+| `vidgen set 1 V1 dan V2` | locked: fire both slots sequentially |
+| `vidgen set 1 referensi @tara @galih @alley` | hybrid: `vidgen_freeform.py --from-set 1 --mentions "@tara,@galih,@alley"` |
+| `vidgen set 1 dengan @tara dan @galih di @alley` | hybrid: same |
+| `vidgen set 1 hanya @tara` | hybrid: single mention |
+| `vidgen set 1 resolusi 1080p` | locked, 1080p |
+| `buat video @tara menata bibimbap di @kitchen` | freeform: `vidgen_freeform.py --mentions "@tara,@bibimbap,@kitchen" --body "..."` |
+| `buat gambar set 1` / `image gen set 1` | regen: `storyboard_generate.py --set 1 --force` |
+| `ulang storyboard set 5` / `regenerasi storyboard set 5` | regen: same |
+
+#### Trigger keywords
+
+When the team uses any of these words **after** a set number, Claude
+flips to **hybrid mode** (custom refs override the shotlist's auto-detected refs):
+
+- English: `references`, `refs`, `with`, `using`, `featuring`
+- Bahasa: `referensi`, `dengan`, `pakai`, `hanya`, `featuring`
+
+When NONE of those keywords appear, Claude assumes **locked mode** (use
+what's in the shotlist). Mentioning @-tags WITHOUT a trigger word is also
+treated as hybrid intent.
+
+#### Body language for the prompt itself
+
+Whatever language the body text is in (English, Bahasa Indonesia, Korean,
+mixed), it goes straight to Seedance — no translation step. So:
+
+> *"Buat video set 1 referensi @tara, dialognya: TARA: 'Aku tidak tahu lagi.'"*
+
+Sends the Indonesian dialogue to Seedance verbatim. The audio ref attached
+(TARA's voice) is what drives the voice clone — model lip-syncs to whatever
+the dialogue line says.
+
+### Manual paste-and-edit mode (max flexibility)
+
+When the team wants total control — grab the full prompt, edit it freely,
+swap names for @-mentions wherever, fire it back as-is — use this flow:
+
+**Step 1.** On the gallery, click the small **"⧉ copy full prompt"**
+button on any set card's VIDEO GLOBAL header. The clipboard now has:
+
+```
+Shot with Arri 35.
+No music. Dialogue in Jakarta Bahasa accent.
+Setting is contemporary Jakarta — Hanbyeol Bistro...
+
+Location: Hanbyeol Bistro Kitchen
+
+[the per-shot 5-shot list]
+```
+
+**Step 2.** Paste into Claude. Edit anywhere — change character names,
+rephrase dialogue, swap `TARA` for `@tara` (or `@minjun` to test a swap),
+replace `kitchen` with `@alley`, drop a shot, anything.
+
+**Step 3.** Tell Claude:
+
+> EN: *"Fire this prompt as-is"*
+> ID: *"Jalankan prompt ini apa adanya"*
+
+Claude calls:
+
+```bash
+python3 vidgen_freeform.py \
+  --raw-prompt \
+  --body "<the edited paste>" \
+  --resolution 480p
+```
+
+What `--raw-prompt` does:
+- Sends the body **verbatim** to Seedance — no globals re-prepended,
+  no realism preamble, no format directive, no auto-built ID binding.
+- Still **scans the body for @-tokens** and resolves them to BytePlus
+  asset codes in `content[]`. So `@tara` → her image+video+audio refs
+  attach automatically; you never type out the codes.
+
+This is the most flexible path. Use it when:
+- You want to test a wholly different setting / dialogue / camera direction
+- The auto-built ID binding is interfering with what Seedance generates
+- You're prototyping a one-off scene that doesn't fit the shotlist schema
+
+Example session:
+
+> 1. Click "copy full prompt" on set 5
+> 2. *Paste in Claude* — full prompt appears
+> 3. *Edit:* swap `TARA` → `@tara`, change "MIN-JUN catches her" to
+>    "@galih watches from the doorway", drop the third shot
+> 4. *Say:* "Fire that as-is at 480p"
+> 5. Claude runs `vidgen_freeform.py --raw-prompt --body "..."` →
+>    @tara + @galih refs auto-attach → BytePlus generates → Drive URL back
 
 ### Storyboard regen mode
 

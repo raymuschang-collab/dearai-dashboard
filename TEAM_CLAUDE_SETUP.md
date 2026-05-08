@@ -2,7 +2,13 @@
 
 Step-by-step for getting the BytePlus / Drive / Sheets pipeline running on
 your laptop, driven through Claude Code (so you ask Claude to fire vidgen
-runs in plain English instead of typing CLI commands).
+runs in plain English **or Bahasa Indonesia** instead of typing CLI
+commands).
+
+> **Language support:** type prompts in English, Bahasa, or mixed.
+> See `CLAUDE.md` (auto-loaded by Claude on session start) for the full
+> recognition table — bahasa contoh: *"buat video set 1 referensi @tara"*,
+> *"ulang storyboard set 5"*, *"validasi Asset Library"*, dll.
 
 Targets a teammate who:
 - Has Claude Code installed already (or can install it)

@@ -386,6 +386,14 @@ def main():
                          "--mentions can still be passed to OVERRIDE the auto-"
                          "detected refs (everyday case: same set body, swap "
                          "out a character or location).")
+    ap.add_argument("--raw-prompt", action="store_true",
+                    help="Pass --body verbatim as the full Seedance prompt — "
+                         "no globals, no realism preamble, no format directive, "
+                         "no auto-built ID binding lines. Use when the team "
+                         "has copy-pasted a full prompt from a set card and "
+                         "edited it manually (e.g. swapped character names "
+                         "for @-mentions). The script still resolves any "
+                         "@-tokens inside --body to BytePlus asset refs.")
     ap.add_argument("--storyboard", default=None,
                     help="Optional Drive URL to use as composition anchor. "
                          "If --from-set is used, auto-pulls SP!G{row} (Iter 1).")
@@ -472,8 +480,22 @@ def main():
     asset_lib = load_asset_library(gc, args.sheet)
     print(f"  loaded {len(asset_lib)} active assets")
 
-    raw_mentions = [t.strip() for t in args.mentions.split(",") if t.strip()]
-    # If empty and --from-set, scan the body for known names
+    raw_mentions = [t.strip() for t in args.mentions.split(",") if t.strip()] if args.mentions else []
+
+    # ALSO scan the body for inline @-tokens (e.g. "@tara @kitchen" pasted
+    # mid-prompt). Combines with --mentions; deduped by token. This lets
+    # the team copy-paste a full prompt, replace names with @-handles, and
+    # have everything just work.
+    inline_tokens = re.findall(r"@[\w\-]+", args.body or "")
+    for tok in inline_tokens:
+        if tok not in raw_mentions:
+            raw_mentions.append(tok)
+    if inline_tokens:
+        print(f"  detected {len(inline_tokens)} inline @-token(s) in body: {' '.join(inline_tokens[:8])}")
+
+    # If still empty and --from-set, scan the body for known names
+    # (handles the case where the team uses --from-set without overriding
+    # mentions — locked-shotlist auto-detection)
     if not raw_mentions and args.from_set is not None:
         body_lc = args.body.lower()
         for a in asset_lib:
@@ -591,13 +613,21 @@ def main():
     # Strip @-mentions from body (just keep them as plain words for the model)
     clean_body = re.sub(r"@(\w[\w\-]*)", r"\1", args.body)
 
-    prompt = "\n".join([
-        "Shot with Arri 35.",
-        id_binding,
-        realism,
-        format_directive,
-        clean_body,
-    ])
+    if args.raw_prompt:
+        # Manual override mode — pass the body verbatim (sans @-prefixes,
+        # so the model sees plain character names). Skip globals + realism +
+        # format directive + ID binding entirely. The user has presumably
+        # copy-pasted a fully-assembled prompt and edited it manually.
+        prompt = clean_body
+        print("  --raw-prompt: skipping preamble; sending body verbatim")
+    else:
+        prompt = "\n".join([
+            "Shot with Arri 35.",
+            id_binding,
+            realism,
+            format_directive,
+            clean_body,
+        ])
 
     # 6) Optional confirm gate
     print(f"\n=== Prompt preview ({len(prompt)} chars) ===")

@@ -520,9 +520,29 @@ def render_set_card(s: dict, video_globals: dict | None = None) -> str:
     location_html = html.escape(s["location"] or "Unspecified")
     body_html     = html.escape(s["body"] or "(body pending)").replace("\n", "<br>")
 
+    # Build the copy-friendly prompt: globals + location + body. No
+    # auto-built ID binding (the team rebuilds those by typing @-mentions
+    # or pasting names into Claude). This is what the team copies, edits
+    # in Claude with @-mentions, and fires via vidgen_freeform.py with
+    # --raw-prompt to bypass the script's preamble assembly.
+    full_prompt_parts = []
+    if global_text:
+        full_prompt_parts.append(global_text)
+    if s.get("location"):
+        full_prompt_parts.append(f"Location: {s['location']}")
+    if s.get("body"):
+        full_prompt_parts.append(s["body"])
+    full_prompt_text = "\n\n".join(full_prompt_parts)
+
     prompt_html = f'''
       <div class="prompt-section">
-        <div class="prompt-label">VIDEO GLOBAL</div>
+        <div class="prompt-label">
+          VIDEO GLOBAL
+          <button class="copy-prompt-btn" data-prompt="{html.escape(full_prompt_text)}"
+                  onclick="copyFullPrompt(this)" title="Copy globals + location + body — paste into Claude, edit with @-mentions, fire with --raw-prompt">
+            ⧉ copy full prompt
+          </button>
+        </div>
         <div class="prompt-body global">{global_html}</div>
       </div>
       <div class="prompt-section">
@@ -1129,6 +1149,18 @@ def render_html(data: dict, gallery_name: str = "") -> str:
     display: grid; grid-template-columns: minmax(280px, 1fr) minmax(360px, 1.6fr);
     gap: 24px; align-items: start;
   }}
+
+  /* Copy-full-prompt button on the VIDEO GLOBAL header */
+  .copy-prompt-btn {{
+    margin-left: auto; padding: 2px 8px; border-radius: 4px;
+    font-size: 10px; font-weight: 600; letter-spacing: 0.04em;
+    border: 1px solid var(--line); background: var(--soft-bg);
+    color: var(--ink); cursor: pointer; text-transform: none;
+    transition: all 0.12s;
+  }}
+  .copy-prompt-btn:hover {{ background: var(--chip-bg); border-color: var(--accent); }}
+  .copy-prompt-btn.copied {{ background: #2e8c4f; color: white; border-color: #2e8c4f; }}
+  .prompt-label {{ display: flex; align-items: center; gap: 6px; }}
 
   /* Storyboard block — image + @-mention pill row */
   .sb-block {{ display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }}
@@ -1863,6 +1895,25 @@ def render_html(data: dict, gallery_name: str = "") -> str:
       }} catch (e) {{ /* transient — retry next tick */ }}
     }}, 30000);
   }})();
+
+  // Copy the full assembled prompt (globals + location + body) for a set.
+  // Used by the team when they want manual control: copy → paste into
+  // Claude Code → edit names to @-mentions → fire via vidgen_freeform.py
+  // --raw-prompt. The script's @-token detector picks up inline @-tags
+  // from the body and resolves them at fire time.
+  function copyFullPrompt(el) {{
+    const text = el.dataset.prompt;
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {{
+      el.classList.add('copied');
+      const orig = el.textContent;
+      el.textContent = '✓ copied';
+      setTimeout(() => {{
+        el.classList.remove('copied');
+        el.textContent = orig;
+      }}, 1500);
+    }}).catch(() => alert('Copy failed — text:\\n' + text));
+  }}
 
   // Click-to-copy on @-mention pills under each storyboard. Pulls the
   // canonical name + ALL associated BytePlus asset codes (image + video
