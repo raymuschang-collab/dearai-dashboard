@@ -224,31 +224,19 @@ def read_storyboards(sh) -> list[dict]:
     """Storyboard Prompts (header row 10, data rows 11+).
     Cols: A=Set#, B=Shot Range, C=Storyboard Prompt, D=Bahasa Prompt,
     E=Drive Folder, F=Status, G=Iter1, H=Iter2, I=Error,
-    J=Body, K=Bahasa Body, L=Location, M=Video Iter1, N=Video Iter2,
-    O=Reviewed (TRUE/FALSE checkbox), P=Comments (free text).
-
-    O and P are producer-controlled review fields — empty rows mean the
-    set hasn't been reviewed yet. The gallery exposes these as a
-    checkbox + textarea per set; both also live in the sheet so the
-    team can edit directly there.
+    J=Body, K=Bahasa Body, L=Location, M=Video Iter1, N=Video Iter2.
     """
     ws = sh.worksheet("Storyboard Prompts")
-    raw = ws.get("A11:P100", value_render_option="FORMATTED_VALUE")
+    raw = ws.get("A11:N100", value_render_option="FORMATTED_VALUE")
     out = []
     for r in raw:
-        r = r + [""] * 16
+        r = r + [""] * 14
         if not r[0].strip().isdigit():
             continue
         sb1 = drive_id(r[6])
         sb2 = drive_id(r[7])
         v1 = drive_id(r[12])
         v2 = drive_id(r[13])
-        # Reviewed: TRUE/FALSE in the sheet renders as 'TRUE' / 'FALSE'
-        # under FORMATTED_VALUE. Treat anything case-insensitive 'true'
-        # as checked; everything else (empty, FALSE, garbage) is unchecked.
-        reviewed_raw = (r[14] or "").strip().lower()
-        reviewed = reviewed_raw in ("true", "yes", "1", "✓", "x", "done")
-        comments = (r[15] or "").strip()
         out.append({
             "set": int(r[0]),
             "shots": r[1],
@@ -256,8 +244,6 @@ def read_storyboards(sh) -> list[dict]:
             "body_bahasa": r[10],   # SP!K
             "location": r[11],
             "status": r[5],
-            "reviewed": reviewed,
-            "comments": comments,
             "sb_iters": [
                 {"label": "Storyboard 1", "thumb": thumb(sb1), "view": view(sb1)} if sb1 else None,
                 {"label": "Storyboard 2", "thumb": thumb(sb2), "view": view(sb2)} if sb2 else None,
@@ -380,39 +366,10 @@ def render_set_card(s: dict, video_globals: dict | None = None) -> str:
         Generate Storyboard
       </button>'''
 
-    # Reviewed checkbox + comments — interactive review controls. State
-    # persists to SP!O (TRUE/FALSE) and SP!P (free text) via /api/set-review.
-    # The team can also edit these cells directly in Sheets — gallery
-    # picks up the change on next refresh.
-    reviewed = bool(s.get("reviewed"))
-    comments = s.get("comments") or ""
-    checked_attr = ' checked' if reviewed else ''
-    review_html = (
-        f'<label class="set-review-check" title="Mark this set as reviewed">'
-        f'<input type="checkbox"{checked_attr} '
-        f'onchange="onReviewToggle({s["set"]}, this)"> '
-        f'<span class="set-review-label">Reviewed</span>'
-        f'<span class="set-review-status" data-set="{s["set"]}"></span>'
-        f'</label>'
-    )
-    comments_html = (
-        f'<div class="set-comments">'
-        f'<label class="set-comments-label" for="set-comments-{s["set"]}">'
-        f'Comments / feedback</label>'
-        f'<textarea id="set-comments-{s["set"]}" class="set-comments-box" '
-        f'rows="2" placeholder="Add a note for the team — auto-saves on blur" '
-        f'onblur="onCommentsBlur({s["set"]}, this)" '
-        f'oninput="onCommentsInput({s["set"]}, this)">{html.escape(comments)}</textarea>'
-        f'<span class="set-comments-status" data-set="{s["set"]}"></span>'
-        f'</div>'
-    )
     return f'''
-    <div class="set-card{' reviewed' if reviewed else ''}" data-set="{s["set"]}" id="set-card-{s["set"]}">
+    <div class="set-card" data-set="{s["set"]}">
       <div class="set-head">
-        <div class="set-head-left">
-          {review_html}
-          <h3>Set {s["set"]} · shots {html.escape(s["shots"] or "—")}</h3>
-        </div>
+        <h3>Set {s["set"]} · shots {html.escape(s["shots"] or "—")}</h3>
         <div class="set-meta">
           <span class="chip">{html.escape(s["status"] or "Pending")}</span>
         </div>
@@ -422,7 +379,6 @@ def render_set_card(s: dict, video_globals: dict | None = None) -> str:
         <div class="set-storyboards">{sb_html}</div>
         <div class="set-videos">{vid_html}</div>
       </div>
-      {comments_html}
     </div>'''
 
 
@@ -499,50 +455,8 @@ def render_html(data: dict, gallery_name: str = "") -> str:
     sections = []
     # Storyboards first — the most-viewed section in production review.
     # Bibles follow as reference material; Asset Library last (catalog view).
-    def _render_storyboards(d):
-        """Storyboards panel: sticky TOC on the left + per-set cards on
-        the right. TOC shows 'reviewed' state (the producer's checkbox)
-        plus a 4-dot mini-bar for SB1/SB2/V1/V2 completion. Click jumps
-        to that set."""
-        cards_html = "".join(render_set_card(s, d.get("video_globals"))
-                              for s in d["storyboards"])
-        toc_items = []
-        reviewed_count = 0
-        for s in d["storyboards"]:
-            sb1 = bool(s["sb_iters"][0])
-            sb2 = bool(s["sb_iters"][1])
-            v1  = bool(s["videos"][0])
-            v2  = bool(s["videos"][1])
-            reviewed = bool(s.get("reviewed"))
-            if reviewed:
-                reviewed_count += 1
-            review_mark = ('<span class="toc-review ok" title="reviewed">✓</span>'
-                            if reviewed else
-                            '<span class="toc-review todo" title="not yet reviewed"></span>')
-            toc_items.append(
-                f'<a class="toc-set{" reviewed" if reviewed else ""}" '
-                f'href="#set-card-{s["set"]}" '
-                f'data-set="{s["set"]}" '
-                f'onclick="scrollToSet(event, {s["set"]})">'
-                f'{review_mark}'
-                f'<span class="toc-num">Set {s["set"]}</span>'
-                f'<span class="toc-bar">'
-                f'<span class="dot {"ok" if sb1 else "todo"}" title="SB1"></span>'
-                f'<span class="dot {"ok" if sb2 else "todo"}" title="SB2"></span>'
-                f'<span class="dot {"ok" if v1 else "todo"}" title="V1"></span>'
-                f'<span class="dot {"ok" if v2 else "todo"}" title="V2"></span>'
-                f'</span></a>'
-            )
-        toc_html = (
-            f'<aside class="set-toc">'
-            f'<div class="set-toc-head">SETS · {reviewed_count}/{len(d["storyboards"])} reviewed</div>'
-            f'<div class="set-toc-list">{"".join(toc_items)}</div>'
-            f'</aside>'
-        )
-        return f'<div class="storyboards-layout">{toc_html}<div class="storyboards-cards">{cards_html}</div></div>'
-
     section_defs = [
-        ("storyboards","Storyboards", _render_storyboards),
+        ("storyboards","Storyboards",lambda d: "".join(render_set_card(s, d.get("video_globals")) for s in d["storyboards"])),
         ("characters", "Characters", lambda d: render_card_grid(d["characters"], "char")),
         ("locations",  "Locations",  lambda d: render_card_grid(d["locations"], "loc")),
         ("costume",    "Costume",    lambda d: render_card_grid(d["costume"], "bib")),
@@ -776,145 +690,13 @@ def render_html(data: dict, gallery_name: str = "") -> str:
   .set-card {{
     background: var(--card-bg); border: 1px solid var(--line); border-radius: 12px;
     padding: 22px; margin-bottom: 22px;
-    scroll-margin-top: 80px;  /* offset for header when jumping via TOC */
   }}
-  .set-card.toc-active {{
-    box-shadow: 0 0 0 2px var(--accent);  /* highlight current set on TOC nav */
-  }}
-  .set-head {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: 12px; flex-wrap: wrap; }}
+  .set-head {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }}
   .set-head h3 {{ margin: 0; font-size: 16px; font-weight: 600; }}
-  .set-meta {{ display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }}
   .set-meta .chip {{
     display: inline-block; background: var(--chip-bg); color: var(--ink);
     padding: 3px 9px; font-size: 10px; letter-spacing: 0.04em;
-    text-transform: uppercase; border-radius: 4px;
-  }}
-
-  /* Per-set review controls — interactive checkbox + comments box.
-     The checkbox sits at the top-left of each set head; the comments
-     box pins to the bottom of the card. Both auto-save to SP!O / SP!P
-     so the team can also edit them directly in Sheets. */
-  .set-head-left {{ display: flex; align-items: center; gap: 14px; }}
-  .set-review-check {{
-    display: inline-flex; align-items: center; gap: 6px;
-    cursor: pointer; user-select: none;
-    padding: 5px 10px; border-radius: 6px;
-    border: 1px solid var(--line);
-    background: var(--soft-bg);
-    font-size: 12px; font-weight: 600;
-    transition: background 0.15s, border-color 0.15s;
-  }}
-  .set-review-check:hover {{ background: var(--chip-bg); }}
-  .set-review-check input[type="checkbox"] {{
-    width: 16px; height: 16px; margin: 0; cursor: pointer; accent-color: #2e8c4f;
-  }}
-  .set-review-label {{ color: var(--ink); }}
-  .set-review-status {{
-    font-size: 10px; color: var(--muted); font-weight: 500;
-    transition: opacity 0.2s;
-  }}
-  .set-review-status.saving {{ color: #b8860b; }}
-  .set-review-status.saved {{ color: #2e8c4f; }}
-  .set-review-status.error {{ color: var(--accent); }}
-
-  /* When a set is marked reviewed, soften the card chrome so the team's
-     eye is drawn to unreviewed sets instead. Subtle — checkbox + green
-     left border tell the story without removing visual prominence. */
-  .set-card.reviewed {{
-    border-left: 3px solid #2e8c4f;
-  }}
-  .set-card.reviewed .set-review-check {{
-    background: #e9f5ee; border-color: #b6dfc4; color: #1f6f3a;
-  }}
-
-  /* Comments box — auto-saves on blur. Status indicator next to the
-     label flashes "Saving…" then "Saved ✓" so the team knows their
-     note didn't vanish into the ether. */
-  .set-comments {{
-    margin-top: 16px; padding-top: 14px;
-    border-top: 1px dashed var(--line);
-    display: flex; flex-direction: column; gap: 4px;
-  }}
-  .set-comments-label {{
-    font-size: 10px; letter-spacing: 0.12em; font-weight: 600;
-    color: var(--muted); text-transform: uppercase;
-    display: flex; justify-content: space-between; align-items: center;
-  }}
-  .set-comments-box {{
-    width: 100%; box-sizing: border-box;
-    background: var(--soft-bg); border: 1px solid var(--line);
-    border-radius: 6px; padding: 8px 10px;
-    font-family: inherit; font-size: 13px; color: var(--ink);
-    resize: vertical; min-height: 40px;
-    transition: border-color 0.15s;
-  }}
-  .set-comments-box:focus {{
-    outline: none; border-color: var(--accent);
-    background: var(--card-bg);
-  }}
-  .set-comments-status {{
-    font-size: 10px; color: var(--muted); font-weight: 500;
-    margin-top: 2px;
-  }}
-  .set-comments-status.saving {{ color: #b8860b; }}
-  .set-comments-status.saved {{ color: #2e8c4f; }}
-  .set-comments-status.error {{ color: var(--accent); }}
-  .set-comments-status.dirty {{ color: var(--muted); font-style: italic; }}
-
-  /* Sticky TOC — review check indicator (replaces previous done-counter).
-     Reviewed sets get a green ✓ at the start of their TOC entry. */
-  .toc-review {{
-    width: 14px; height: 14px; flex: 0 0 14px;
-    border-radius: 3px; border: 1px solid var(--line);
-    display: inline-flex; align-items: center; justify-content: center;
-    font-size: 10px; font-weight: 700; color: white;
-    background: transparent;
-  }}
-  .toc-review.ok {{ background: #2e8c4f; border-color: #2e8c4f; }}
-  .toc-set.reviewed .toc-num {{ text-decoration: line-through; opacity: 0.7; }}
-
-  /* Sticky TOC — left rail in the Storyboards panel only. Compact
-     numeric list with 4-dot status mini-bar per set (SB1/SB2/V1/V2).
-     Snaps to top when scrolling past the panel head. */
-  .storyboards-layout {{
-    display: grid; grid-template-columns: minmax(180px, 220px) 1fr;
-    gap: 24px; align-items: start;
-  }}
-  .storyboards-cards {{ min-width: 0; }}  /* prevent grid blow-out from wide content */
-  .set-toc {{
-    position: sticky; top: 76px;  /* clear the fixed nav.toc above */
-    align-self: start;
-    background: var(--card-bg); border: 1px solid var(--line); border-radius: 10px;
-    padding: 12px; max-height: calc(100vh - 96px); overflow-y: auto;
-  }}
-  .set-toc-head {{
-    font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
-    color: var(--muted); text-transform: uppercase; padding: 4px 6px 8px;
-    border-bottom: 1px solid var(--line); margin-bottom: 6px;
-  }}
-  .set-toc-list {{ display: flex; flex-direction: column; gap: 2px; }}
-  .toc-set {{
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 6px 8px; border-radius: 6px; text-decoration: none;
-    color: var(--ink); font-size: 12px; font-weight: 500;
-    transition: background 0.1s;
-  }}
-  .toc-set:hover {{ background: var(--soft-bg); }}
-  .toc-set.active {{ background: var(--chip-bg); font-weight: 700; }}
-  .toc-num {{ font-family: 'JetBrains Mono', monospace; font-size: 11px; }}
-  .toc-bar {{ display: inline-flex; gap: 2px; }}
-  .toc-bar .dot {{
-    width: 7px; height: 7px; border-radius: 50%;
-    background: var(--soft-bg); border: 1px solid var(--line);
-    display: inline-block;
-  }}
-  .toc-bar .dot.ok {{ background: #2e8c4f; border-color: #2e8c4f; }}
-
-  /* Collapse the TOC under 900px viewport — the layout falls back to
-     full-width cards and the producer scrolls normally. */
-  @media (max-width: 900px) {{
-    .storyboards-layout {{ grid-template-columns: 1fr; }}
-    .set-toc {{ display: none; }}
+    text-transform: uppercase; border-radius: 4px; margin-left: 6px;
   }}
   .set-grid {{
     display: grid; grid-template-columns: minmax(260px, 1fr) minmax(320px, 1.4fr) minmax(180px, 0.7fr);
@@ -1275,25 +1057,6 @@ def render_html(data: dict, gallery_name: str = "") -> str:
     }}
   }})();
 
-  // Sheet-status fallback (Codex Option B). Asks the server to read the
-  // Storyboard Prompts target cell for each job_id directly. Used by
-  // watchJobs() when /debug/jobs doesn't flip a job to "done" — happens
-  // when Render redeploys mid-vidgen and kills the parent worker before
-  // its status writeback. Returns a results map keyed by job_id, or null.
-  async function sheetCheckFallback(jobIds) {{
-    try {{
-      const r = await fetch('/api/jobs-sheet-check', {{
-        method: 'POST',
-        headers: {{'Content-Type': 'application/json'}},
-        body: JSON.stringify({{ids: jobIds}}),
-      }});
-      const data = await r.json();
-      return data.results || null;
-    }} catch (e) {{
-      return null;
-    }}
-  }}
-
   // Job watcher — after a Generate click, polls /debug/jobs every 8s until
   // the watched job(s) finish. On success, saves scroll+tab to sessionStorage
   // and force-refreshes via /gallery/<name>/refresh (which 302s back here).
@@ -1309,34 +1072,9 @@ def render_html(data: dict, gallery_name: str = "") -> str:
     const failed = [];
     let attempts = 0;
     const MAX_ATTEMPTS = 90;  // 90 × 8s = 12 min cap; vidgen typically lands in 3-5 min
-    // Option B fallback — when Render redeploys mid-job, the parent worker
-    // dies before writing status=done, so /debug/jobs never flips. Every
-    // FALLBACK_INTERVAL ticks, ALSO check the target sheet cell directly:
-    // if a Drive URL is there, the job clearly succeeded — the runtime
-    // just never recorded it. Eliminates the false "watcher gave up" red
-    // banner on jobs that actually completed.
-    const FALLBACK_INTERVAL = 5;  // every 5 ticks = ~40s — quota-friendly
     async function tick() {{
       attempts++;
       if (attempts > MAX_ATTEMPTS) {{
-        // Last-chance sheet check before declaring failure. If the URL
-        // landed any time in the last 12 min, refresh anyway.
-        const sweep = await sheetCheckFallback(Array.from(remaining));
-        if (sweep && Object.values(sweep).some(v => v && v.done)) {{
-          for (const [id, v] of Object.entries(sweep)) {{
-            if (v && v.done) remaining.delete(id);
-          }}
-          if (remaining.size === 0) {{
-            text.textContent = `${{label}} complete (sheet fallback) — refreshing…`;
-            banner.classList.add('success');
-            sessionStorage.setItem('gallery_scroll_y', String(window.scrollY));
-            const activeTab = document.querySelector('nav.toc .tab.active');
-            if (activeTab) sessionStorage.setItem('gallery_active_tab', activeTab.dataset.tab);
-            const gallery = location.pathname.split('/').filter(s => s).pop();
-            location.href = `/gallery/${{gallery}}/refresh`;
-            return;
-          }}
-        }}
         text.textContent = `${{label}} — watcher gave up after ${{MAX_ATTEMPTS}} polls. Check /debug/jobs manually then click ↻ Refresh.`;
         banner.classList.add('error');
         return;
@@ -1356,17 +1094,6 @@ def render_html(data: dict, gallery_name: str = "") -> str:
           else if (j.status === 'failed' || j.status === 'errored') {{
             remaining.delete(id);
             failed.push(id);
-          }}
-        }}
-        // Periodic sheet-check fallback — only fires for vidgen jobs the
-        // /debug/jobs path hasn't already resolved. Server batches reads
-        // per sheet so cost is one Sheets API call regardless of fan-out.
-        if (remaining.size > 0 && attempts % FALLBACK_INTERVAL === 0) {{
-          const sweep = await sheetCheckFallback(Array.from(remaining));
-          if (sweep) {{
-            for (const [id, v] of Object.entries(sweep)) {{
-              if (v && v.done) remaining.delete(id);
-            }}
           }}
         }}
         if (remaining.size === 0) {{
@@ -1570,154 +1297,6 @@ def render_html(data: dict, gallery_name: str = "") -> str:
     return _fireGen('/api/vidgen', {{set: setN, slot: slot, gallery: gallery}}, btn, 8,
                     `Video set ${{setN}} (V1+V2)`);
   }}
-
-  // ===== Per-set review controls =====
-  // Reviewed checkbox + comments save handlers. POST to /api/set-review
-  // which writes SP!O (TRUE/FALSE) + SP!P (free text). Status indicator
-  // flashes "Saving…" then "Saved ✓" so the user knows their change
-  // landed. On error, the indicator turns red and the user can retry.
-  //
-  // Comments use a debounce on input (visual "edited" hint), and the
-  // actual save fires on blur — keeps the API call rate sane while
-  // the user is typing.
-  async function _postReview(setN, payload) {{
-    const gallery = location.pathname.split('/').filter(s => s).pop();
-    payload = Object.assign({{set: setN, gallery: gallery}}, payload);
-    const r = await fetch('/api/set-review', {{
-      method: 'POST',
-      headers: {{'Content-Type': 'application/json'}},
-      body: JSON.stringify(payload),
-    }});
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const data = await r.json();
-    if (!data.ok) throw new Error(data.error || 'unknown');
-    return data;
-  }}
-
-  function _setStatus(el, cls, text) {{
-    if (!el) return;
-    el.className = el.className.split(' ').filter(c =>
-      !['saving','saved','error','dirty'].includes(c)).join(' ');
-    if (cls) el.classList.add(cls);
-    el.textContent = text || '';
-  }}
-
-  async function onReviewToggle(setN, checkbox) {{
-    const status = document.querySelector(`.set-review-status[data-set="${{setN}}"]`);
-    const card = document.getElementById('set-card-' + setN);
-    const tocEntry = document.querySelector(`.toc-set[data-set="${{setN}}"]`);
-    _setStatus(status, 'saving', 'Saving…');
-    try {{
-      await _postReview(setN, {{reviewed: checkbox.checked}});
-      _setStatus(status, 'saved', 'Saved ✓');
-      if (card) card.classList.toggle('reviewed', checkbox.checked);
-      if (tocEntry) {{
-        tocEntry.classList.toggle('reviewed', checkbox.checked);
-        const mark = tocEntry.querySelector('.toc-review');
-        if (mark) {{
-          mark.classList.toggle('ok', checkbox.checked);
-          mark.classList.toggle('todo', !checkbox.checked);
-          mark.textContent = checkbox.checked ? '✓' : '';
-          mark.title = checkbox.checked ? 'reviewed' : 'not yet reviewed';
-        }}
-      }}
-      // Update the "N/M reviewed" counter in the TOC head
-      const head = document.querySelector('.set-toc-head');
-      if (head) {{
-        const all = document.querySelectorAll('.toc-set').length;
-        const done = document.querySelectorAll('.toc-set.reviewed').length;
-        head.textContent = `SETS · ${{done}}/${{all}} reviewed`;
-      }}
-      setTimeout(() => _setStatus(status, '', ''), 2000);
-    }} catch (e) {{
-      _setStatus(status, 'error', 'Error: ' + e.message);
-      // Revert the checkbox to match server state
-      checkbox.checked = !checkbox.checked;
-    }}
-  }}
-
-  // Track the last-saved comments string per set so blur knows whether
-  // anything actually changed (skip the API call for no-op blurs).
-  const _lastSavedComments = {{}};
-  document.querySelectorAll('.set-comments-box').forEach(el => {{
-    const setN = el.id.replace('set-comments-', '');
-    _lastSavedComments[setN] = el.value;
-  }});
-
-  function onCommentsInput(setN, textarea) {{
-    const status = document.querySelector(`.set-comments-status[data-set="${{setN}}"]`);
-    const last = _lastSavedComments[setN] || '';
-    if (textarea.value !== last) {{
-      _setStatus(status, 'dirty', 'unsaved — click out to save');
-    }} else {{
-      _setStatus(status, '', '');
-    }}
-  }}
-
-  async function onCommentsBlur(setN, textarea) {{
-    const status = document.querySelector(`.set-comments-status[data-set="${{setN}}"]`);
-    const last = _lastSavedComments[setN] || '';
-    if (textarea.value === last) {{
-      _setStatus(status, '', '');
-      return;
-    }}
-    _setStatus(status, 'saving', 'Saving…');
-    try {{
-      await _postReview(setN, {{comments: textarea.value}});
-      _lastSavedComments[setN] = textarea.value;
-      _setStatus(status, 'saved', 'Saved ✓');
-      setTimeout(() => _setStatus(status, '', ''), 2000);
-    }} catch (e) {{
-      _setStatus(status, 'error', 'Error: ' + e.message);
-    }}
-  }}
-
-  // ===== Storyboards-tab sticky TOC =====
-  // Click handler for TOC entries — smooth-scroll to the matching set
-  // card and brief-highlight it so the producer's eye lands on the new
-  // location. Uses scrollIntoView with `block: start` + a 60-px CSS
-  // scroll-margin so it clears the fixed nav bar.
-  function scrollToSet(ev, setN) {{
-    if (ev) ev.preventDefault();
-    const card = document.getElementById('set-card-' + setN);
-    if (!card) return;
-    card.scrollIntoView({{behavior: 'smooth', block: 'start'}});
-    document.querySelectorAll('.set-card.toc-active').forEach(el =>
-      el.classList.remove('toc-active'));
-    card.classList.add('toc-active');
-    setTimeout(() => card.classList.remove('toc-active'), 1500);
-  }}
-
-  // IntersectionObserver — tracks which set is currently in the viewport
-  // and highlights its TOC entry. Fires on tab-switch + scroll. Threshold
-  // 0.3 means a card needs ~30% visible to claim "active" — feels right
-  // when scrolling slowly past large cards.
-  (function setupSetTocObserver() {{
-    const tocLinks = document.querySelectorAll('.set-toc .toc-set');
-    if (!tocLinks.length) return;
-    const tocByNum = {{}};
-    tocLinks.forEach(a => {{ tocByNum[a.dataset.set] = a; }});
-    const observer = new IntersectionObserver(entries => {{
-      // Pick the entry closest to the top that is currently intersecting.
-      let active = null;
-      let bestTop = Infinity;
-      entries.forEach(e => {{
-        if (!e.isIntersecting) return;
-        if (e.boundingClientRect.top < bestTop) {{
-          bestTop = e.boundingClientRect.top;
-          active = e.target;
-        }}
-      }});
-      if (!active) return;
-      const setN = active.dataset.set;
-      Object.values(tocByNum).forEach(a => a.classList.remove('active'));
-      const a = tocByNum[setN];
-      if (a) a.classList.add('active');
-    }}, {{ threshold: [0.3], rootMargin: '-80px 0px -40% 0px' }});
-    document.querySelectorAll('.storyboards-cards .set-card').forEach(card => {{
-      observer.observe(card);
-    }});
-  }})();
 </script>
 </body>
 </html>'''
