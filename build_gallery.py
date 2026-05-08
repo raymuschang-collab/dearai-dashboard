@@ -579,6 +579,31 @@ def render_set_card(s: dict, video_globals: dict | None = None) -> str:
     </div>'''
 
 
+def _format_upload_date(ts: str) -> str:
+    """Format an ISO timestamp into a short human label:
+       'today' / 'yesterday' / 'N days ago' / 'May 5' / 'Jan 5 2025'."""
+    if not ts:
+        return ""
+    from datetime import datetime, timezone
+    try:
+        # Accept ISO strings with or without trailing 'Z'
+        clean = ts.strip().rstrip("Z")
+        dt = datetime.fromisoformat(clean).replace(tzinfo=timezone.utc)
+    except Exception:
+        return ts[:10]  # fall back to YYYY-MM-DD prefix
+    now = datetime.now(timezone.utc)
+    delta_days = (now.date() - dt.date()).days
+    if delta_days == 0:
+        return "today"
+    if delta_days == 1:
+        return "yesterday"
+    if 0 < delta_days <= 7:
+        return f"{delta_days} days ago"
+    if dt.year == now.year:
+        return dt.strftime("%b %d").lstrip("0").replace(" 0", " ")
+    return dt.strftime("%b %d %Y").replace(" 0", " ")
+
+
 def render_asset_library(assets: list[dict]) -> str:
     """Asset Library tab — table grouped by bible_tab, with status badges."""
     if not assets:
@@ -623,6 +648,13 @@ def render_asset_library(assets: list[dict]) -> str:
             else:
                 initial = (a["name"][:1] or "?").upper()
                 thumb_html = f'<span class="al-thumb placeholder" title="no thumbnail available">{html.escape(initial)}</span>'
+            uploaded_at_raw = a.get("uploaded_at") or ""
+            uploaded_label = _format_upload_date(uploaded_at_raw)
+            uploaded_html = (
+                f'<span class="al-uploaded" title="{html.escape(uploaded_at_raw)}">'
+                f'{html.escape(uploaded_label)}</span>'
+                if uploaded_label else "<span class='muted'>—</span>"
+            )
             rows.append(f'''
               <tr>
                 <td class="al-thumb-cell">{thumb_html}</td>
@@ -630,6 +662,7 @@ def render_asset_library(assets: list[dict]) -> str:
                 <td class="al-type">{html.escape(type_str)}</td>
                 <td class="al-code"><code>{html.escape(code)}</code></td>
                 <td><span class="status-badge {status_class}">{html.escape(a["status"] or "—")}</span></td>
+                <td class="al-uploaded-cell">{uploaded_html}</td>
                 <td class="al-src">{url_link}</td>
               </tr>''')
         sections.append(f'''
@@ -638,7 +671,7 @@ def render_asset_library(assets: list[dict]) -> str:
             <table class="al-table">
               <thead>
                 <tr>
-                  <th class="al-thumb-th"></th><th>Name</th><th>Type</th><th>Asset Code (BytePlus)</th><th>Status</th><th>Source</th>
+                  <th class="al-thumb-th"></th><th>Name</th><th>Type</th><th>Asset Code (BytePlus)</th><th>Status</th><th>Uploaded</th><th>Source</th>
                 </tr>
               </thead>
               <tbody>{"".join(rows)}</tbody>
@@ -1225,6 +1258,12 @@ def render_html(data: dict, gallery_name: str = "") -> str:
   }}
   .al-srclink {{ color: var(--accent); text-decoration: none; font-size: 11px; }}
   .al-srclink:hover {{ text-decoration: underline; }}
+  /* Uploaded date column — small + muted; full ISO timestamp in title attr */
+  .al-uploaded-cell {{ white-space: nowrap; }}
+  .al-uploaded {{
+    font-size: 11px; color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }}
   .status-badge {{
     display: inline-block; padding: 3px 9px; border-radius: 4px;
     font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; font-weight: 600;
