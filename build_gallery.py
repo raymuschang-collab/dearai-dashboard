@@ -248,9 +248,20 @@ def read_storyboards(sh) -> list[dict]:
     ws = sh.worksheet("Storyboard Prompts")
     raw = ws.get("A11:P100", value_render_option="FORMATTED_VALUE")
 
-    # Build asset-name → (bible_tab, codes-by-type) map from Asset Library
-    # so we can detect refs per set body and surface them as pills.
+    # Build asset-name → (bible_tab, codes-by-type) map.
+    #
+    # Two data sources merged here:
+    #   1. Asset Library tab (Status=Uploaded rows) — for CHARACTERS where
+    #      a true BytePlus asset_code exists. These get pills with the actual
+    #      `asset://asset-...` code copied on click.
+    #   2. Per-bible tabs (LOCATIONS / COSTUME / PROPS / EFFECTS) — these are
+    #      NOT uploaded to BytePlus by design (they don't need face moderation
+    #      bypass). Their `asset_code` column may have a code, OR they may
+    #      only have a Drive URL via iter 1 — either way, surface a pill so
+    #      the team knows the bible entry exists and can be referenced.
     al_index: dict[str, dict] = {}
+
+    # Source 1: Asset Library uploaded rows (BytePlus codes — chars primarily)
     try:
         al_rows = sh.worksheet("Asset Library").get(
             "A5:F500", value_render_option="FORMATTED_VALUE")
@@ -268,6 +279,64 @@ def read_storyboards(sh) -> list[dict]:
             entry["codes"].setdefault(atype, []).append(r[2].strip())
     except Exception:
         pass
+
+    # Source 2: Per-bible tabs (CHARACTERS, LOCATIONS, COSTUME, PROPS, EFFECTS)
+    # — adds entries for non-Uploaded rows so pills surface even when an
+    # entry isn't BytePlus-bound. Asset Library entries take priority (loop
+    # uses setdefault so existing entries aren't overwritten); only fills
+    # gaps for bible rows missing from Asset Library.
+    def _add_bible_entry(name: str, bible_tab: str, code: str, atype: str = "image"):
+        if not name or not code:
+            return
+        entry = al_index.setdefault(name, {"bible_tab": bible_tab, "codes": {}})
+        # Don't clobber an existing higher-priority code for the same atype
+        if not entry["codes"].get(atype):
+            entry["codes"].setdefault(atype, []).append(code)
+
+    try:
+        for char in read_characters(sh):
+            for code, atype in [
+                (char.get("image_code"), "image"),
+                (char.get("video_code"), "video"),
+                (char.get("audio_code"), "audio"),
+            ]:
+                if code:
+                    _add_bible_entry(char["name"], "CHARACTERS", code, atype)
+            # Fallback: if no codes at all, still render a pill that copies
+            # the iter 1 Drive URL so the team has *something* to grab
+            if not any(char.get(k) for k in ("image_code","video_code","audio_code")):
+                iters = char.get("iters") or []
+                first = next((i for i in iters if i), None)
+                if first and first.get("view"):
+                    _add_bible_entry(char["name"], "CHARACTERS", first["view"], "image")
+    except Exception:
+        pass
+
+    try:
+        for loc in read_locations(sh):
+            code = loc.get("asset_code") or ""
+            if not code:
+                # Fallback to wide Drive URL when no BytePlus code is set
+                first = next((i for i in (loc.get("iters") or []) if i), None)
+                if first:
+                    code = first.get("view", "")
+            if code:
+                _add_bible_entry(loc["name"], "LOCATIONS", code, "image")
+    except Exception:
+        pass
+
+    for tab_name in ("COSTUME", "PROPS", "EFFECTS"):
+        try:
+            for entry in read_simple_bible(sh, tab_name):
+                code = entry.get("asset_code") or ""
+                if not code:
+                    first = next((i for i in (entry.get("iters") or []) if i), None)
+                    if first:
+                        code = first.get("view", "")
+                if code:
+                    _add_bible_entry(entry["name"], tab_name, code, "image")
+        except Exception:
+            pass
 
     def detect_mentions(body: str) -> list[dict]:
         """Find which Asset Library entries are referenced by this body.
@@ -305,6 +374,30 @@ def read_storyboards(sh) -> list[dict]:
                 cleaned = re.sub(r"\s*\([^)]+\)", "", name).strip().lower()
                 if cleaned and len(cleaned) >= 4 and cleaned in body_lc:
                     matched = True
+                # Per-word fallback for multi-word effect/prop names
+                # ("Yellow bile sizzle" → matches body containing "bile" or "sizzle")
+                elif cleaned:
+                    for word in re.findall(r"[a-z]+", cleaned):
+                        if len(word) >= 5 and re.search(
+                                r"\b" + re.escape(word) + r"\b", body_lc):
+                            matched = True
+                            break
+            # Locations have noisy canonical names like "INT. Kitchen 4
+            # (Hanbyeol Bistro Kitchen)" while bodies just say "kitchen".
+            # Strip INT./EXT. prefix + parenthetical, then match any word
+            # ≥4 chars from the cleaned name against the body.
+            if not matched and info["bible_tab"] == "LOCATIONS":
+                cleaned = re.sub(r"^(INT|EXT)\.?\s+", "", name, flags=re.IGNORECASE)
+                cleaned = re.sub(r"\s*\([^)]+\)", "", cleaned).strip()
+                # Try whole cleaned-name first, then individual words
+                if cleaned and len(cleaned) >= 4 and cleaned.lower() in body_lc:
+                    matched = True
+                else:
+                    for word in re.findall(r"[A-Za-z]+", cleaned):
+                        if len(word) >= 4 and re.search(
+                                r"\b" + re.escape(word) + r"\b", body, re.IGNORECASE):
+                            matched = True
+                            break
             if matched:
                 seen.add(name)
                 # Flatten codes across all media types into one CSV the user
@@ -335,13 +428,32 @@ def read_storyboards(sh) -> list[dict]:
         reviewed = reviewed_raw in ("true", "yes", "1", "✓", "x", "done")
         comments = (r[15] or "").strip()
         body = r[9] or ""
-        mentions = detect_mentions(body)
+        # Strip LOCATIONS-type pills from the mention row — they're noisy
+        # (10+ per set on average from fuzzy word matching). The canonical
+        # SP!L location is surfaced separately as its own click-to-copy chip
+        # below the @-mention pills, which is one source of truth and zero
+        # ambiguity. Char/costume/prop/effect pills stay in the mention row.
+        mentions = [m for m in detect_mentions(body) if m["bible_tab"] != "LOCATIONS"]
+
+        # Resolve the canonical SP!L location → asset_code(s) for the
+        # click-to-copy chip. Falls back to empty string if location isn't
+        # in al_index (in which case the chip just shows text, no copy).
+        loc_name = (r[11] or "").strip()
+        loc_codes_csv = ""
+        if loc_name and loc_name in al_index:
+            loc_info = al_index[loc_name]
+            loc_codes_csv = ",".join(
+                code for atype in ("image", "video", "audio")
+                for code in loc_info["codes"].get(atype, [])
+            )
+
         out.append({
             "set": int(r[0]),
             "shots": r[1],
             "body": body,           # SP!J — body-only English
             "body_bahasa": r[10],   # SP!K
             "location": r[11],
+            "location_codes": loc_codes_csv,  # for click-to-copy chip
             "status": r[5],
             "reviewed": reviewed,
             "comments": comments,
@@ -534,6 +646,24 @@ def render_set_card(s: dict, video_globals: dict | None = None) -> str:
         full_prompt_parts.append(s["body"])
     full_prompt_text = "\n\n".join(full_prompt_parts)
 
+    # Location chip — click-to-copy when the location resolves to an asset
+    # code in Asset Library. Falls back to plain text + "no code" hint when
+    # nothing resolves. Reuses copyMentionCodes() handler.
+    loc_codes = (s.get("location_codes") or "").strip()
+    if loc_codes:
+        location_chip_html = (
+            f'<div class="prompt-body location clickable" '
+            f'data-name="{html.escape(s["location"] or "")}" '
+            f'data-codes="{html.escape(loc_codes)}" '
+            f'onclick="copyMentionCodes(this)" '
+            f'title="Click to copy location asset code(s) for paste-into-Claude">'
+            f'{location_html} <span class="loc-copy-icon">⧉</span></div>'
+        )
+        copy_hint = ' <span class="prompt-label-hint">(click to copy)</span>'
+    else:
+        location_chip_html = f'<div class="prompt-body location">{location_html}</div>'
+        copy_hint = ''
+
     prompt_html = f'''
       <div class="prompt-section">
         <div class="prompt-label">
@@ -546,8 +676,8 @@ def render_set_card(s: dict, video_globals: dict | None = None) -> str:
         <div class="prompt-body global">{global_html}</div>
       </div>
       <div class="prompt-section">
-        <div class="prompt-label">LOCATION</div>
-        <div class="prompt-body location">{location_html}</div>
+        <div class="prompt-label">LOCATION{copy_hint}</div>
+        {location_chip_html}
       </div>
       <div class="prompt-section">
         <div class="prompt-label">COMBINED PROMPT</div>
@@ -1209,6 +1339,31 @@ def render_html(data: dict, gallery_name: str = "") -> str:
   .prompt-body.location {{
     background: var(--prompt-loc-bg); font-weight: 500; color: var(--prompt-loc-text);
     font-family: 'Inter', sans-serif; font-size: 12px;
+  }}
+  .prompt-body.location.clickable {{
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex; align-items: center; justify-content: space-between;
+    border: 1px dashed transparent;
+  }}
+  .prompt-body.location.clickable:hover {{
+    border-color: var(--prompt-loc-text);
+    background: var(--prompt-loc-bg);
+    filter: brightness(1.06);
+  }}
+  .prompt-body.location.clickable.copied {{
+    background: #2e8c4f !important; color: #fff !important;
+    border-color: #2e8c4f !important;
+  }}
+  .loc-copy-icon {{
+    font-size: 14px; opacity: 0.55; margin-left: 8px;
+    font-family: 'JetBrains Mono', monospace;
+  }}
+  .prompt-body.location.clickable:hover .loc-copy-icon {{ opacity: 1; }}
+  .prompt-label-hint {{
+    font-size: 9px; font-weight: 400; color: var(--text-mute);
+    letter-spacing: 0.05em; text-transform: none; margin-left: 8px;
+    font-style: italic;
   }}
   .prompt-body.combined {{
     background: var(--soft-bg);
