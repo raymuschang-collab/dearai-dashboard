@@ -1492,6 +1492,10 @@ def _api_new_project():
     parsed_path = ""
     source_ext = ""
     source_mimetype = "application/octet-stream"
+    # Per-episode bundle: [(ep_num, title, script_txt_path, ep_text)] — populated
+    # when the parser detects multiple EPISODE markers in the uploaded script.
+    # Always has at least 1 entry when multipart_mode is True.
+    episodes_meta: list[tuple[int, str, str, str]] = []
     if multipart_mode:
         source_ext = Path(uploaded.filename).suffix.lower()
         if source_ext not in {".txt", ".md", ".docx", ".pdf"}:
@@ -1501,11 +1505,16 @@ def _api_new_project():
         parsed_path = f"/tmp/script_{job_id}.txt"
         source_mimetype = uploaded.mimetype or "application/octet-stream"
         uploaded.save(source_path)
+        split_dir = f"/tmp/script_{job_id}_episodes"
         try:
             from _parse_script import parse_script
-            parse_script(source_path, parsed_path)
+            parse_result = parse_script(source_path, parsed_path, split_dir=split_dir)
         except Exception as e:
             return jsonify({"ok": False, "error": str(e)}), 400
+        for (ep_num, title_auto, ep_text), ep_path in zip(
+            parse_result["episodes"], parse_result["episode_paths"]
+        ):
+            episodes_meta.append((ep_num, title_auto, str(ep_path), ep_text))
 
     append_job({
         "id": job_id,
@@ -1567,13 +1576,32 @@ def _api_new_project():
             if proc.returncode != 0:
                 tail = "\n".join(((proc.stdout or "") + "\n" + (proc.stderr or "")).splitlines()[-20:])
                 raise RuntimeError(f"{stage} failed exit={proc.returncode}\n{tail}")
+        # Each per-episode sheet lives in the same show folder; the gallery
+        # registry auto-detects them by name pattern (Ep N — Title).
+        # ep_sheets is [(ep_num, title, sheet_id, parsed_script_path), ...] —
+        # populated as we create each one. For text-only (no multipart) flow,
+        # ep_sheets stays empty and the rest of the worker uses sheet_id/folder_id
+        # directly like before.
+        ep_sheets: list[tuple[int, str, str, str]] = []
         failed_project_status = "Failed: setup"
         try:
-            _log(f"[1/5] _create_blank_sot.py --name {title!r}")
-            # Run as a subprocess — mirrors the storyboard / vidgen pattern.
-            # _create_blank_sot.py prints the new sheet ID and folder ID; we
-            # parse them from stdout.
-            cmd = [sys.executable, "_create_blank_sot.py", "--name", title]
+            # Determine sheet naming. Multi-episode → 'Ep 1 — Title' so the
+            # discovery regex picks it up. Single-episode → keep '<show> — SOT'
+            # for backwards compat (sajangnim-style).
+            is_multi_episode = len(episodes_meta) > 1
+            if is_multi_episode:
+                ep1_num, ep1_title, ep1_path, _ = episodes_meta[0]
+                first_sheet_name = f"Ep {ep1_num} — {ep1_title}"
+                _log(f"[1/5] Detected {len(episodes_meta)} episode(s) — multi-episode mode")
+                _log(f"      Ep 1 sheet name: {first_sheet_name}")
+            else:
+                first_sheet_name = f"{title} — SOT"
+                _log(f"[1/5] _create_blank_sot.py --name {title!r}")
+            # First _create_blank_sot.py run — creates the show folder + storyboards/
+            # + videos/ subfolders + the FIRST spreadsheet. Subsequent episodes
+            # reuse the folder via --in-folder.
+            cmd = [sys.executable, "_create_blank_sot.py",
+                   "--name", title, "--sheet-name", first_sheet_name]
             proc = subprocess.run(
                 cmd, cwd=str(PROJECT_ROOT),
                 capture_output=True, text=True, timeout=3600,
@@ -1594,6 +1622,44 @@ def _api_new_project():
                     f"sheet={sheet_id!r}, folder={folder_id!r}. stdout: {stdout[:300]}"
                 )
             _log(f"  ✓ sheet={sheet_id}, folder={folder_id}")
+
+            # Multi-episode: create additional sheets in the SAME folder for
+            # Ep 2, Ep 3, ... — each via _create_blank_sot.py --in-folder
+            if is_multi_episode:
+                ep_sheets.append((ep1_num, ep1_title, sheet_id, ep1_path))
+                for ep_num, ep_title, ep_path, _ in episodes_meta[1:]:
+                    extra_sheet_name = f"Ep {ep_num} — {ep_title}"
+                    _log(f"[1/5+] _create_blank_sot.py --in-folder ... '{extra_sheet_name}'")
+                    cmd_extra = [sys.executable, "_create_blank_sot.py",
+                                 "--name", f"{title} Ep {ep_num}",
+                                 "--in-folder", folder_id,
+                                 "--sheet-name", extra_sheet_name]
+                    proc_extra = subprocess.run(
+                        cmd_extra, cwd=str(PROJECT_ROOT),
+                        capture_output=True, text=True, timeout=3600,
+                    )
+                    stdout_extra = proc_extra.stdout or ""
+                    for line in stdout_extra.splitlines():
+                        _log(f"    {line}")
+                    if proc_extra.returncode != 0:
+                        if proc_extra.stderr:
+                            _log(f"    stderr: {proc_extra.stderr[:500]}")
+                        raise RuntimeError(
+                            f"_create_blank_sot.py (ep {ep_num}) exit={proc_extra.returncode}")
+                    extra_sheet, _ = _parse_create_stdout(stdout_extra)
+                    if not extra_sheet:
+                        raise RuntimeError(
+                            f"could not parse sheet ID for ep {ep_num}. stdout: {stdout_extra[:200]}")
+                    ep_sheets.append((ep_num, ep_title, extra_sheet, ep_path))
+                    _log(f"    ✓ ep {ep_num} sheet={extra_sheet}")
+            else:
+                # Single-episode flow: ep_sheets keeps the single-row shape
+                # so [5/5] generation code can iterate uniformly. parsed_path
+                # may be empty if !multipart_mode — in that case ep_sheets
+                # stays empty and the for-loop runs zero times.
+                if multipart_mode and episodes_meta:
+                    ep0_num, ep0_title, ep0_path, _ = episodes_meta[0]
+                    ep_sheets.append((ep0_num, ep0_title, sheet_id, ep0_path))
 
             script_drive_url = ""
             from auth import get_credentials
@@ -1631,6 +1697,28 @@ def _api_new_project():
                 ).execute()
                 _log(f"  ✓ script={original['id']} parsed={parsed['id']}")
 
+                # Multi-episode: also upload per-episode script files for
+                # producer reference (one .txt per episode in the show folder)
+                if len(episodes_meta) > 1:
+                    for ep_num, ep_title, ep_path, _ in episodes_meta:
+                        try:
+                            ep_uploaded = drive.files().create(
+                                body={"name": f"ep_{ep_num:02d}_script.txt",
+                                      "parents": [folder_id]},
+                                media_body=MediaFileUpload(
+                                    ep_path, mimetype="text/plain", resumable=False),
+                                fields="id",
+                                supportsAllDrives=True,
+                            ).execute()
+                            drive.permissions().create(
+                                fileId=ep_uploaded["id"],
+                                body={"role": "reader", "type": "anyone"},
+                                fields="id",
+                            ).execute()
+                        except Exception as e:
+                            _log(f"  ! ep_{ep_num:02d}_script.txt upload failed: {e}")
+                    _log(f"  ✓ uploaded {len(episodes_meta)} per-episode script(s)")
+
             _log("[3/5] Appending row to master Projects sheet")
             sh = gc.open_by_key(MASTER_PROJECTS_SHEET_ID)
             ws = sh.worksheet("Projects")
@@ -1666,26 +1754,30 @@ def _api_new_project():
             # continues in this same thread but the user is no longer blocked.
             _setup_done.set()
 
-            if multipart_mode:
-                _log(f"[5/5] Running generation chain depth={depth}")
+            if multipart_mode and ep_sheets:
+                ep_count = len(ep_sheets)
+                _log(f"[5/5] Running generation chain depth={depth} across {ep_count} episode(s)")
                 try:
-                    _run_stage("shotlist", [
-                        sys.executable, "shotlist_gen.py",
-                        "--script", parsed_path,
-                        "--sheet", sheet_id,
-                        "--name", title,
-                        "--locale", locale,
-                    ])
-                    if depth in {"storyboards", "bibles"}:
-                        _run_stage("storyboards", [
-                            sys.executable, "storyboard_generate.py",
-                            "--sheet", sheet_id,
+                    for ep_num, ep_title, ep_sheet_id, ep_script_path in ep_sheets:
+                        ep_label = f"Ep {ep_num} — {ep_title}"
+                        _log(f"  -- {ep_label} -> {ep_sheet_id}")
+                        _run_stage(f"shotlist-ep{ep_num}", [
+                            sys.executable, "shotlist_gen.py",
+                            "--script", ep_script_path,
+                            "--sheet", ep_sheet_id,
+                            "--name", ep_label,
+                            "--locale", locale,
                         ])
-                    if depth == "bibles":
-                        _run_stage("bibles", [
-                            sys.executable, "imggen_all_assets.py",
-                            "--sheet", sheet_id,
-                        ])
+                        if depth in {"storyboards", "bibles"}:
+                            _run_stage(f"storyboards-ep{ep_num}", [
+                                sys.executable, "storyboard_generate.py",
+                                "--sheet", ep_sheet_id,
+                            ])
+                        if depth == "bibles":
+                            _run_stage(f"bibles-ep{ep_num}", [
+                                sys.executable, "imggen_all_assets.py",
+                                "--sheet", ep_sheet_id,
+                            ])
                 except Exception as e:
                     stage = "generation"
                     msg = str(e)

@@ -198,6 +198,14 @@ def main():
     ap.add_argument("--parent-folder",
                     help="Drive folder ID to create the show folder inside. "
                          "If omitted, creates in My Drive root.")
+    ap.add_argument("--in-folder",
+                    help="Existing show-folder Drive ID. When set, skips folder "
+                         "creation and drops the spreadsheet directly into that "
+                         "folder. Useful for adding extra episode sheets to an "
+                         "existing show (multi-episode pattern).")
+    ap.add_argument("--sheet-name",
+                    help="Override the spreadsheet name (default: '<name> — SOT'). "
+                         "Use this with --in-folder to create 'Ep N — Title' sheets.")
     args = ap.parse_args()
 
     creds = get_credentials()
@@ -207,31 +215,38 @@ def main():
     print(f"Building blank SOT for: {args.name}", flush=True)
 
     # ---- 1. Drive folder structure -----------------------------------------
-    print("\n1/5 Drive folders…", flush=True)
-    folder_metadata = {
-        "name": args.name,
-        "mimeType": "application/vnd.google-apps.folder",
-    }
-    if args.parent_folder:
-        folder_metadata["parents"] = [args.parent_folder]
-    show_folder = drive.files().create(body=folder_metadata,
-                                        fields="id,webViewLink",
-                                        supportsAllDrives=True).execute()
-    show_folder_id = show_folder["id"]
-    print(f"   show folder: {show_folder['webViewLink']}", flush=True)
-
-    for sub in ["storyboards", "videos"]:
-        kid = drive.files().create(body={
-            "name": sub,
+    if args.in_folder:
+        # Reuse-existing-folder mode — skip folder creation entirely
+        show_folder_id = args.in_folder
+        print(f"\n1/5 Drive folders (reusing existing)…", flush=True)
+        print(f"   show folder: https://drive.google.com/drive/folders/{show_folder_id}", flush=True)
+    else:
+        print("\n1/5 Drive folders…", flush=True)
+        folder_metadata = {
+            "name": args.name,
             "mimeType": "application/vnd.google-apps.folder",
-            "parents": [show_folder_id],
-        }, fields="id", supportsAllDrives=True).execute()
-        print(f"   {sub}/ {kid['id']}", flush=True)
+        }
+        if args.parent_folder:
+            folder_metadata["parents"] = [args.parent_folder]
+        show_folder = drive.files().create(body=folder_metadata,
+                                            fields="id,webViewLink",
+                                            supportsAllDrives=True).execute()
+        show_folder_id = show_folder["id"]
+        print(f"   show folder: {show_folder['webViewLink']}", flush=True)
+
+        for sub in ["storyboards", "videos"]:
+            kid = drive.files().create(body={
+                "name": sub,
+                "mimeType": "application/vnd.google-apps.folder",
+                "parents": [show_folder_id],
+            }, fields="id", supportsAllDrives=True).execute()
+            print(f"   {sub}/ {kid['id']}", flush=True)
 
     # ---- 2. Create the spreadsheet inside the show folder ------------------
     print("\n2/5 Spreadsheet…", flush=True)
+    sheet_display_name = args.sheet_name or f"{args.name} — SOT"
     sheet_meta = drive.files().create(body={
-        "name": f"{args.name} — SOT",
+        "name": sheet_display_name,
         "mimeType": "application/vnd.google-apps.spreadsheet",
         "parents": [show_folder_id],
     }, fields="id,webViewLink", supportsAllDrives=True).execute()
