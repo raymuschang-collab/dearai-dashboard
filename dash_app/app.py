@@ -1615,6 +1615,11 @@ def _api_new_project():
                 _projects_cache.pop("data", None)
             _log("  ✓ cache flushed; new project visible at /projects")
 
+            # Setup is complete — the gallery URL is now addressable. Signal
+            # the endpoint to return success. The generation chain below
+            # continues in this same thread but the user is no longer blocked.
+            _setup_done.set()
+
             if multipart_mode:
                 _log(f"[5/5] Running generation chain depth={depth}")
                 try:
@@ -1666,15 +1671,42 @@ def _api_new_project():
             update_job(job_id, status="failed",
                        log="\n".join(log_lines[-200:]),
                        ended=datetime.now(timezone.utc).isoformat())
+            # Capture the error so the endpoint can return it if setup failed
+            _setup_error.append(err)
+        finally:
+            # Always signal — covers the case where setup itself raised
+            # before we reached the post-cache-flush set() call.
+            _setup_done.set()
+
+    # Block the response until project SETUP is done (folder + sheet + master
+    # row + cache flush). The slow generation chain (shotlist_gen → storyboards
+    # → bibles) continues in the same thread after the setup signal fires.
+    # Setup typically takes 15-40 sec. 90 sec timeout is the hard ceiling.
+    _setup_done = threading.Event()
+    _setup_error: list[str] = []
 
     threading.Thread(target=_run, daemon=True).start()
+
+    if not _setup_done.wait(timeout=90):
+        return jsonify({
+            "ok": False,
+            "error": "Project setup timed out after 90 seconds. Check /debug/jobs for details.",
+            "job_id": job_id,
+        }), 504
+    if _setup_error:
+        return jsonify({
+            "ok": False,
+            "error": f"Setup failed: {_setup_error[0]}",
+            "job_id": job_id,
+        }), 500
+
     return jsonify({
         "ok": True,
         "slug": slug,
         "gallery_slug": gallery_slug,
         "job_id": job_id,
         "redirect_url": redirect_url,
-        "message": f"Queued new project '{slug}'.",
+        "message": f"Project '{slug}' created. Generation continuing in background.",
     })
 
 
