@@ -24,3 +24,7 @@ authlib==1.6.0
 
 # --- Plotly (Dash transitive but pinned for stability) ---
 plotly==6.7.0
+
+# --- Script parsing ---
+pdfplumber
+python-docx

@@ -368,6 +368,168 @@ def render_projects_page(projects: list[dict], user_email: str = "") -> str:
     padding: 30px;
   }}
   footer a {{ color: var(--muted); }}
+
+  /* ===== New Project modal ===== */
+  .modal-backdrop {{
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: flex-start; justify-content: center;
+    overflow-y: auto;
+    padding: 40px 16px;
+  }}
+  .modal-backdrop.open {{ display: flex; }}
+  .modal {{
+    background: var(--card-bg);
+    color: var(--ink);
+    width: 100%; max-width: 640px;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    padding: 28px 32px 32px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+    position: relative;
+  }}
+  .modal-header {{
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 18px;
+  }}
+  .modal-header h2 {{
+    font-size: 20px; font-weight: 700; letter-spacing: -0.01em;
+  }}
+  .modal-close {{
+    background: none; border: none; color: var(--muted);
+    font-size: 22px; cursor: pointer; padding: 4px 8px;
+    border-radius: 6px;
+  }}
+  .modal-close:hover {{ color: var(--ink); background: var(--soft-bg); }}
+  .modal-body {{ display: flex; flex-direction: column; gap: 18px; }}
+  .modal-field {{ display: flex; flex-direction: column; gap: 6px; }}
+  .modal-field label {{
+    font-size: 12px; font-weight: 600; color: var(--ink);
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }}
+  .modal-field .hint {{ font-size: 11px; color: var(--muted); font-weight: 400; text-transform: none; letter-spacing: 0; }}
+  .modal-field input[type="text"],
+  .modal-field textarea,
+  .modal-field select {{
+    background: var(--soft-bg); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px 12px; font: inherit; font-size: 13px;
+    transition: border-color 0.15s;
+  }}
+  .modal-field input:focus,
+  .modal-field textarea:focus,
+  .modal-field select:focus {{ outline: none; border-color: var(--accent); }}
+  .modal-field textarea {{ resize: vertical; min-height: 60px; }}
+
+  /* File drop zone */
+  .drop-zone {{
+    background: var(--soft-bg);
+    border: 2px dashed var(--line);
+    border-radius: 10px;
+    padding: 28px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+  }}
+  .drop-zone:hover, .drop-zone.dragover {{
+    border-color: var(--accent); background: var(--code-bg);
+  }}
+  .drop-zone .dz-icon {{ font-size: 28px; margin-bottom: 8px; }}
+  .drop-zone .dz-main {{ font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 4px; }}
+  .drop-zone .dz-sub {{ font-size: 12px; color: var(--muted); }}
+  .drop-zone.has-file {{
+    border-style: solid; border-color: #2e8c4f;
+    background: rgba(46, 140, 79, 0.05);
+  }}
+  .drop-zone.has-file .dz-icon {{ color: #2e8c4f; }}
+
+  /* Radio cards */
+  .radio-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }}
+  .radio-card {{
+    background: var(--soft-bg);
+    border: 1.5px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: all 0.12s;
+    font-size: 13px;
+  }}
+  .radio-card:hover {{ border-color: var(--muted); }}
+  .radio-card.selected {{
+    border-color: var(--accent);
+    background: var(--code-bg);
+  }}
+  .radio-card .rc-title {{ font-weight: 600; color: var(--ink); }}
+  .radio-card .rc-sub {{ font-size: 11px; color: var(--muted); margin-top: 2px; }}
+
+  /* Depth choice — bigger cards with cost/time */
+  .depth-grid {{ display: flex; flex-direction: column; gap: 8px; }}
+  .depth-card {{
+    background: var(--soft-bg);
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: all 0.12s;
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  }}
+  .depth-card:hover {{ border-color: var(--muted); }}
+  .depth-card.selected {{
+    border-color: var(--accent);
+    background: var(--code-bg);
+    box-shadow: 0 0 0 1px var(--accent);
+  }}
+  .depth-card .dc-left .dc-title {{
+    font-weight: 700; font-size: 14px; color: var(--ink);
+  }}
+  .depth-card .dc-left .dc-sub {{
+    font-size: 12px; color: var(--muted); margin-top: 3px;
+  }}
+  .depth-card .dc-cost {{
+    font-family: monospace; font-size: 12px; color: var(--muted);
+    text-align: right; white-space: nowrap;
+  }}
+
+  .modal-actions {{
+    display: flex; justify-content: flex-end; gap: 10px;
+    margin-top: 6px; padding-top: 18px;
+    border-top: 1px solid var(--line);
+  }}
+  .modal-actions button {{
+    padding: 10px 18px; border-radius: 8px;
+    font: inherit; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.12s;
+  }}
+  .btn-cancel {{
+    background: none; border: 1px solid var(--line); color: var(--muted);
+  }}
+  .btn-cancel:hover {{ color: var(--ink); border-color: var(--ink); }}
+  .btn-submit {{
+    background: var(--accent); border: 1px solid var(--accent); color: white;
+  }}
+  .btn-submit:hover {{ filter: brightness(1.08); }}
+  .btn-submit:disabled {{ opacity: 0.6; cursor: wait; }}
+
+  .modal-error {{
+    background: rgba(255, 80, 80, 0.1);
+    border: 1px solid rgba(255, 80, 80, 0.4);
+    color: #d23030;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    display: none;
+  }}
+  .modal-error.show {{ display: block; }}
+
+  /* Form row layout (2 cols on desktop) */
+  .form-row {{ display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }}
+
+  @media (max-width: 600px) {{
+    .form-row, .radio-grid {{ grid-template-columns: 1fr; }}
+    .modal {{ padding: 22px 20px 26px; }}
+  }}
 </style>
 </head>
 <body>
@@ -392,7 +554,7 @@ def render_projects_page(projects: list[dict], user_email: str = "") -> str:
   <button class="filter-chip" data-filter="archived">Archived<span class="count">{counts.get('archived', 0)}</span></button>
   <button class="filter-chip" data-filter="all">All<span class="count">{counts['all']}</span></button>
   <span class="filter-spacer"></span>
-  <button class="new-proj-btn" onclick="alert('Coming in commit 5 — modal + form. For now, edit the master sheet directly: https://docs.google.com/spreadsheets/d/1J-x4b4hshrX3wdMItboQJzcjKkAff_jnKEiIKjpy0g0')">+ New Project</button>
+  <button class="new-proj-btn" onclick="openNewProjectModal()">+ New Project</button>
 </div>
 <main class="grid-wrap">
   <div class="grid" id="proj-grid">
@@ -501,6 +663,270 @@ def render_projects_page(projects: list[dict], user_email: str = "") -> str:
       }});
     }});
   }})();
+
+  // ===== New Project modal =====
+  let _scriptFile = null;
+  function openNewProjectModal() {{
+    const m = document.getElementById('new-proj-modal');
+    if (m) m.classList.add('open');
+  }}
+  function closeNewProjectModal() {{
+    const m = document.getElementById('new-proj-modal');
+    if (m) m.classList.remove('open');
+    _scriptFile = null;
+    const dz = document.getElementById('dz');
+    if (dz) {{
+      dz.classList.remove('has-file');
+      dz.querySelector('.dz-main').textContent = 'Drop your script here, or click to browse';
+      dz.querySelector('.dz-sub').textContent = '.txt · .md · .docx · .pdf — up to 10 MB';
+    }}
+    const err = document.getElementById('np-error');
+    if (err) err.classList.remove('show');
+    const submit = document.getElementById('np-submit');
+    if (submit) {{ submit.disabled = false; submit.textContent = 'Create Project'; }}
+  }}
+
+  function deriveTitleFromFilename(name) {{
+    // "hollow_pilot.txt" → "Hollow Pilot"
+    const base = name.replace(/\.[^.]+$/, '');
+    return base.replace(/[-_]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).trim();
+  }}
+
+  function showNPError(msg) {{
+    const el = document.getElementById('np-error');
+    el.textContent = msg;
+    el.classList.add('show');
+  }}
+
+  function selectRadio(group, value) {{
+    document.querySelectorAll(`[data-radio-group="${{group}}"]`).forEach(c => {{
+      c.classList.toggle('selected', c.dataset.value === value);
+    }});
+    document.getElementById(`np-${{group}}`).value = value;
+  }}
+
+  (function setupDropZone() {{
+    document.addEventListener('DOMContentLoaded', () => {{
+      const dz = document.getElementById('dz');
+      const fileInput = document.getElementById('dz-file');
+      if (!dz || !fileInput) return;
+
+      function handleFile(file) {{
+        if (!file) return;
+        const okExt = /\.(txt|md|docx|pdf)$/i.test(file.name);
+        if (!okExt) {{
+          showNPError('Unsupported file type. Use .txt, .md, .docx, or .pdf.');
+          return;
+        }}
+        if (file.size > 10 * 1024 * 1024) {{
+          showNPError('File is over 10 MB.');
+          return;
+        }}
+        _scriptFile = file;
+        dz.classList.add('has-file');
+        dz.querySelector('.dz-icon').textContent = '✓';
+        dz.querySelector('.dz-main').textContent = file.name;
+        dz.querySelector('.dz-sub').textContent = `${{(file.size/1024).toFixed(1)}} KB · ready to upload`;
+        // Auto-fill title if empty
+        const titleInput = document.getElementById('np-title');
+        if (titleInput && !titleInput.value.trim()) {{
+          titleInput.value = deriveTitleFromFilename(file.name);
+        }}
+        document.getElementById('np-error').classList.remove('show');
+      }}
+
+      dz.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', e => {{
+        const f = e.target.files && e.target.files[0];
+        if (f) handleFile(f);
+      }});
+      ['dragenter','dragover'].forEach(ev => dz.addEventListener(ev, e => {{
+        e.preventDefault(); dz.classList.add('dragover');
+      }}));
+      ['dragleave','drop'].forEach(ev => dz.addEventListener(ev, e => {{
+        e.preventDefault(); dz.classList.remove('dragover');
+      }}));
+      dz.addEventListener('drop', e => {{
+        const f = e.dataTransfer.files && e.dataTransfer.files[0];
+        if (f) handleFile(f);
+      }});
+
+      // Hook radio groups
+      document.querySelectorAll('[data-radio-group="type"]').forEach(c => {{
+        c.addEventListener('click', () => selectRadio('type', c.dataset.value));
+      }});
+      document.querySelectorAll('[data-radio-group="depth"]').forEach(c => {{
+        c.addEventListener('click', () => selectRadio('depth', c.dataset.value));
+      }});
+
+      // Submit handler
+      document.getElementById('np-submit').addEventListener('click', async () => {{
+        const title = document.getElementById('np-title').value.trim();
+        const type = document.getElementById('np-type').value;
+        const locale = document.getElementById('np-locale').value;
+        const depth = document.getElementById('np-depth').value;
+        const parentShow = document.getElementById('np-parent').value.trim();
+        const notes = document.getElementById('np-notes').value.trim();
+
+        // Validation
+        if (!_scriptFile) {{ showNPError('Please upload a script first.'); return; }}
+        if (!title) {{ showNPError('Title is required.'); return; }}
+        if (!depth) {{ showNPError('Pick how far to take it.'); return; }}
+
+        // Build multipart
+        const fd = new FormData();
+        fd.append('file', _scriptFile);
+        fd.append('title', title);
+        fd.append('type', type);
+        fd.append('locale', locale);
+        fd.append('depth', depth);
+        if (parentShow) fd.append('parent_show', parentShow);
+        if (notes) fd.append('notes', notes);
+
+        const submitBtn = document.getElementById('np-submit');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Uploading + starting…';
+
+        try {{
+          const res = await fetch('/api/new-project', {{ method: 'POST', body: fd }});
+          const data = await res.json();
+          if (!res.ok || !data.ok) {{
+            showNPError(data.error || `Server error (${{res.status}})`);
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Create Project';
+            return;
+          }}
+          // Redirect to gallery so user sees live progress
+          window.location.href = data.redirect_url || `/gallery/${{data.gallery_slug}}`;
+        }} catch (e) {{
+          showNPError('Network error: ' + e.message);
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Create Project';
+        }}
+      }});
+
+      // Close on backdrop click (not modal body)
+      const backdrop = document.getElementById('new-proj-modal');
+      backdrop.addEventListener('click', e => {{
+        if (e.target === backdrop) closeNewProjectModal();
+      }});
+      // ESC key
+      document.addEventListener('keydown', e => {{
+        if (e.key === 'Escape' && backdrop.classList.contains('open')) closeNewProjectModal();
+      }});
+    }});
+  }})();
 </script>
+
+<!-- ===== New Project Modal ===== -->
+<div class="modal-backdrop" id="new-proj-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>+ New Project</h2>
+      <button class="modal-close" onclick="closeNewProjectModal()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- File upload -->
+      <div class="modal-field">
+        <label>Script <span class="hint">— upload .txt, .md, .docx, or .pdf</span></label>
+        <div class="drop-zone" id="dz">
+          <div class="dz-icon">📄</div>
+          <div class="dz-main">Drop your script here, or click to browse</div>
+          <div class="dz-sub">.txt · .md · .docx · .pdf — up to 10 MB</div>
+          <input type="file" id="dz-file" accept=".txt,.md,.docx,.pdf" style="display:none">
+        </div>
+      </div>
+
+      <!-- Title -->
+      <div class="modal-field">
+        <label>Title <span class="hint">— will be the show name (auto-filled from script filename)</span></label>
+        <input type="text" id="np-title" placeholder="e.g. Hollow">
+      </div>
+
+      <!-- Type + Locale -->
+      <div class="form-row">
+        <div class="modal-field">
+          <label>Type</label>
+          <div class="radio-grid">
+            <div class="radio-card selected" data-radio-group="type" data-value="series">
+              <div class="rc-title">Series</div><div class="rc-sub">Multi-episode</div>
+            </div>
+            <div class="radio-card" data-radio-group="type" data-value="poc">
+              <div class="rc-title">POC</div><div class="rc-sub">Proof of concept</div>
+            </div>
+            <div class="radio-card" data-radio-group="type" data-value="concept">
+              <div class="rc-title">Concept</div><div class="rc-sub">Pitch / treatment</div>
+            </div>
+            <div class="radio-card" data-radio-group="type" data-value="client">
+              <div class="rc-title">Client</div><div class="rc-sub">Paid project</div>
+            </div>
+          </div>
+          <input type="hidden" id="np-type" value="series">
+        </div>
+        <div class="modal-field">
+          <label>Locale <span class="hint">— affects dialect + props</span></label>
+          <select id="np-locale">
+            <option value="generic">Generic</option>
+            <option value="jakarta">Jakarta (Bahasa)</option>
+            <option value="manila">Manila (Tagalog)</option>
+            <option value="seoul">Seoul (Korean)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Depth choice -->
+      <div class="modal-field">
+        <label>How far to take it</label>
+        <div class="depth-grid">
+          <div class="depth-card" data-radio-group="depth" data-value="text">
+            <div class="dc-left">
+              <div class="dc-title">🟢 Shotlist only</div>
+              <div class="dc-sub">Atomize script + populate 5 bibles as text. Fastest, cheapest.</div>
+            </div>
+            <div class="dc-cost">~5 min<br>$0</div>
+          </div>
+          <div class="depth-card" data-radio-group="depth" data-value="storyboards">
+            <div class="dc-left">
+              <div class="dc-title">🟡 + Storyboards</div>
+              <div class="dc-sub">Also auto-generate stick-figure storyboards for every set.</div>
+            </div>
+            <div class="dc-cost">~30 min<br>~$2</div>
+          </div>
+          <div class="depth-card" data-radio-group="depth" data-value="bibles">
+            <div class="dc-left">
+              <div class="dc-title">🔴 + Bible refs</div>
+              <div class="dc-sub">Full pre-production: shotlist + storyboards + character/location/prop ref images.</div>
+            </div>
+            <div class="dc-cost">~60 min<br>~$5</div>
+          </div>
+        </div>
+        <input type="hidden" id="np-depth" value="">
+      </div>
+
+      <!-- Optional fields -->
+      <div class="form-row">
+        <div class="modal-field">
+          <label>Parent Show <span class="hint">— optional, for spinoffs</span></label>
+          <input type="text" id="np-parent" placeholder="e.g. sajangnim">
+        </div>
+        <div class="modal-field">
+          <label>Notes <span class="hint">— optional</span></label>
+          <input type="text" id="np-notes" placeholder="anything to remember">
+        </div>
+      </div>
+
+      <!-- Error display -->
+      <div class="modal-error" id="np-error"></div>
+
+      <!-- Actions -->
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeNewProjectModal()">Cancel</button>
+        <button class="btn-submit" id="np-submit">Create Project</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>'''

@@ -1375,39 +1375,38 @@ def _api_upload_asset():
 
 @server.route("/api/new-project", methods=["POST"])
 def _api_new_project():
-    """Create a new project. Phase 1 — metadata + blank SOT scaffold only.
-    Script upload + Anthropic shotlist generation come in commits 6-8.
-
-    Body (JSON):
-      title       — display name, required (used to derive sheet/folder names)
-      slug        — URL-safe identifier; auto-derived from title if omitted
-      type        — series | poc | concept | client (default series)
-      parent_show — optional spinoff parent slug
-      notes       — optional free-text
-
-    Returns: {ok, slug, job_id, message}
-
-    Background job:
-      1. Validate slug uniqueness against master sheet
-      2. Run _create_blank_sot.py --name "<title>"
-         (which creates a Drive folder + SOT spreadsheet from the v2.2 template)
-      3. Append a row to the master Projects sheet with status="draft"
-      4. Flush read_projects cache so the new project shows up immediately
-    The /projects landing page polls /debug/jobs to track this job's progress.
-    """
+    """Create a new project, optionally from an uploaded script file."""
     from flask import request, jsonify
-    body = request.get_json(silent=True) or {}
-    title = (body.get("title") or "").strip()
-    raw_slug = (body.get("slug") or "").strip()
-    ptype = (body.get("type") or "series").strip().lower()
-    parent_show = (body.get("parent_show") or "").strip()
-    notes = (body.get("notes") or "").strip()
+
+    is_multipart_request = (request.mimetype or "").lower() == "multipart/form-data"
+    uploaded = request.files.get("file")
+    multipart_mode = uploaded is not None
+    body = {} if is_multipart_request else (request.get_json(silent=True) or {})
+    form = request.form if is_multipart_request else {}
+
+    title = ((form.get("title") if multipart_mode else body.get("title")) or "").strip()
+    raw_slug = (body.get("slug") or "").strip() if not multipart_mode else ""
+    ptype = ((form.get("type") if multipart_mode else body.get("type")) or "series").strip().lower()
+    locale = ((form.get("locale") if multipart_mode else body.get("locale")) or "generic").strip().lower()
+    depth = ((form.get("depth") if multipart_mode else body.get("depth")) or "").strip().lower()
+    parent_show = ((form.get("parent_show") if multipart_mode else body.get("parent_show")) or "").strip()
+    notes = ((form.get("notes") if multipart_mode else body.get("notes")) or "").strip()
 
     if not title:
-        return jsonify({"ok": False, "error": "title is required"}), 400
+        return jsonify({"ok": False, "error": "Title is required"}), 400
     if ptype not in {"series", "poc", "concept", "client"}:
         return jsonify({"ok": False,
                          "error": f"type must be one of series/poc/concept/client (got {ptype!r})"}), 400
+    if locale not in {"generic", "jakarta", "manila", "seoul"}:
+        return jsonify({"ok": False,
+                         "error": f"locale must be one of generic/jakarta/manila/seoul (got {locale!r})"}), 400
+    if multipart_mode and depth not in {"text", "storyboards", "bibles"}:
+        return jsonify({"ok": False,
+                         "error": "depth must be one of text/storyboards/bibles"}), 400
+    if is_multipart_request and not multipart_mode:
+        return jsonify({"ok": False, "error": "file is required"}), 400
+    if multipart_mode and (not uploaded or not uploaded.filename):
+        return jsonify({"ok": False, "error": "file is required"}), 400
     if not MASTER_PROJECTS_SHEET_ID:
         return jsonify({"ok": False,
                          "error": "MASTER_PROJECTS_SHEET_ID not set on server"}), 500
@@ -1420,31 +1419,60 @@ def _api_new_project():
     if not slug:
         return jsonify({"ok": False, "error": "could not derive a valid slug from the title"}), 400
 
-    # Uniqueness check against current master sheet
-    existing_slugs = {p["slug"] for p in read_projects(force=True)["projects"]}
+    try:
+        from auth import get_credentials
+        import gspread
+        gc_check = gspread.authorize(get_credentials())
+        ws_check = gc_check.open_by_key(MASTER_PROJECTS_SHEET_ID).worksheet("Projects")
+        existing_slugs = {s.strip() for s in ws_check.col_values(1)[1:] if s.strip()}
+    except Exception as e:
+        return jsonify({"ok": False,
+                         "error": f"could not read master Projects sheet: {e}"}), 500
     if slug in existing_slugs:
         return jsonify({"ok": False,
-                         "error": f"slug '{slug}' already exists. Pick a different one."}), 409
+                         "error": f"slug '{slug}' already exists. Pick a different one."}), 400
 
     # Owner email from session if auth is on
-    owner_email = ""
-    if AUTH_ENABLED:
-        try:
-            owner_email = (session.get("user_email") or "").lower()
-        except Exception:
-            pass
+    owner_email = "unknown"
+    try:
+        owner_email = (session.get("user_email") or "").lower() or "unknown"
+    except Exception:
+        pass
 
-    job_id = uuid.uuid4().hex[:8]
+    job_id = "job-" + datetime.utcnow().strftime("%Y%m%d") + "-" + uuid.uuid4().hex[:8]
+    gallery_slug = slug + "_ep01"
+    redirect_url = "/gallery/" + gallery_slug
+    source_path = ""
+    parsed_path = ""
+    source_ext = ""
+    source_mimetype = "application/octet-stream"
+    if multipart_mode:
+        source_ext = Path(uploaded.filename).suffix.lower()
+        if source_ext not in {".txt", ".md", ".docx", ".pdf"}:
+            return jsonify({"ok": False,
+                             "error": "file must be one of .txt, .md, .docx, .pdf"}), 400
+        source_path = f"/tmp/script_{job_id}{source_ext}"
+        parsed_path = f"/tmp/script_{job_id}.txt"
+        source_mimetype = uploaded.mimetype or "application/octet-stream"
+        uploaded.save(source_path)
+        try:
+            from _parse_script import parse_script
+            parse_script(source_path, parsed_path)
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
+
     append_job({
         "id": job_id,
         "label": f"new-project {slug} ({title})",
         "status": "queued",
         "started": datetime.now(timezone.utc).isoformat(),
         "log": "",
-        "cmd": f"_create_blank_sot.py --name {title!r}",
+        "cmd": f"_create_blank_sot.py --name {title!r}" +
+               (f" -> generation depth={depth}" if multipart_mode else ""),
         "kind": "new-project",
         "slug": slug,
         "type": ptype,
+        "depth": depth,
         "owner": owner_email,
     })
 
@@ -1454,15 +1482,55 @@ def _api_new_project():
         def _log(msg: str):
             log_lines.append(msg)
             update_job(job_id, log="\n".join(log_lines[-200:]))
+        def _parse_create_stdout(stdout: str) -> tuple[str, str]:
+            try:
+                payload = json.loads(stdout)
+                sheet = payload.get("sheet_id", "")
+                folder = payload.get("drive_folder_id", "")
+                if sheet and folder:
+                    return sheet, folder
+            except Exception:
+                pass
+            sheet = ""
+            folder = ""
+            for line in stdout.splitlines():
+                m = re.search(r"folders/([a-zA-Z0-9_-]{20,})", line)
+                if m and not folder:
+                    folder = m.group(1)
+                m = re.search(r"spreadsheets/d/([a-zA-Z0-9_-]{20,})", line)
+                if m and not sheet:
+                    sheet = m.group(1)
+            return sheet, folder
+        def _update_project_status(ws, row_num: int, status: str):
+            try:
+                ws.update_cell(row_num, 11, status)
+            except Exception as e:
+                _log(f"  ! failed to update Projects!K{row_num}: {e}")
+        def _run_stage(stage: str, cmd: list[str]):
+            _log(f"[stage:{stage}] {' '.join(cmd)}")
+            proc = subprocess.run(
+                cmd, cwd=str(PROJECT_ROOT),
+                capture_output=True, text=True, timeout=3600,
+            )
+            if proc.stdout:
+                for line in proc.stdout.splitlines():
+                    _log(f"  {line}")
+            if proc.stderr:
+                for line in proc.stderr.splitlines():
+                    _log(f"  stderr: {line}")
+            if proc.returncode != 0:
+                tail = "\n".join(((proc.stdout or "") + "\n" + (proc.stderr or "")).splitlines()[-20:])
+                raise RuntimeError(f"{stage} failed exit={proc.returncode}\n{tail}")
+        failed_project_status = "Failed: setup"
         try:
-            _log(f"[1/3] _create_blank_sot.py --name {title!r}")
+            _log(f"[1/5] _create_blank_sot.py --name {title!r}")
             # Run as a subprocess — mirrors the storyboard / vidgen pattern.
             # _create_blank_sot.py prints the new sheet ID and folder ID; we
             # parse them from stdout.
-            cmd = [PYTHON_BIN, "_create_blank_sot.py", "--name", title]
+            cmd = ["/usr/bin/python3", "_create_blank_sot.py", "--name", title]
             proc = subprocess.run(
                 cmd, cwd=str(PROJECT_ROOT),
-                capture_output=True, text=True, timeout=180,
+                capture_output=True, text=True, timeout=3600,
             )
             stdout = proc.stdout or ""
             stderr = proc.stderr or ""
@@ -1473,20 +1541,7 @@ def _api_new_project():
                     _log(f"  stderr: {stderr[:500]}")
                 raise RuntimeError(f"_create_blank_sot.py exit={proc.returncode}")
 
-            # Parse the sheet ID + folder ID from stdout.
-            # _create_blank_sot.py prints lines like "show folder: <link>" and
-            # "spreadsheet: <link>" — extract the IDs from the URLs.
-            sheet_id = ""
-            folder_id = ""
-            for line in stdout.splitlines():
-                # show folder webViewLink ends in /folders/<id>?...
-                m = re.search(r"folders/([a-zA-Z0-9_-]{20,})", line)
-                if m and not folder_id:
-                    folder_id = m.group(1)
-                # spreadsheet webViewLink ends in /spreadsheets/d/<id>/edit?...
-                m = re.search(r"spreadsheets/d/([a-zA-Z0-9_-]{20,})", line)
-                if m and not sheet_id:
-                    sheet_id = m.group(1)
+            sheet_id, folder_id = _parse_create_stdout(stdout)
             if not sheet_id or not folder_id:
                 raise RuntimeError(
                     f"could not parse sheet/folder IDs from _create_blank_sot.py output. "
@@ -1494,29 +1549,108 @@ def _api_new_project():
                 )
             _log(f"  ✓ sheet={sheet_id}, folder={folder_id}")
 
-            _log("[2/3] Appending row to master Projects sheet")
+            script_drive_url = ""
             from auth import get_credentials
             import gspread
-            gc = gspread.authorize(get_credentials())
+            from googleapiclient.discovery import build as _gbuild
+            from googleapiclient.http import MediaFileUpload
+            creds = get_credentials()
+            gc = gspread.authorize(creds)
+            drive = _gbuild("drive", "v3", credentials=creds)
+
+            if multipart_mode:
+                _log("[2/5] Uploading original + parsed script to Drive")
+                original = drive.files().create(
+                    body={"name": f"script{source_ext}", "parents": [folder_id]},
+                    media_body=MediaFileUpload(source_path, mimetype=source_mimetype, resumable=False),
+                    fields="id,webViewLink",
+                    supportsAllDrives=True,
+                ).execute()
+                drive.permissions().create(
+                    fileId=original["id"],
+                    body={"role": "reader", "type": "anyone"},
+                    fields="id",
+                ).execute()
+                script_drive_url = f"https://drive.google.com/file/d/{original['id']}/view"
+                parsed = drive.files().create(
+                    body={"name": "script_parsed.txt", "parents": [folder_id]},
+                    media_body=MediaFileUpload(parsed_path, mimetype="text/plain", resumable=False),
+                    fields="id",
+                    supportsAllDrives=True,
+                ).execute()
+                drive.permissions().create(
+                    fileId=parsed["id"],
+                    body={"role": "reader", "type": "anyone"},
+                    fields="id",
+                ).execute()
+                _log(f"  ✓ script={original['id']} parsed={parsed['id']}")
+
+            _log("[3/5] Appending row to master Projects sheet")
             sh = gc.open_by_key(MASTER_PROJECTS_SHEET_ID)
             ws = sh.worksheet("Projects")
             now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
             new_row = [
                 slug, title, ptype, "draft",
                 sheet_id, folder_id, parent_show, owner_email, now_iso,
-                "",                # script_drive_url (commit 6+)
-                "pending",         # shotlist_status
+                script_drive_url,
+                "generating" if multipart_mode else "pending",
                 notes,
             ]
-            ws.append_row(new_row, value_input_option="USER_ENTERED",
-                          insert_data_option="INSERT_ROWS",
-                          table_range="A1")
-            _log("  ✓ row appended")
+            append_result = ws.append_row(
+                new_row, value_input_option="USER_ENTERED",
+                insert_data_option="INSERT_ROWS", table_range="A1"
+            )
+            row_num = 0
+            updated_range = ((append_result or {}).get("updates") or {}).get("updatedRange", "")
+            m = re.search(r"!A(\d+):", updated_range)
+            if m:
+                row_num = int(m.group(1))
+            if not row_num:
+                found = ws.find(slug, in_column=1)
+                row_num = found.row if found else 0
+            _log(f"  ✓ row appended at Projects!A{row_num or '?'}")
 
-            _log("[3/3] Flushing read_projects cache")
+            _log("[4/5] Flushing read_projects cache")
             with _projects_cache_lock:
                 _projects_cache.pop("data", None)
             _log("  ✓ cache flushed; new project visible at /projects")
+
+            if multipart_mode:
+                _log(f"[5/5] Running generation chain depth={depth}")
+                try:
+                    _run_stage("shotlist", [
+                        "/usr/bin/python3", "shotlist_gen.py",
+                        "--script", parsed_path,
+                        "--sheet", sheet_id,
+                        "--name", title,
+                        "--locale", locale,
+                    ])
+                    if depth in {"storyboards", "bibles"}:
+                        _run_stage("storyboards", [
+                            "/usr/bin/python3", "storyboard_generate.py",
+                            "--sheet", sheet_id,
+                        ])
+                    if depth == "bibles":
+                        _run_stage("bibles", [
+                            "/usr/bin/python3", "imggen_all_assets.py",
+                            "--sheet", sheet_id,
+                        ])
+                except Exception as e:
+                    stage = "generation"
+                    msg = str(e)
+                    if msg.startswith("shotlist"):
+                        stage = "shotlist"
+                    elif msg.startswith("storyboards"):
+                        stage = "storyboards"
+                    elif msg.startswith("bibles"):
+                        stage = "bibles"
+                    failed_project_status = f"Failed: {stage}"
+                    if row_num:
+                        _update_project_status(ws, row_num, failed_project_status)
+                    raise
+                if row_num:
+                    _update_project_status(ws, row_num, "Done")
+                _log("  ✓ generation chain completed")
 
             update_job(job_id, status="done",
                        log="\n".join(log_lines[-200:]),
@@ -1524,6 +1658,11 @@ def _api_new_project():
         except Exception as e:
             err = f"{type(e).__name__}: {e}"
             log_lines.append(f"[FAIL] {err}")
+            if "ws" in locals() and "row_num" in locals() and row_num:
+                try:
+                    ws.update_cell(row_num, 11, failed_project_status)
+                except Exception:
+                    pass
             update_job(job_id, status="failed",
                        log="\n".join(log_lines[-200:]),
                        ended=datetime.now(timezone.utc).isoformat())
@@ -1532,9 +1671,10 @@ def _api_new_project():
     return jsonify({
         "ok": True,
         "slug": slug,
+        "gallery_slug": gallery_slug,
         "job_id": job_id,
-        "message": f"Queued new project '{slug}'; typical wall time ~30-60s. "
-                    "Check /projects after the job completes.",
+        "redirect_url": redirect_url,
+        "message": f"Queued new project '{slug}'.",
     })
 
 
