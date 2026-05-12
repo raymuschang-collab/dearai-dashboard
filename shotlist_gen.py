@@ -545,20 +545,27 @@ def main():
     # The fallback also catches API errors (quota, network) so the pipeline
     # never dead-ends — better to ship a coarse shotlist than nothing.
     use_claude = not args.heuristic and bool(os.environ.get("ANTHROPIC_API_KEY", "").strip())
+    atomizer_used = "claude"
     if not use_claude:
         reason = "user --heuristic flag" if args.heuristic else "ANTHROPIC_API_KEY not set"
         print(f"[atomize] using heuristic atomizer ({reason})", flush=True)
+        # Loud banner so it's obvious in the job log + Render logs
+        print(f"[atomize] === ATOMIZER=HEURISTIC ({reason}) ===", flush=True)
         shots = atomize(script_text, args.locale)
         bibles = build_bibles(script_text, shots, args.name)
+        atomizer_used = f"heuristic ({reason})"
     else:
         try:
             shots, bibles = atomize_with_claude(script_text, args.locale, args.name)
+            print(f"[atomize] === ATOMIZER=CLAUDE ({ANTHROPIC_MODEL}) ===", flush=True)
         except Exception as e:
             print(f"[atomize] Claude path failed: {type(e).__name__}: {e}", flush=True)
-            print(f"[atomize] falling back to heuristic atomizer", flush=True)
+            print(f"[atomize] === ATOMIZER=HEURISTIC (claude failed: {type(e).__name__}) ===", flush=True)
             shots = atomize(script_text, args.locale)
             bibles = build_bibles(script_text, shots, args.name)
+            atomizer_used = f"heuristic (claude failed: {type(e).__name__})"
 
+    print(f"[atomize] final: atomizer={atomizer_used} · shots={len(shots)}", flush=True)
     write_sheet(args.sheet, args.name, shots, bibles, args.dry_run)
 
 

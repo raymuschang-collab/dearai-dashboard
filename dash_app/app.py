@@ -1839,6 +1839,47 @@ def _debug_refresh():
     return jsonify({"ok": True, "msg": "all bible_reader caches invalidated"})
 
 
+@server.route("/debug/anthropic")
+def _debug_anthropic():
+    """Sanity-check: is the Anthropic atomizer wired up on this Render
+    instance? Returns whether ANTHROPIC_API_KEY is set, the anthropic
+    package imports, and (if both) a 1-token ping to validate the key
+    actually works. Use this before debugging why shotlist_gen.py fell
+    back to the heuristic."""
+    from flask import jsonify
+    out: dict = {}
+    key = os.environ.get("ANTHROPIC_API_KEY", "")
+    out["key_set"] = bool(key)
+    out["key_chars"] = len(key)
+    out["model"] = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-5")
+    try:
+        import anthropic
+        out["package_importable"] = True
+        out["package_version"] = getattr(anthropic, "__version__", "?")
+    except Exception as e:
+        out["package_importable"] = False
+        out["import_error"] = f"{type(e).__name__}: {e}"
+        return jsonify(out)
+    if not key:
+        out["ping"] = "skipped (no key)"
+        return jsonify(out)
+    try:
+        client = anthropic.Anthropic()
+        msg = client.messages.create(
+            model=out["model"],
+            max_tokens=8,
+            messages=[{"role": "user", "content": "say OK"}],
+        )
+        out["ping"] = "ok"
+        out["ping_text"] = (msg.content[0].text if msg.content else "")[:40]
+        out["ping_input_tokens"] = msg.usage.input_tokens
+        out["ping_output_tokens"] = msg.usage.output_tokens
+    except Exception as e:
+        out["ping"] = "failed"
+        out["ping_error"] = f"{type(e).__name__}: {str(e)[:200]}"
+    return jsonify(out)
+
+
 @server.route("/debug/higgs")
 def _debug_higgs():
     """Run `higgs auth token` and `higgs version` and report exit codes +
