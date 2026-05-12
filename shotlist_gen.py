@@ -528,11 +528,48 @@ def write_sheet(sheet_id: str, show_name: str, shots: list[list[str]], bibles, d
 
     chars, locs, props, costumes, effects = bibles
     ensure_ws(sh, "CHARACTERS", max(50, len(chars) + 2), 23).update(range_name=f"A1:W{len(chars)+1}", values=[CHARACTER_HEADERS] + chars, value_input_option="USER_ENTERED")
-    ensure_ws(sh, "LOCATIONS", max(50, len(locs) + 5), 15).update(range_name=f"A4:O{len(locs)+4}", values=[LOCATION_HEADERS] + locs, value_input_option="USER_ENTERED")
-    for title, rows in [("PROPS", props), ("COSTUME", costumes), ("EFFECTS", effects)]:
+
+    # LOCATIONS — write the rows, THEN inject the Prompt formula in col I.
+    # Without this, location_generate.py skips every row with "empty prompt".
+    locs_ws = ensure_ws(sh, "LOCATIONS", max(50, len(locs) + 5), 15)
+    locs_ws.update(range_name=f"A4:O{len(locs)+4}", values=[LOCATION_HEADERS] + locs, value_input_option="USER_ENTERED")
+    if locs:
+        loc_prompt_formulas = [
+            [(
+                f'=IF(A{r}="","","Cinematic photorealistic "&IF(B{r}="","wide ",B{r}&" ")&'
+                f'IF(C{r}="","",C{r}&" ")&"shot of "&A{r}&". "&D{r}&'
+                f'IF(E{r}=""," "," Lighting: "&E{r}&".")&'
+                f'IF(F{r}=""," "," Time: "&F{r}&".")&" No people, no text. 16:9 cinematic.")'
+            )] for r in range(5, 5 + len(locs))
+        ]
+        locs_ws.update(range_name=f"I5:I{4+len(locs)}", values=loc_prompt_formulas, value_input_option="USER_ENTERED")
+
+    # PROPS / COSTUME / EFFECTS — same pattern. Prompt formula in col F.
+    # bible_generate.py reads row[5] (col F) as prompt.
+    for title, rows, kind in [
+        ("PROPS", props, "Studio product photography of "),
+        ("COSTUME", costumes, "Costume reference photograph of "),
+        ("EFFECTS", effects, "VFX reference image: "),
+    ]:
         ws = ensure_ws(sh, title, max(50, len(rows) + 6), 11)
         values = [SIMPLE_BIBLE_HEADERS] + rows if rows else [SIMPLE_BIBLE_HEADERS]
         ws.update(range_name=f"A5:K{len(values)+4}", values=values, value_input_option="USER_ENTERED")
+        if rows:
+            tail = ("Off-white studio background (light ivory), soft directional lighting, "
+                    "no humans, no text, 1:1 square."
+                    if title == "PROPS" else
+                    "Mannequin or invisible-body display, off-white studio background, "
+                    "soft directional lighting, no people, 1:1 square."
+                    if title == "COSTUME" else
+                    "Isolated effect element on off-white background, no scene context, "
+                    "no people, no text, 1:1 square.")
+            prop_formulas = [
+                [(
+                    f'=IF(A{r}="","","{kind}"&A{r}&". "&C{r}&'
+                    f'IF(E{r}=""," "," "&E{r}&" ")&"{tail}")'
+                )] for r in range(6, 6 + len(rows))
+            ]
+            ws.update(range_name=f"F6:F{5+len(rows)}", values=prop_formulas, value_input_option="USER_ENTERED")
     print(f"Done: wrote {len(shots)} shots, {set_count} sets, and text bible rows to {sh.title}")
 
 
