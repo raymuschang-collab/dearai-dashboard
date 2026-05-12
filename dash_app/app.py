@@ -1761,6 +1761,85 @@ def _api_new_project():
             if multipart_mode and ep_sheets:
                 ep_count = len(ep_sheets)
                 _log(f"[5/5] Running generation chain depth={depth} across {ep_count} episode(s)")
+
+                def _setup_storyboard_folders(ep_num: int, ep_sheet_id: str) -> None:
+                    """Per-episode: create storyboards/ep_NN/set-NN/ folders +
+                    populate Storyboard Prompts!E with their URLs. Without
+                    this, storyboard_generate.py fails every set with
+                    'bad folder url'.
+
+                    Reads the actual set count from the Storyboard Prompts
+                    tab (Claude wrote rows for each set of 5 shots), so this
+                    must run AFTER shotlist_gen.py.
+                    """
+                    try:
+                        sp_ws = gc.open_by_key(ep_sheet_id).worksheet("Storyboard Prompts")
+                        set_nums = [r[0] for r in sp_ws.get("A11:A100") if r and r[0].strip()]
+                        if not set_nums:
+                            _log(f"    no sets in Storyboard Prompts — skipping folder setup")
+                            return
+                        # Find/create the storyboards/ subfolder under the show folder
+                        sb_parent = drive.files().list(
+                            q=f"'{folder_id}' in parents and name='storyboards' and "
+                              f"mimeType='application/vnd.google-apps.folder' and trashed=false",
+                            fields="files(id)", supportsAllDrives=True,
+                        ).execute().get("files", [])
+                        if not sb_parent:
+                            _log(f"    no storyboards/ subfolder found — skipping")
+                            return
+                        sb_parent_id = sb_parent[0]["id"]
+                        # ep_NN/ subfolder
+                        ep_folder_name = f"ep_{ep_num:02d}"
+                        ep_existing = drive.files().list(
+                            q=f"'{sb_parent_id}' in parents and name='{ep_folder_name}' and "
+                              f"mimeType='application/vnd.google-apps.folder' and trashed=false",
+                            fields="files(id)", supportsAllDrives=True,
+                        ).execute().get("files", [])
+                        if ep_existing:
+                            ep_folder_id_local = ep_existing[0]["id"]
+                        else:
+                            ep_folder = drive.files().create(body={
+                                "name": ep_folder_name,
+                                "mimeType": "application/vnd.google-apps.folder",
+                                "parents": [sb_parent_id],
+                            }, fields="id", supportsAllDrives=True).execute()
+                            ep_folder_id_local = ep_folder["id"]
+                        # set-NN/ subfolders + URLs
+                        urls = []
+                        for s in set_nums:
+                            set_name = f"set-{int(s):02d}"
+                            existing = drive.files().list(
+                                q=f"'{ep_folder_id_local}' in parents and name='{set_name}' and "
+                                  f"mimeType='application/vnd.google-apps.folder' and trashed=false",
+                                fields="files(id)", supportsAllDrives=True,
+                            ).execute().get("files", [])
+                            if existing:
+                                set_id = existing[0]["id"]
+                            else:
+                                set_f = drive.files().create(body={
+                                    "name": set_name,
+                                    "mimeType": "application/vnd.google-apps.folder",
+                                    "parents": [ep_folder_id_local],
+                                }, fields="id", supportsAllDrives=True).execute()
+                                set_id = set_f["id"]
+                                try:
+                                    drive.permissions().create(
+                                        fileId=set_id,
+                                        body={"role": "reader", "type": "anyone"},
+                                        fields="id",
+                                    ).execute()
+                                except Exception:
+                                    pass
+                            urls.append([f"https://drive.google.com/drive/folders/{set_id}"])
+                        sp_ws.update(
+                            range_name=f"E11:E{10 + len(urls)}",
+                            values=urls,
+                            value_input_option="USER_ENTERED",
+                        )
+                        _log(f"    ✓ created storyboards/{ep_folder_name}/set-NN/ × {len(urls)} + wrote col E")
+                    except Exception as e:
+                        _log(f"    ! folder setup failed: {type(e).__name__}: {e}")
+
                 try:
                     for ep_num, ep_title, ep_sheet_id, ep_script_path in ep_sheets:
                         ep_label = f"Ep {ep_num} — {ep_title}"
@@ -1772,6 +1851,10 @@ def _api_new_project():
                             "--name", ep_label,
                             "--locale", locale,
                         ])
+                        # After atomization, set up the per-episode storyboard
+                        # folder tree + column E URLs. storyboard_generate.py
+                        # needs these to upload generated images.
+                        _setup_storyboard_folders(ep_num, ep_sheet_id)
                         if depth in {"storyboards", "bibles"}:
                             _run_stage(f"storyboards-ep{ep_num}", [
                                 sys.executable, "storyboard_generate.py",
