@@ -68,25 +68,28 @@ STORYBOARD_PROMPTS_HEADERS = [
     "Location", "Video Iter 1 URL", "Video Iter 2 URL",
 ]
 
-# Storyboard Prompts globals locked at B1-B8 (pencil-on-paper preamble).
+# Storyboard Prompts globals locked at B1-B8.
+# B1 = camera, B2 = music, B3 = dialogue/accent. These three are prepended
+# by the SP body formula to every set, so per-shot rows DON'T repeat
+# "No music. Dialogue in X accent." — those go here once, globally.
 SP_GLOBALS = [
-    ("A1", "Camera Global"),       ("B1", "Shot with Arri 35."),
+    ("A1", "Camera Global"),       ("B1", "Shot with Arri Alexa. 35mm film look."),
     ("A2", "Music"),                ("B2", "No music."),
-    ("A3", "Drawing Style"),        ("B3", "Pencil-on-paper storyboard sketch. Characters drawn as TRUE stick figures: simple circle heads with NO facial features, simple line bodies, foreground/midground/background depth cues. NO text, NO color."),
-    ("A4", "Panel Framing"),        ("B4", "5-panel storyboard. Each panel labelled by shot number. Camera angle/movement label centered at the bottom of each panel. Panels divided by black lines, flowing left-to-right then top-to-bottom."),
-    ("A5", "Aspect"),               ("B5", "16:9 storyboard panel aspect."),
-    ("A6", "Language"),             ("B6", "English shot description text only."),
-    ("A7", "Accent"),                ("B7", "<edit per show — e.g. Jakarta Bahasa with Korean code-switch>"),
-    ("A8", "Style Anchor"),          ("B8", "Pencil texture, light hand-drawn, no shading beyond simple cross-hatch. NO photorealistic detail."),
+    ("A3", "Dialogue"),             ("B3", "Dialogue in natural local accent (English by default)."),
+    ("A4", "Drawing Style"),        ("B4", "Pencil-on-paper storyboard sketch. Characters drawn as TRUE stick figures: simple circle heads with NO facial features, simple line bodies, foreground/midground/background depth cues. NO text, NO color."),
+    ("A5", "Panel Framing"),        ("B5", "5-panel storyboard. Each panel labelled by shot number. Camera angle/movement label centered at the bottom of each panel. Panels divided by black lines, flowing left-to-right then top-to-bottom."),
+    ("A6", "Aspect"),               ("B6", "16:9 storyboard panel aspect."),
+    ("A7", "Language"),             ("B7", "English shot description text only."),
+    ("A8", "Style Anchor"),         ("B8", "Pencil texture, light hand-drawn, no shading beyond simple cross-hatch. NO photorealistic detail."),
 ]
 
 # Video Prompts globals at B1-B6 (EN + Bahasa).
 VP_GLOBALS = [
-    ("A1", "Camera Global"),                    ("B1", "Shot with Arri 35."),
-    ("A2", "Audio/Dialogue Global"),            ("B2", "<edit per show — language directive, mood>"),
+    ("A1", "Camera Global"),                    ("B1", "Shot with Arri Alexa. 35mm film look."),
+    ("A2", "Audio/Dialogue Global"),            ("B2", "No music. Dialogue in natural local accent (English by default)."),
     ("A3", "Setting Global"),                   ("B3", "<edit per show — locations, era, geography>"),
-    ("A4", "Bahasa Camera"),                    ("B4", "Difilmkan dengan Arri 35."),
-    ("A5", "Bahasa Audio/Dialogue"),            ("B5", "<edit per show>"),
+    ("A4", "Bahasa Camera"),                    ("B4", "Difilmkan dengan Arri Alexa. Tampilan film 35mm."),
+    ("A5", "Bahasa Audio/Dialogue"),            ("B5", "Tanpa musik. Dialog dalam aksen lokal alami."),
     ("A6", "Bahasa Setting"),                   ("B6", "<edit per show>"),
 ]
 
@@ -129,16 +132,20 @@ ASSET_LIBRARY_HEADERS_ROW4 = [
 
 
 def shotlist_q_formula(row: int) -> str:
-    """v2.2 Prompt formula for Shotlist!Q on a specific row. Cell-relative
-    refs auto-adjust if user fills-down. Same shape used by the
-    microdrama-shotlist-bahasa skill. Wrapped in IF(A{row}="","",…) so
-    empty rows resolve to "" instead of garbled string-with-empty-fields."""
+    """v2.4 Prompt formula for Shotlist!Q. Just the per-shot details —
+    NO 'No music' / 'Dialogue in X accent' prefix (those globals live in
+    Storyboard Prompts!B1-B3 and get prepended once, globally, by the SP
+    body formula).
+
+    Wrapped in IF(A{row}="","",…) so empty rows resolve to "" instead
+    of a garbled string-with-empty-fields."""
     r = row
     return (
-        f'=IF(A{r}="","","No music. Dialogue in "&I{r}&" accent."&CHAR(10)'
-        f'&A{r}&", "&B{r}&"s, "&C{r}&", "&D{r}&", "&F{r}'
+        f'=IF(A{r}="","",'
+        f'A{r}&", "&B{r}&"s, "&C{r}&", "&D{r}&", "&F{r}'
         f'&IF(G{r}="",IF(J{r}="","",", ("&J{r}&")"),", "&G{r}&IF(J{r}="",""," ("&J{r}&")"))'
-        f'&IF(K{r}="",".", ", "&K{r}&"."))'
+        f'&IF(K{r}="",".", ", "&K{r}&".")'
+        f')'
     )
 
 

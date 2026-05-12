@@ -484,8 +484,16 @@ def render_card_grid(items: list[dict], kind: str) -> str:
         for i in (it.get("iters") or []):
             if not i:
                 continue
+            # Bible asset thumb — wire into the lightbox so click expands the image
+            # inline instead of opening Drive in a new tab. Falls back to view
+            # link if lightbox JS fails to load.
+            file_id = drive_id(i["view"])
+            big = thumb(file_id, 2400) if file_id else i["thumb"]
             iters_html += (
-                f'<a class="thumb" href="{html.escape(i["view"])}" target="_blank">'
+                f'<a class="thumb lb-trigger" href="{html.escape(i["view"])}" '
+                f'data-lb-src="{html.escape(big)}" data-lb-label="{html.escape(it.get("name", "") + " · " + i["label"])}" '
+                f'data-lb-view="{html.escape(i["view"])}" '
+                f'onclick="openLightbox(this); return false;">'
                 f'<img src="{html.escape(i["thumb"])}" alt="{html.escape(i["label"])}" loading="lazy">'
                 f'<span class="label">{html.escape(i["label"])}</span>'
                 f'</a>'
@@ -789,8 +797,16 @@ def render_asset_library(assets: list[dict]) -> str:
             thumb_url = a.get("thumb_url") or ""
             link_target = a["source_url"] or "#"
             if thumb_url:
+                # Wire Asset Library thumbs into the lightbox too. Get a
+                # higher-res variant by replacing the small thumbnail size
+                # in the URL (works for lh3.googleusercontent style URLs).
+                src_file_id = drive_id(link_target) if link_target.startswith("http") else ""
+                big = thumb(src_file_id, 2400) if src_file_id else thumb_url
                 thumb_html = (
-                    f'<a href="{html.escape(link_target)}" target="_blank" class="al-thumb">'
+                    f'<a class="al-thumb lb-trigger" href="{html.escape(link_target)}" '
+                    f'data-lb-src="{html.escape(big)}" data-lb-label="{html.escape(a["name"])}" '
+                    f'data-lb-view="{html.escape(link_target)}" '
+                    f'onclick="openLightbox(this); return false;">'
                     f'<img src="{html.escape(thumb_url)}" alt="{html.escape(a["name"])}" loading="lazy" '
                     f'onerror="this.parentElement.classList.add(\'placeholder\');this.replaceWith(document.createTextNode(\'{html.escape((a["name"][:1] or "?").upper())}\'))">'
                     f'</a>'
