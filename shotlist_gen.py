@@ -367,17 +367,30 @@ Script:
 
 Output the atomized v2.2 shotlist + bibles as a single JSON object per the system prompt schema. Target 60-80 shots. Apply HOOK / JOLT 1-4 / CLIFF beat tags. Extract every named character / location / prop / costume / effect into the bibles. Output JSON only."""
 
-    print(f"[claude] atomizing with {ANTHROPIC_MODEL}...", flush=True)
+    print(f"[claude] atomizing with {ANTHROPIC_MODEL} (streaming, max_tokens={ANTHROPIC_MAX_TOKENS})...", flush=True)
     t0 = time.time()
-    msg = client.messages.create(
+    # Use streaming — the SDK refuses non-streaming requests when max_tokens
+    # is high enough to potentially run >10 minutes (e.g. 32000 tokens on
+    # Sonnet 4.5). Streaming also lets us print incremental progress.
+    text_chunks: list[str] = []
+    last_progress = time.time()
+    with client.messages.stream(
         model=ANTHROPIC_MODEL,
         max_tokens=ANTHROPIC_MAX_TOKENS,
         system=ATOMIZATION_SYSTEM_PROMPT,
         messages=[{"role": "user", "content": user_prompt}],
-    )
+    ) as stream:
+        for chunk in stream.text_stream:
+            text_chunks.append(chunk)
+            # Heartbeat every ~10s so long generations don't look hung in the
+            # Render logs.
+            if time.time() - last_progress > 10:
+                print(f"[claude] streaming… {sum(len(c) for c in text_chunks)} chars so far", flush=True)
+                last_progress = time.time()
+        final_msg = stream.get_final_message()
     dt = time.time() - t0
-    raw = "".join(b.text for b in msg.content if hasattr(b, "text"))
-    usage = msg.usage
+    raw = "".join(text_chunks)
+    usage = final_msg.usage
     print(f"[claude] {dt:.1f}s · in={usage.input_tokens} out={usage.output_tokens} "
           f"· ≈${(usage.input_tokens * 3 + usage.output_tokens * 15) / 1_000_000:.3f}",
           flush=True)
