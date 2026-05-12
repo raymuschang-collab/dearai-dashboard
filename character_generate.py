@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Generate character reference sheets via fal.ai gpt-image-1.
+Generate character reference sheets via Higgsfield gpt_image_2.
 
 Reads the CHARACTERS tab, fills the character-bible prompt with each row's
-data, calls fal.ai gpt-image-1 (1536x1024 high quality), uploads the PNG to
+data, calls Higgsfield gpt_image_2, uploads the PNG to
 the show's character-refs/ Drive folder, sets anyone-with-link sharing,
 writes the URL back to the Reference Image URL column.
 
@@ -118,18 +118,38 @@ def generate_image(prompt: str, aspect_ratio: str, quality: str,
 
 
 def upload_and_share(drive, folder_id: str, filename: str, content: bytes) -> str:
-    media = MediaIoBaseUpload(io.BytesIO(content), mimetype="image/png", resumable=False)
-    file = drive.files().create(
-        body={"name": filename, "parents": [folder_id]},
-        media_body=media,
-        fields="id,webViewLink",
-    ).execute()
-    drive.permissions().create(
-        fileId=file["id"],
-        body={"role": "reader", "type": "anyone"},
-        fields="id",
-    ).execute()
-    return file["webViewLink"]
+    """Resumable upload — non-resumable BrokenPipe'd on 6-8MB
+    gpt_image_2 character-sheet outputs. 1MB chunks survive transient
+    network hiccups between the local box and Drive's edge."""
+    # Write to a tempfile so MediaFileUpload can stream it in chunks
+    # (resumable streaming from a BytesIO is unreliable across forks).
+    import tempfile
+    from googleapiclient.http import MediaFileUpload
+    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tf:
+        tf.write(content)
+        tmp_path = tf.name
+    try:
+        media = MediaFileUpload(tmp_path, mimetype="image/png",
+                                resumable=True, chunksize=1024 * 1024)
+        request = drive.files().create(
+            body={"name": filename, "parents": [folder_id]},
+            media_body=media,
+            fields="id,webViewLink",
+        )
+        response = None
+        while response is None:
+            _, response = request.next_chunk()
+        drive.permissions().create(
+            fileId=response["id"],
+            body={"role": "reader", "type": "anyone"},
+            fields="id",
+        ).execute()
+        return response["webViewLink"]
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
 
 
 # Single-iter per char from now on. Each regen produces iter 1 (off-white bg)
