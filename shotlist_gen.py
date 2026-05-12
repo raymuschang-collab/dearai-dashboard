@@ -99,9 +99,20 @@ Apply beat tags ONLY on structural peaks:
 
 Format: "Merge w/ {earlier shot #}; {camera move description ending at the current row's subject}."
 
-# Bible extraction
+# Bible extraction + INFERENCE
 
-Read the script and extract every named entity. For each, produce a row with as much detail as the script provides; mark unknown fields "".
+Read the script and extract every named entity. For each, produce a row that the production team can hand straight to an image-generation pipeline — that means every field is populated, not just the ones the script literally describes.
+
+**INFER missing fields from context.** The script often gives a name and a function but no physical description ("Lockers along the walls", "The Brizo's cockpit", "Helmet"). Treat those as starting points and INFER plausible details:
+
+- **Era / setting** — derive from the script's overall world (futuristic underwater research vessel ≠ 1880s Wild West saloon ≠ contemporary Jakarta bistro). Every prop, costume, and location detail should be physically consistent with that world.
+- **Character context** — when a character holds, wears, or owns a prop, infer its style from their personality and station (a junior chef's knife = worn, inherited, simple wooden handle; a CEO's pen = lacquered Montblanc-equivalent).
+- **Story tone** — a thriller's "mirror" should look battered and shadowed; a romcom's "mirror" should be clean and warmly lit. Match the script's emotional register.
+- **Plausibility over invention** — don't make up exotic features the script wouldn't support. A "chair in a bedroom" can be inferred as "wood-frame upholstered chair with worn fabric" (plausible); not "intricately carved Edwardian armchair with hidden compartments" (invented).
+
+Empty fields are only acceptable for fields you genuinely cannot infer (a character's exact height, a prop's brand). For lighting / time-of-day / description / wardrobe / mood / personality / build — always provide a reasoned guess. Mark inferred fields with a leading "~" only if you want to flag uncertainty: e.g. "~mid-30s" for age when the script doesn't say.
+
+The downstream image generator reads the `description` field directly as a prompt. If `description` is empty, the image is skipped. So **every bible row's `description` must be at least one full sentence of physical/visual detail**.
 
 ## characters[]
 
@@ -181,7 +192,7 @@ Each item:
 - Dialogue must be in SOURCE LANGUAGE in the dialogue field — don't translate to English. Put English in the english_translation field instead if source language ≠ English.
 - Microexpressions populated only when a face is visible.
 - SFX short, semicolons separating multiple sounds.
-- Bibles populated with EVERY named entity found in the script, with reasonable producer-quality detail in each field.
+- Bibles populated with EVERY named entity found in the script, with reasoned producer-quality detail in each field — INFERRING physical/visual details where the script is silent. Empty `description` is unacceptable; it kills the downstream image generation pipeline.
 
 Output the JSON object directly. No fenced blocks, no commentary. Just the JSON."""
 
