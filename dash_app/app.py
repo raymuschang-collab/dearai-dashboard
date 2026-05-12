@@ -973,14 +973,38 @@ def _projects_landing():
     """
     from flask import Response
     from build_projects_page import render_projects_page
+    import traceback
     user_email = session.get("user_email", "") if AUTH_ENABLED else ""
     try:
         data = read_projects()
-        html_doc = render_projects_page(data["projects"], user_email=user_email)
     except Exception as e:
-        return Response(
-            f"<h1>Projects landing failed</h1><p>{type(e).__name__}: {e}</p>",
-            status=500, mimetype="text/html",
+        traceback.print_exc()
+        data = {"projects": []}
+    # Try to render with the loaded data. If the renderer itself crashes,
+    # fall back to a minimal page that STILL has the "+ New Project" button
+    # so producers aren't locked out of the CMS when a single row is bad.
+    try:
+        html_doc = render_projects_page(data.get("projects", []), user_email=user_email)
+    except Exception as e:
+        traceback.print_exc()
+        err = f"{type(e).__name__}: {str(e)[:200]}"
+        html_doc = (
+            "<!DOCTYPE html><html><head><title>DearAI Projects</title>"
+            "<style>body{font-family:Inter,system-ui,sans-serif;padding:40px;"
+            "background:#fafafa;color:#1a1a1a;}button{background:#c11647;color:white;"
+            "border:0;border-radius:6px;padding:10px 18px;font-size:14px;cursor:pointer;}"
+            ".err{background:#fee;border:1px solid #c11647;color:#c11647;padding:12px;"
+            "border-radius:4px;margin:20px 0;font-family:JetBrains Mono,monospace;"
+            "font-size:12px;}</style></head><body>"
+            "<h1>Projects</h1>"
+            f"<div class='err'>Render failed: {err}</div>"
+            "<p>You can still start a new project, or edit the master sheet directly.</p>"
+            "<p><button onclick=\"alert('Modal disabled in fallback mode — '"
+            "'use the master sheet directly to fix the bad row, then refresh.')\">"
+            "+ New Project</button> &nbsp; "
+            "<a href='https://docs.google.com/spreadsheets/d/"
+            "1J-x4b4hshrX3wdMItboQJzcjKkAff_jnKEiIKjpy0g0' target='_blank'>"
+            "Open master sheet</a></p></body></html>"
         )
     return Response(html_doc, mimetype="text/html",
                     headers={"Cache-Control": "max-age=30, must-revalidate"})

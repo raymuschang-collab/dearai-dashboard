@@ -144,7 +144,22 @@ def render_projects_page(projects: list[dict], user_email: str = "") -> str:
 
     # Hide archived from default view (toggleable via filter)
     visible_default = [p for p in projects if p.get("status", "").lower() != "archived"]
-    cards_html = "".join(_project_card(p) for p in visible_default)
+    # Defensive: render each card in isolation so one malformed master-sheet row
+    # can't crash the whole page (which would also kill the "+ New Project"
+    # button and trap the user with no way to fix the bad row from the UI).
+    card_chunks: list[str] = []
+    for p in visible_default:
+        try:
+            card_chunks.append(_project_card(p))
+        except Exception as e:
+            slug = p.get("slug", "?") if isinstance(p, dict) else "?"
+            card_chunks.append(
+                f'<div class="empty" style="border:1px solid #c11647;color:#c11647">'
+                f'⚠ failed to render <code>{_html.escape(slug)}</code>: '
+                f'{_html.escape(type(e).__name__)}: {_html.escape(str(e)[:120])}'
+                f'</div>'
+            )
+    cards_html = "".join(card_chunks)
     if not cards_html:
         cards_html = '<div class="empty">No projects yet. Click <b>+ New Project</b> to start.</div>'
 
