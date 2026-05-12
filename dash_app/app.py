@@ -1623,43 +1623,16 @@ def _api_new_project():
                 )
             _log(f"  ✓ sheet={sheet_id}, folder={folder_id}")
 
-            # Multi-episode: create additional sheets in the SAME folder for
-            # Ep 2, Ep 3, ... — each via _create_blank_sot.py --in-folder
-            if is_multi_episode:
-                ep_sheets.append((ep1_num, ep1_title, sheet_id, ep1_path))
-                for ep_num, ep_title, ep_path, _ in episodes_meta[1:]:
-                    extra_sheet_name = f"Ep {ep_num} — {ep_title}"
-                    _log(f"[1/5+] _create_blank_sot.py --in-folder ... '{extra_sheet_name}'")
-                    cmd_extra = [sys.executable, "_create_blank_sot.py",
-                                 "--name", f"{title} Ep {ep_num}",
-                                 "--in-folder", folder_id,
-                                 "--sheet-name", extra_sheet_name]
-                    proc_extra = subprocess.run(
-                        cmd_extra, cwd=str(PROJECT_ROOT),
-                        capture_output=True, text=True, timeout=3600,
-                    )
-                    stdout_extra = proc_extra.stdout or ""
-                    for line in stdout_extra.splitlines():
-                        _log(f"    {line}")
-                    if proc_extra.returncode != 0:
-                        if proc_extra.stderr:
-                            _log(f"    stderr: {proc_extra.stderr[:500]}")
-                        raise RuntimeError(
-                            f"_create_blank_sot.py (ep {ep_num}) exit={proc_extra.returncode}")
-                    extra_sheet, _ = _parse_create_stdout(stdout_extra)
-                    if not extra_sheet:
-                        raise RuntimeError(
-                            f"could not parse sheet ID for ep {ep_num}. stdout: {stdout_extra[:200]}")
-                    ep_sheets.append((ep_num, ep_title, extra_sheet, ep_path))
-                    _log(f"    ✓ ep {ep_num} sheet={extra_sheet}")
-            else:
-                # Single-episode flow: ep_sheets keeps the single-row shape
-                # so [5/5] generation code can iterate uniformly. parsed_path
-                # may be empty if !multipart_mode — in that case ep_sheets
-                # stays empty and the for-loop runs zero times.
-                if multipart_mode and episodes_meta:
-                    ep0_num, ep0_title, ep0_path, _ = episodes_meta[0]
-                    ep_sheets.append((ep0_num, ep0_title, sheet_id, ep0_path))
+            # Single-episode flow: ep_sheets keeps the single-row shape
+            # so [5/5] generation code can iterate uniformly. parsed_path
+            # may be empty if !multipart_mode — in that case ep_sheets
+            # stays empty and the for-loop runs zero times.
+            if multipart_mode and episodes_meta:
+                ep0_num, ep0_title, ep0_path, _ = episodes_meta[0]
+                ep_sheets.append((ep0_num, ep0_title, sheet_id, ep0_path))
+            # NOTE: extra episode sheets (Ep 2..N) are now created LATER, in
+            # the background phase after _setup_done.set(). This keeps the
+            # blocking section under Render's gateway timeout (~100s).
 
             script_drive_url = ""
             from auth import get_credentials
@@ -1753,6 +1726,37 @@ def _api_new_project():
             # the endpoint to return success. The generation chain below
             # continues in this same thread but the user is no longer blocked.
             _setup_done.set()
+
+            # Multi-episode background phase: create Ep 2..N sheets NOW that
+            # the user has been redirected. Each _create_blank_sot.py --in-folder
+            # run takes ~15-25s; doing this serially in the background keeps the
+            # blocking section fast while still landing all episodes within
+            # a few minutes total.
+            if is_multi_episode and multipart_mode:
+                _log(f"[5/5-pre] Creating {len(episodes_meta) - 1} additional episode sheet(s) in background")
+                for ep_num, ep_title, ep_path, _ in episodes_meta[1:]:
+                    extra_sheet_name = f"Ep {ep_num} — {ep_title}"
+                    _log(f"  _create_blank_sot.py --in-folder ... '{extra_sheet_name}'")
+                    cmd_extra = [sys.executable, "_create_blank_sot.py",
+                                 "--name", f"{title} Ep {ep_num}",
+                                 "--in-folder", folder_id,
+                                 "--sheet-name", extra_sheet_name]
+                    proc_extra = subprocess.run(
+                        cmd_extra, cwd=str(PROJECT_ROOT),
+                        capture_output=True, text=True, timeout=3600,
+                    )
+                    stdout_extra = proc_extra.stdout or ""
+                    if proc_extra.returncode != 0:
+                        if proc_extra.stderr:
+                            _log(f"    stderr: {proc_extra.stderr[:500]}")
+                        raise RuntimeError(
+                            f"_create_blank_sot.py (ep {ep_num}) exit={proc_extra.returncode}")
+                    extra_sheet, _ = _parse_create_stdout(stdout_extra)
+                    if not extra_sheet:
+                        raise RuntimeError(
+                            f"could not parse sheet ID for ep {ep_num}. stdout: {stdout_extra[:200]}")
+                    ep_sheets.append((ep_num, ep_title, extra_sheet, ep_path))
+                    _log(f"    ✓ ep {ep_num} sheet={extra_sheet}")
 
             if multipart_mode and ep_sheets:
                 ep_count = len(ep_sheets)

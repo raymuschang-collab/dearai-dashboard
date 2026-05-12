@@ -804,7 +804,29 @@ def render_projects_page(projects: list[dict], user_email: str = "") -> str:
 
         try {{
           const res = await fetch('/api/new-project', {{ method: 'POST', body: fd }});
-          const data = await res.json();
+          // Don't blindly call .json() — Render returns HTML on timeout / mid-deploy.
+          // Read as text first, sniff content type, and surface a clear error.
+          const raw = await res.text();
+          const ct = res.headers.get('content-type') || '';
+          let data;
+          if (ct.includes('application/json')) {{
+            try {{
+              data = JSON.parse(raw);
+            }} catch (_) {{
+              showNPError(`Server returned malformed JSON (status ${{res.status}}). First 200 chars: ${{raw.slice(0, 200)}}`);
+              submitBtn.disabled = false;
+              submitBtn.textContent = 'Create Project';
+              return;
+            }}
+          }} else {{
+            // Likely an HTML error page from Render (504 gateway timeout, mid-deploy, etc.)
+            const isHtml = raw.trim().startsWith('<');
+            const snippet = isHtml ? '(HTML response — server may be deploying or timed out)' : raw.slice(0, 200);
+            showNPError(`Server error (status ${{res.status}}): ${{snippet}}. Wait ~2 min for any deploy to complete, then retry.`);
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Create Project';
+            return;
+          }}
           if (!res.ok || !data.ok) {{
             showNPError(data.error || `Server error (${{res.status}})`);
             submitBtn.disabled = false;
@@ -814,7 +836,7 @@ def render_projects_page(projects: list[dict], user_email: str = "") -> str:
           // Redirect to gallery so user sees live progress
           window.location.href = data.redirect_url || `/gallery/${{data.gallery_slug}}`;
         }} catch (e) {{
-          showNPError('Network error: ' + e.message);
+          showNPError('Network error: ' + e.message + '. Check connection or wait if server is deploying.');
           submitBtn.disabled = false;
           submitBtn.textContent = 'Create Project';
         }}
