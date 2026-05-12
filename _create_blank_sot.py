@@ -327,28 +327,35 @@ def main():
 
     # Live formulas (separate batch with USER_ENTERED so formulas resolve)
     print("\n5/5 Formulas (live)…", flush=True)
-    # Shotlist Q+R — pre-fill formulas on rows 2-101 (100 shots) so when
-    # the microdrama-shotlist skill drops shot data into cols A-O, Q+R
-    # resolve immediately. Each formula is wrapped in IF(A{r}="", "", …)
-    # so empty rows render as "" not as garbled "No music. Dialogue in  accent…".
-    SHOTLIST_FORMULA_ROWS = 100  # bumpable — episodes typically ≤80 shots
+    # Pre-fill formulas across the FULL protected ranges so producers can
+    # annex shots/sets beyond the initial atomization. Every cell in the
+    # protected range gets a formula wrapped in IF(A{r}="","",...) — empty
+    # rows render as "" and the formula resolves automatically when the
+    # row gets shot data. Without this, rows 102+ (Shotlist) or 12+ (SP)
+    # would be EMPTY AND LOCKED — producers couldn't add the formula
+    # themselves and the auto-pipeline would write to a protected cell.
+    #
+    # Match exactly to protection ranges defined in stage 6:
+    #   Shotlist!Q2:R1000          → 999 rows of formula
+    #   Storyboard Prompts!C11:D100 + J11:K100  → 90 sets of formula
+    SHOTLIST_FORMULA_ROWS = 999     # matches Q2:R1000 protection (rows 2-1000)
+    SP_FORMULA_SETS = 90            # matches rows 11-100 protection
     q_values = [[shotlist_q_formula(r)] for r in range(2, 2 + SHOTLIST_FORMULA_ROWS)]
     r_values = [[f'=IF(A{r}="","",GOOGLETRANSLATE(Q{r},"en","id"))']
                  for r in range(2, 2 + SHOTLIST_FORMULA_ROWS)]
+    sp_c_values = [[storyboard_prompt_formula()] for _ in range(SP_FORMULA_SETS)]
+    sp_d_values = [[f'=IF(A{r}="","",GOOGLETRANSLATE(C{r},"en","id"))']
+                    for r in range(11, 11 + SP_FORMULA_SETS)]
+    sp_j_values = [[storyboard_body_formula()] for _ in range(SP_FORMULA_SETS)]
+    sp_k_values = [[f'=IF(A{r}="","",GOOGLETRANSLATE(J{r},"en","id"))']
+                    for r in range(11, 11 + SP_FORMULA_SETS)]
     formula_batch = [
         {"range": f"Shotlist!Q2:Q{1 + SHOTLIST_FORMULA_ROWS}", "values": q_values},
         {"range": f"Shotlist!R2:R{1 + SHOTLIST_FORMULA_ROWS}", "values": r_values},
-        # Storyboard Prompts!C11 + D11 + J11 — sample row for set 1.
-        # storyboard_build.py extends these formulas to all sets when an
-        # episode ships (one row per 5-shot set).
-        {"range": "'Storyboard Prompts'!C11",
-         "values": [[storyboard_prompt_formula()]]},
-        {"range": "'Storyboard Prompts'!D11",
-         "values": [['=GOOGLETRANSLATE(C11,"en","id")']]},
-        {"range": "'Storyboard Prompts'!J11",
-         "values": [[storyboard_body_formula()]]},
-        {"range": "'Storyboard Prompts'!K11",
-         "values": [['=GOOGLETRANSLATE(J11,"en","id")']]},
+        {"range": f"'Storyboard Prompts'!C11:C{10 + SP_FORMULA_SETS}", "values": sp_c_values},
+        {"range": f"'Storyboard Prompts'!D11:D{10 + SP_FORMULA_SETS}", "values": sp_d_values},
+        {"range": f"'Storyboard Prompts'!J11:J{10 + SP_FORMULA_SETS}", "values": sp_j_values},
+        {"range": f"'Storyboard Prompts'!K11:K{10 + SP_FORMULA_SETS}", "values": sp_k_values},
     ]
     sh.values_batch_update(body={"valueInputOption": "USER_ENTERED",
                                   "data": formula_batch})
