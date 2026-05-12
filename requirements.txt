@@ -28,3 +28,6 @@ plotly==6.7.0
 # --- Script parsing ---
 pdfplumber
 python-docx
+
+# --- Anthropic Claude (script → atomized v2.2 shotlist via shotlist_gen.py) ---
+anthropic>=0.101.0
