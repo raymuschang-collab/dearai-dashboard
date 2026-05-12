@@ -353,6 +353,45 @@ def main():
     sh.values_batch_update(body={"valueInputOption": "USER_ENTERED",
                                   "data": formula_batch})
 
+    # ---- 6. Protected ranges — lock the formula cells -----------------------
+    # Producers should NEVER edit these cells directly; they're auto-managed by
+    # the pipeline. Matches Sajangnim's 5-protection schema verified in
+    # audit_protected_ranges.py.
+    print("\n6/6 Locking formula cells (5 protected ranges)…", flush=True)
+    sheets_api = build("sheets", "v4", credentials=creds)
+    # Resolve each tab's sheetId (gid) — required by addProtectedRange
+    meta = sheets_api.spreadsheets().get(
+        spreadsheetId=sheet_id,
+        fields="sheets(properties(sheetId,title))",
+    ).execute()
+    tab_to_gid = {s["properties"]["title"]: s["properties"]["sheetId"]
+                  for s in meta.get("sheets", [])}
+    DESC = "FORMULA — DO NOT EDIT (auto-managed; see AGENTS.md / _README)"
+    PROTECTIONS = [
+        # (tab, start_row_idx, end_row, start_col_idx, end_col_idx)
+        ("Shotlist",            1, 1000, 16, 18),   # Q2:R1000 (Prompt + Bahasa)
+        ("Storyboard Prompts",  0,    8,  1,  2),   # B1:B8 (globals)
+        ("Storyboard Prompts", 10,  100,  2,  4),   # C11:D100 (Prompt + Bahasa)
+        ("Storyboard Prompts", 10,  100,  9, 11),   # J11:K100 (Body + Bahasa)
+        ("Video Prompts",       0,    6,  1,  2),   # B1:B6 (globals)
+    ]
+    requests_batch = []
+    for tab, r0, r1, c0, c1 in PROTECTIONS:
+        gid = tab_to_gid.get(tab)
+        if gid is None:
+            print(f"  ! skip: tab {tab!r} not found")
+            continue
+        requests_batch.append({"addProtectedRange": {"protectedRange": {
+            "range": {"sheetId": gid, "startRowIndex": r0, "endRowIndex": r1,
+                      "startColumnIndex": c0, "endColumnIndex": c1},
+            "description": DESC,
+            "warningOnly": False,
+        }}})
+    if requests_batch:
+        sheets_api.spreadsheets().batchUpdate(
+            spreadsheetId=sheet_id, body={"requests": requests_batch}).execute()
+        print(f"   ✓ {len(requests_batch)} ranges locked")
+
     # ---- Final report -------------------------------------------------------
     print("\n" + "=" * 70)
     print("✓ Blank SOT created")
