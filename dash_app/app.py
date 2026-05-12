@@ -910,11 +910,30 @@ def read_projects(force: bool = False) -> dict:
 class _DynamicGalleryRegistry:
     """Dict-like view over read_projects()['registry'] — keeps the existing
     `GALLERY_REGISTRY[slug]` lookups + `slug in GALLERY_REGISTRY` checks
-    working with the dynamic data."""
+    working with the dynamic data.
+
+    Cross-worker cache miss handling: gunicorn runs N workers, each with
+    its own 60s _projects_cache. When /api/new-project on worker A flushes
+    A's cache, worker B's cache is still stale until its own TTL expires.
+    A producer who just submitted the modal can land on B and get "No
+    gallery found" for their freshly-created project.
+
+    Mitigation: on a miss (slug not in cache'd registry), force a
+    cache-bypass re-read from the master sheet. If THAT still misses,
+    the slug genuinely doesn't exist. This adds at most one extra sheet
+    read per 404 — negligible cost, and only on the slow path."""
     def __getitem__(self, key):
-        return read_projects()["registry"][key]
+        reg = read_projects()["registry"]
+        if key in reg:
+            return reg[key]
+        # Miss — bypass cache and re-read from sheet (handles per-worker
+        # cache staleness when the modal just created this project on a
+        # different worker)
+        return read_projects(force=True)["registry"][key]
     def __contains__(self, key):
-        return key in read_projects()["registry"]
+        if key in read_projects()["registry"]:
+            return True
+        return key in read_projects(force=True)["registry"]
     def __iter__(self):
         return iter(read_projects()["registry"])
     def keys(self):
@@ -924,7 +943,10 @@ class _DynamicGalleryRegistry:
     def values(self):
         return read_projects()["registry"].values()
     def get(self, key, default=None):
-        return read_projects()["registry"].get(key, default)
+        reg = read_projects()["registry"]
+        if key in reg:
+            return reg[key]
+        return read_projects(force=True)["registry"].get(key, default)
 
 
 GALLERY_REGISTRY = _DynamicGalleryRegistry()
