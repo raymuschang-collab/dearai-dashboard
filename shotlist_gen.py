@@ -99,6 +99,18 @@ Apply beat tags ONLY on structural peaks:
 
 Format: "Merge w/ {earlier shot #}; {camera move description ending at the current row's subject}."
 
+# Categorization — characters vs effects vs props
+
+Before extracting, decide which bible each item belongs in:
+
+- **characters** — anything that ACTS in the story. Includes humans, creatures, aliens, AIs, animals with agency. If it MOVES on its own intent or REACTS to other characters, it's a character. Don't shove creatures or non-human entities into `effects` just because they're CGI — the alien in scene N is a CHARACTER even if it never speaks.
+- **effects** — non-agentic visual phenomena. Steam, fire, light fields, particle systems, environmental ambient (rain, dust, smoke, sparks, water displacement, energy fields). Effects don't have intent.
+- **props** — physical objects characters interact with: tools, weapons, vehicles, furniture.
+- **costumes** — wearable items attached to a specific character (suit, dress, helmet, mask). Helmet on a character's head = costume; helmet sitting on a shelf = prop.
+- **locations** — interior or exterior spaces where action happens.
+
+When unsure between a character and an effect (e.g. "a presence moves in the dark"): if it can be the SUBJECT of a verb other than "moves" or "glows", treat it as a character.
+
 # Bible extraction + INFERENCE
 
 Read the script and extract every named entity. For each, produce a row that the production team can hand straight to an image-generation pipeline — that means every field is populated, not just the ones the script literally describes.
