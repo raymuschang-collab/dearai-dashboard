@@ -1527,7 +1527,7 @@ def _api_new_project():
             # Run as a subprocess — mirrors the storyboard / vidgen pattern.
             # _create_blank_sot.py prints the new sheet ID and folder ID; we
             # parse them from stdout.
-            cmd = ["/usr/bin/python3", "_create_blank_sot.py", "--name", title]
+            cmd = [sys.executable, "_create_blank_sot.py", "--name", title]
             proc = subprocess.run(
                 cmd, cwd=str(PROJECT_ROOT),
                 capture_output=True, text=True, timeout=3600,
@@ -1624,7 +1624,7 @@ def _api_new_project():
                 _log(f"[5/5] Running generation chain depth={depth}")
                 try:
                     _run_stage("shotlist", [
-                        "/usr/bin/python3", "shotlist_gen.py",
+                        sys.executable, "shotlist_gen.py",
                         "--script", parsed_path,
                         "--sheet", sheet_id,
                         "--name", title,
@@ -1632,12 +1632,12 @@ def _api_new_project():
                     ])
                     if depth in {"storyboards", "bibles"}:
                         _run_stage("storyboards", [
-                            "/usr/bin/python3", "storyboard_generate.py",
+                            sys.executable, "storyboard_generate.py",
                             "--sheet", sheet_id,
                         ])
                     if depth == "bibles":
                         _run_stage("bibles", [
-                            "/usr/bin/python3", "imggen_all_assets.py",
+                            sys.executable, "imggen_all_assets.py",
                             "--sheet", sheet_id,
                         ])
                 except Exception as e:
