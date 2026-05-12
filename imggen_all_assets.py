@@ -11,7 +11,11 @@ from pathlib import Path
 import gspread
 
 HERE = Path(__file__).parent
-PY = "/usr/bin/python3"
+# Use the same Python interpreter that's running this script so subprocess
+# generators inherit the venv (gspread, googleapiclient, etc.). Hardcoding
+# /usr/bin/python3 breaks on Macs and on Render where the venv lives at
+# /opt/render/project/src/.venv/bin/python3.
+PY = sys.executable
 sys.path.insert(0, str(HERE))
 from auth import get_credentials  # type: ignore
 
