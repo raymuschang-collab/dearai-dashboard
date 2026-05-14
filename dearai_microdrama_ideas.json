@@ -1,0 +1,114 @@
+{
+  "_meta": {
+    "purpose": "Floating microdrama concept registry for Dear.AI. /microdramaideas pulls from this. Edit freely — add new ideas, mark status, archive ones we've dropped.",
+    "last_updated": "2026-05-13",
+    "owner": "raymus"
+  },
+  "ideas": [
+    {
+      "slug": "dry-country",
+      "title_en": "DRY COUNTRY",
+      "title_id": "Tanah Tandus",
+      "status": "developing",
+      "tagline_en": "1880s Wild West where magic is the establishment — one magicless gunslinger fights back with a Colt.",
+      "tagline_id": "Old West tahun 1880-an di mana sihir adalah kekuasaan — seorang penembak tanpa sihir melawan balik dengan revolver.",
+      "genre": "fantasy western · war-god trope · prestige drama",
+      "lead": "Cole Walker — Caucasian ex-Union cavalry vet, mid-30s, magicless, hunting the mage who burned his family's homestead",
+      "setting": "Bone Wells, Arizona Territory · 1882",
+      "dopamine_engine": "Public humiliation → hidden capability → reveal cycle every ep. Cole's revolver bypasses magical defenses (they were never designed against bullets). Audience figures it out in Ep 1, every subsequent humiliation = pre-loaded payoff.",
+      "key_cast": [
+        "Cole Walker (protagonist)",
+        "Nel Cobb (widow schoolteacher, love interest)",
+        "Tomás Cobb (Nel's magicless 9yo son)",
+        "Mireya Vasquez (Mexican-American hex doctor, ally)",
+        "Marshal Jericho Boone (Black retired US Marshal, mentor)",
+        "Lula Marshall (Black saloon owner, info broker)",
+        "Speaks-To-Stone (Apache elder)",
+        "Aldous Whitmore (British-American villain magus)",
+        "Wren Whitmore (his daughter, femme fatale)",
+        "Sheriff Henry Doyle (corrupt magicless sheriff)",
+        "Mason Bell (charlatan showman mage)",
+        "Jack 'Drifter' Mercer (older magicless gunslinger, Cole's possible future)"
+      ],
+      "ensemble_image": "https://drive.google.com/file/d/15lCHpHYNXKFPFjDRK7nt-MsvD9tgL6rX/view?usp=drivesdk",
+      "why_team": "War-god trope universal. Cheap to shoot in Bali/Yogya with frontier dressing. SE Asian or Caucasian lead both work. Censor-friendly metaphor for corrupt establishment.",
+      "scale": "60-90s vertical microdrama OR limited series (Succession-meets-Unforgiven if budgeted up)",
+      "notes": "Ensemble image generated 2026-05-13 via nano_banana_2. Cole Walker described as Caucasian per team request. 12-character cast ready."
+    },
+    {
+      "slug": "pembantu",
+      "title_en": "MAID",
+      "title_id": "Pembantu",
+      "status": "developing",
+      "tagline_en": "A Jakarta housemaid witnesses her American expat boss murder his business partner — and discovers everyone she could turn to is already on his payroll.",
+      "tagline_id": "Seorang pembantu di Jakarta menyaksikan majikan ekspatriat Amerika-nya membunuh mitra bisnisnya — dan menyadari semua orang yang bisa dia hubungi sudah dibayar oleh majikannya.",
+      "genre": "class thriller · Parasite × I Care a Lot × Get Out",
+      "lead": "Sari Wulan — 26, Javanese domestic worker, 4 years employed by the Hendersons",
+      "setting": "Pondok Indah mansion, Jakarta · contemporary",
+      "dopamine_engine": "Audience roots for Sari from frame 1. Cleanest underdog setup possible. Forced isolation (no police, no embassy, no home). Coalition-building one ally per ep. Every ep ends mid-escape, mid-betrayal, or mid-reveal.",
+      "key_cast": [
+        "Sari Wulan (protagonist, the maid)",
+        "Tom Henderson (American villain, charming on camera)",
+        "Karen Henderson (his wife, knows more than she admits)",
+        "Eko Pratama (investigative journalist at Tempo, love interest)",
+        "Detective Made Wijaya (Balinese cop, corrupt-but-honourable)",
+        "Hannah Reeves (American war photographer, Tom's ex)",
+        "Wati Wulan (Sari's nursing-student sister, the reason for everything)",
+        "Pak Sutadi (Indonesian businessman, the real villain, funded Wati's scholarship)"
+      ],
+      "ensemble_image": null,
+      "why_team": "Universally legible class thriller. Lean cast, contained Jakarta locations. Festival-friendly AND microdrama-friendly. Sari role is a career-launcher.",
+      "scale": "10-ep microdrama OR 6-ep prestige limited series (same script, different pacing)",
+      "notes": "Likely first to greenlight per team preference. Cheapest to shoot. Strongest US-streamer pitch."
+    },
+    {
+      "slug": "lima-borough",
+      "title_en": "FIVE BOROUGHS",
+      "title_id": "Lima Borough",
+      "status": "developing",
+      "tagline_en": "A billionaire-heiress from Jakarta is exiled to New York with $200 and 90 days to survive without her name — and falls for a working-class line cook who has no idea who she is.",
+      "tagline_id": "Pewaris miliarder dari Jakarta diasingkan ke New York dengan $200 dan 90 hari untuk bertahan hidup tanpa namanya — dan jatuh cinta pada seorang juru masak kelas pekerja yang tidak tahu siapa dia.",
+      "genre": "cross-cultural romance · cinderella-in-reverse",
+      "lead": "Mei-Lin Tjandra — 23, Indonesian-Chinese heiress to a palm-oil dynasty",
+      "setting": "Bushwick NYC + Jakarta mansion · contemporary, dual-location",
+      "dopamine_engine": "Cinderella in reverse: the princess hides her identity, audience knows, love interest doesn't. Reveal-trigger every ep (magazine, doorman, gala). Marcus arc gives stakes (mother, brother, dream). The Reveal Ep gut-punch at Ep 7. Day-90 countdown visible every ep.",
+      "key_cast": [
+        "Mei-Lin Tjandra (heiress, the lie)",
+        "Marcus Walker (Black American line cook, the truth)",
+        "Bart 'Pak' Tjandra (Mei-Lin's father, complicated tycoon villain)",
+        "Carmen Walker (Marcus's retired-nurse mother, the moral compass)",
+        "Devon (Marcus's younger brother, on probation, the rage)",
+        "Sienna + Yuki + Trish (Bushwick roommates, comic relief turned ride-or-dies)",
+        "Stefan Halim (Mei-Lin's Jakarta ex-fiancé, real antagonist)",
+        "Chef Antoine (Marcus's culinary mentor)"
+      ],
+      "ensemble_image": null,
+      "why_team": "Two markets in one (Jakarta dynasty drama + American working-class romance). Cheap-medium budget. Iconic star-launcher for both leads. Endless season hooks.",
+      "scale": "10-ep microdrama (Season 1) → multi-season series potential",
+      "notes": "Second priority after Pembantu. Romance has been done, but reverse-Cinderella + financial-class-clash combo feels fresh in this market."
+    }
+  ],
+  "archived": [
+    {
+      "slug": "hollow",
+      "title_en": "HOLLOW",
+      "reason_archived": "Atomized prematurely without user approval. Sheet trashed 2026-05-12. Concept seed-of-DRY-COUNTRY: 'skilled soldier in world of witches and wizards humiliated until he gets a gun.'"
+    },
+    {
+      "slug": "operator-zero",
+      "title_en": "OPERATOR ZERO",
+      "reason_archived": "Workshopped briefly. Modern-day spec ops in supernatural world. Less character-driven than DRY COUNTRY direction."
+    },
+    {
+      "slug": "american-magus",
+      "title_en": "AMERICAN MAGUS",
+      "reason_archived": "Earlier name for the concept that became DRY COUNTRY. Team felt original term was too campy."
+    },
+    {
+      "slug": "volcano-bride",
+      "title_en": "VOLCANO BRIDE",
+      "title_id": "Pengantin Gunung Merapi",
+      "reason_archived": "Strong cross-cultural premise (American vulcanologist + Indo ritual bride). Still viable — could reactivate. Filed for later."
+    }
+  ]
+}
