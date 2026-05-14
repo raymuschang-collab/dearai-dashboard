@@ -58,9 +58,9 @@ _mime_cache: dict[str, str] = {}
 def mime_of(file_id: str | None) -> str:
     """Lookup MIME type for a Drive file ID. Cached for the worker lifetime.
 
-    Used by `_read_characters_impl` (and any other reader) to decide whether a
-    ref is an image or a video, so the gallery can pick `<img>` vs `<iframe>`
-    rendering. Returns "" on lookup failure (caller should default to image)."""
+    Returns "" on lookup failure — callers MUST also check the filename
+    extension because Drive auth on Render is sometimes flakier than local
+    and this can return "" even when the file is fine."""
     if not file_id:
         return ""
     if file_id in _mime_cache:
@@ -70,14 +70,33 @@ def mime_of(file_id: str | None) -> str:
         from auth import get_credentials
         drive = build("drive", "v3", credentials=get_credentials())
         meta = drive.files().get(
-            fileId=file_id, fields="mimeType",
+            fileId=file_id, fields="mimeType,name",
             supportsAllDrives=True,
         ).execute()
         mime = meta.get("mimeType", "")
+        # Belt-and-suspenders: if mimeType is empty but name has a video
+        # extension, infer it. Drive sometimes returns blank mime for
+        # newly uploaded MP4s.
+        if not mime.startswith("video/"):
+            name = (meta.get("name") or "").lower()
+            if any(name.endswith(ext) for ext in (".mp4", ".mov", ".m4v", ".webm")):
+                mime = "video/mp4"
     except Exception:
         mime = ""
     _mime_cache[file_id] = mime
     return mime
+
+
+def drive_thumb(file_id: str | None, w: int = 800) -> str:
+    """Drive's universal thumbnail endpoint — works for BOTH images and videos.
+
+    Slower than lh3.googleusercontent.com (returns a 302 redirect to the real
+    image instead of streaming the CDN directly) but universal: lh3 returns
+    404 for video files, this returns the video poster frame. Use this for
+    any ref where the file type isn't known up-front."""
+    if not file_id:
+        return ""
+    return f"https://drive.google.com/thumbnail?id={file_id}&sz=w{w}"
 
 
 def _gspread():
@@ -523,10 +542,14 @@ def _read_characters_impl(sheet_id: str) -> list[dict]:
             return None
         mime = mime_of(fid)
         is_video = mime.startswith("video/")
+        # For videos, use Drive's universal thumbnail endpoint (lh3 404s on
+        # video files). For images, keep lh3 (faster, direct CDN). The video
+        # path also uses this thumb as a poster behind the iframe so the cell
+        # has a real first frame even before the iframe loads.
         return {
             "label": label,
             "kind": "video" if is_video else "image",
-            "thumb": thumb(fid),     # lh3 path — Drive auto-poster for videos works here too
+            "thumb": drive_thumb(fid) if is_video else thumb(fid),
             "view": view(fid),
             "embed": preview(fid) if is_video else "",
         }
