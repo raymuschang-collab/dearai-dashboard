@@ -49,6 +49,37 @@ def preview(file_id: str | None) -> str:
     return f"https://drive.google.com/file/d/{file_id}/preview"
 
 
+# Per-process MIME cache. file_id → mimeType string. Populated lazily by
+# `mime_of()`. Lives for the worker's lifetime — Drive renames don't happen
+# often enough to justify TTL eviction.
+_mime_cache: dict[str, str] = {}
+
+
+def mime_of(file_id: str | None) -> str:
+    """Lookup MIME type for a Drive file ID. Cached for the worker lifetime.
+
+    Used by `_read_characters_impl` (and any other reader) to decide whether a
+    ref is an image or a video, so the gallery can pick `<img>` vs `<iframe>`
+    rendering. Returns "" on lookup failure (caller should default to image)."""
+    if not file_id:
+        return ""
+    if file_id in _mime_cache:
+        return _mime_cache[file_id]
+    try:
+        from googleapiclient.discovery import build
+        from auth import get_credentials
+        drive = build("drive", "v3", credentials=get_credentials())
+        meta = drive.files().get(
+            fileId=file_id, fields="mimeType",
+            supportsAllDrives=True,
+        ).execute()
+        mime = meta.get("mimeType", "")
+    except Exception:
+        mime = ""
+    _mime_cache[file_id] = mime
+    return mime
+
+
 def _gspread():
     import warnings; warnings.filterwarnings("ignore")
     import gspread
@@ -485,6 +516,21 @@ def _read_characters_impl(sheet_id: str) -> list[dict]:
 
     label1 = label_from_key(iter1_key)
     label2 = label_from_key(iter2_key)
+    def _iter(fid: str | None, label: str) -> dict | None:
+        """Build one iter dict. Detects video vs image via Drive MIME so the
+        gallery can pick <iframe> vs <img> rendering."""
+        if not fid:
+            return None
+        mime = mime_of(fid)
+        is_video = mime.startswith("video/")
+        return {
+            "label": label,
+            "kind": "video" if is_video else "image",
+            "thumb": thumb(fid),     # lh3 path — Drive auto-poster for videos works here too
+            "view": view(fid),
+            "embed": preview(fid) if is_video else "",
+        }
+
     out = []
     for r in rows:
         name = (r.get("Name") or "").strip()
@@ -500,8 +546,8 @@ def _read_characters_impl(sheet_id: str) -> list[dict]:
             "wardrobe": r.get("Wardrobe", "") or "",
             "personality": r.get("Personality", "") or "",
             "iters": [
-                {"label": label1, "thumb": thumb(i1), "view": view(i1)} if i1 else None,
-                {"label": label2, "thumb": thumb(i2), "view": view(i2)} if i2 else None,
+                _iter(i1, label1),
+                _iter(i2, label2),
             ],
         })
     return out

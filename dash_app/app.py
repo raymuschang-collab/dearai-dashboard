@@ -2219,6 +2219,38 @@ def episode_picker(component_id: str):
 sheet_picker = episode_picker
 
 
+def video_cell(embed_url: str, label: str = "", aspect: str = "1/1"):
+    """Inline iframe tile for a Drive-hosted video. Uses Drive's HTML5 player
+    via /preview — plays in place, no lightbox. Used by bible cards where
+    the ref is a video (e.g., character refs that ARE motion clips).
+
+    Defaults to 1:1 because character ref clips are typically square; locations
+    are still wide. Override via `aspect` if needed."""
+    if not embed_url:
+        return html.Div(className="img-cell", style={"aspectRatio": aspect}, children=[
+            html.Div("(no video)", style={"color": "#a0a0a0", "fontStyle": "italic",
+                                            "display": "flex", "alignItems": "center",
+                                            "justifyContent": "center", "height": "100%"})
+        ])
+    return html.Div(className="img-cell",
+                    style={"aspectRatio": aspect, "position": "relative",
+                           "overflow": "hidden", "borderRadius": "8px",
+                           "background": "#000"},
+                    children=[
+        html.Iframe(src=embed_url, style={
+            "width": "100%", "height": "100%", "border": "0", "display": "block",
+        }, allow="autoplay"),
+        html.Div(label, style={
+            "position": "absolute", "left": "8px", "bottom": "8px",
+            "background": "#1a1a1a", "color": "#fff",
+            "fontSize": "9px", "letterSpacing": "0.4px",
+            "textTransform": "uppercase", "fontWeight": 600,
+            "padding": "3px 8px", "borderRadius": "6px",
+            "pointerEvents": "none",
+        }) if label else None,
+    ])
+
+
 def img_cell(src: str, label: str = "", view_url: str = "", aspect: str = "16/9"):
     """Single image tile — clicking opens the inline lightbox (NOT Drive).
 
@@ -2261,15 +2293,24 @@ def bible_card(item: dict, fields: list[tuple[str, str]] | None = None,
     """Generic bible card: image grid on top, body below."""
     iters = [i for i in (item.get("iters") or []) if i]
     cols = "1fr" if len(iters) <= 1 else "1fr 1fr"
+    # Pick aspect ratio from the iter kind so video tiles stay square (matches
+    # the cut clips) and image tiles stay wide. If mixed, default to 16/9.
+    kinds = {it.get("kind", "image") for it in iters}
+    aspect = "1/1" if kinds == {"video"} else "16/9"
+
+    def _cell(it):
+        if it.get("kind") == "video" and it.get("embed"):
+            return video_cell(it["embed"], it.get("label", ""), aspect=aspect)
+        return img_cell(it.get("thumb", ""), it.get("label", ""), it.get("view", ""), aspect=aspect)
+
     grid = html.Div(style={"display": "grid", "gridTemplateColumns": cols, "gap": "4px",
-                           "background": "#e3e3e3"}, children=[
-        img_cell(it.get("thumb", ""), it.get("label", ""), it.get("view", ""))
-        for it in iters
-    ]) if iters else html.Div(style={"aspectRatio": "16/9", "background": "#e3e3e3",
-                                       "display": "flex", "alignItems": "center",
-                                       "justifyContent": "center",
-                                       "color": "#a0a0a0", "fontStyle": "italic"},
-                              children="(no refs)")
+                           "background": "#e3e3e3"},
+                    children=[_cell(it) for it in iters]) if iters else \
+            html.Div(style={"aspectRatio": "16/9", "background": "#e3e3e3",
+                            "display": "flex", "alignItems": "center",
+                            "justifyContent": "center",
+                            "color": "#a0a0a0", "fontStyle": "italic"},
+                     children="(no refs)")
 
     body_children = [html.H3(item.get("name", "—"))]
     if item.get("alias"):

@@ -64,6 +64,12 @@ def main():
     ap.add_argument("--bibles", default="all", help="characters,locations,props,costume,effects")
     ap.add_argument("--force", action="store_true")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--provider-override",
+                    help="Force a non-default provider for non-character bibles. "
+                         "e.g. --provider-override reve-direct routes locations/props/costume/effects "
+                         "through Reve direct.")
+    ap.add_argument("--concurrency", type=int, default=1,
+                    help="Max parallel rows per generator (default 1).")
     args = ap.parse_args()
 
     bibles = selected(args.bibles)
@@ -77,12 +83,24 @@ def main():
 
     commands = []
     if "characters" in bibles:
+        # character_generate.py uses Higgsfield gpt_image_2 — provider override
+        # is intentionally NOT applied to characters (they need full identity fidelity).
         commands.append([PY, "character_generate.py", "--sheet", args.sheet])
     if "locations" in bibles:
-        commands.append([PY, "location_generate.py", "--sheet", args.sheet])
+        cmd = [PY, "location_generate.py", "--sheet", args.sheet]
+        if args.provider_override:
+            cmd.extend(["--provider", args.provider_override])
+        if args.concurrency > 1:
+            cmd.extend(["--concurrency", str(args.concurrency)])
+        commands.append(cmd)
     for key, tab in [("props", "PROPS"), ("costume", "COSTUME"), ("effects", "EFFECTS")]:
         if key in bibles:
-            commands.append([PY, "bible_generate.py", "--sheet", args.sheet, "--tab", tab])
+            cmd = [PY, "bible_generate.py", "--sheet", args.sheet, "--tab", tab]
+            if args.provider_override:
+                cmd.extend(["--provider", args.provider_override])
+            if args.concurrency > 1:
+                cmd.extend(["--concurrency", str(args.concurrency)])
+            commands.append(cmd)
     if args.force:
         for cmd in commands:
             cmd.append("--force")

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Generate costume / prop / effect reference images via fal.ai nano-banana-2.
+Generate costume / prop / effect reference images via Higgsfield nano_banana_2.
 
 Reads from one of the 3 bible tabs (COSTUME, PROPS, EFFECTS), generates 1 image
 per row using the rendered prompt from column F, uploads to a per-asset-type
@@ -28,11 +28,14 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import base64
 import io
 import os
 import re
 import sys
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import gspread
 import requests
@@ -47,10 +50,11 @@ import higgs_gen
 HERE = os.path.dirname(os.path.abspath(__file__))
 load_dotenv(os.path.join(HERE, ".env"))
 
-MODEL = "nano_banana_2"  # Higgsfield CLI
+MODEL = "nano_banana_2"  # Higgsfield CLI (default provider)
 DEFAULT_ASPECT = "1:1"
 DEFAULT_RESOLUTION = "1k"
 DEFAULT_QUALITY = "high"
+REVE_DIRECT_ENDPOINT = "https://api.reve.com/v1/image/create"
 
 SHEETS_URL_RE = re.compile(r"/spreadsheets/d/([a-zA-Z0-9_-]+)")
 
@@ -93,13 +97,37 @@ def get_or_create_folder(drive, parent_id: str, name: str) -> str:
     ).execute()["id"]
 
 
-def generate_image(prompt: str, aspect: str, resolution: str) -> bytes:
+def generate_image_higgsfield(prompt: str, aspect: str, resolution: str) -> bytes:
     """Higgsfield nano_banana_2 via CLI for costume / prop / effect refs."""
     return higgs_gen.generate(
         prompt=prompt, model=MODEL,
         aspect_ratio=aspect, quality=DEFAULT_QUALITY,
         resolution=resolution,
     )
+
+
+def generate_image_reve_direct(prompt: str, aspect: str) -> bytes:
+    """Reve direct API — alternate provider (override for cost / consistency)."""
+    api_key = os.getenv("REVE_API_KEY")
+    if not api_key:
+        raise RuntimeError("REVE_API_KEY not set in .env")
+    r = requests.post(
+        REVE_DIRECT_ENDPOINT,
+        json={"prompt": prompt, "aspect_ratio": aspect},
+        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        timeout=180,
+    )
+    r.raise_for_status()
+    data = r.json()
+    if "image" not in data:
+        raise RuntimeError(f"Reve direct response missing 'image' field: {data}")
+    return base64.b64decode(data["image"])
+
+
+def generate_image(prompt: str, aspect: str, resolution: str, provider: str = "higgsfield") -> bytes:
+    if provider == "reve-direct":
+        return generate_image_reve_direct(prompt, aspect)
+    return generate_image_higgsfield(prompt, aspect, resolution)
 
 
 def upload_and_share(drive, folder_id: str, filename: str, content: bytes) -> str:
@@ -117,42 +145,50 @@ def upload_and_share(drive, folder_id: str, filename: str, content: bytes) -> st
     return file["webViewLink"]
 
 
+_ws_lock = threading.Lock()
+_thread_local = threading.local()
+
+
+def _thread_drive():
+    """Per-thread Drive client (httplib2/googleapiclient is not thread-safe)."""
+    if not hasattr(_thread_local, "drive"):
+        _thread_local.drive = build("drive", "v3", credentials=get_credentials())
+    return _thread_local.drive
+
+
 def process_row(
     ws, drive, sheet_row: int, name: str, prompt: str, status: str,
     folder_id: str, aspect: str, resolution: str, *,
-    iters: int = 1, force: bool = False,
+    iters: int = 1, force: bool = False, provider: str = "higgsfield",
 ) -> dict:
+    drive = _thread_drive()
     if not name:
         return {"status": "skip", "reason": "empty name"}
     if not prompt:
         return {"status": "skip", "reason": "empty prompt"}
     if status == "Done" and not force:
-        print(f"\n=== {name} (row {sheet_row}) — SKIP (already Done) ===")
+        print(f"=== {name} (row {sheet_row}) — SKIP (already Done) ===", flush=True)
         return {"status": "skip", "reason": "already Done"}
 
-    print(f"\n=== {name} (row {sheet_row}) ===")
-    print(f"  prompt: {len(prompt)} chars")
-    ws.update(range_name=f"{COL_STATUS}{sheet_row}", values=[["Generating"]])
+    print(f"=== {name} (row {sheet_row}) [{provider}] start ({len(prompt)} chars) ===", flush=True)
+    with _ws_lock:
+        ws.update(range_name=f"{COL_STATUS}{sheet_row}", values=[["Generating"]])
 
     iter_urls = [None, None]
     err = None
     for it in range(1, iters + 1):
         t0 = time.time()
-        print(f"  iter {it}: generating...", end="", flush=True)
         try:
-            img = generate_image(prompt, aspect, resolution)
-            print(f" {len(img)//1024}KB in {time.time()-t0:.1f}s", end="", flush=True)
-
+            img = generate_image(prompt, aspect, resolution, provider=provider)
+            dt = time.time() - t0
             slug = slugify(name)
             fname = f"{slug}.png" if iters == 1 else f"{slug}-iter-{it}.png"
             url = upload_and_share(drive, folder_id, fname, img)
-            print(f" → uploaded")
-            print(f"    {url}")
+            print(f"  ✓ {name} iter{it}: {len(img)//1024}KB in {dt:.1f}s → {url}", flush=True)
             iter_urls[it - 1] = url
         except Exception as e:
             err = f"iter {it}: {type(e).__name__}: {e}"
-            print(f"\n  FAILED: {err}")
-            # Don't break — keep trying the next iter.
+            print(f"  ✗ {name} iter{it}: {err}", flush=True)
             continue
 
     iter1, iter2 = iter_urls[0] or "", iter_urls[1] or ""
@@ -160,15 +196,16 @@ def process_row(
     if expected == iters:
         sheet_status, err_msg = "Done", ""
     elif expected > 0:
-        sheet_status, err_msg = "Done", err or ""  # partial success
+        sheet_status, err_msg = "Done", err or ""
     else:
         sheet_status, err_msg = "Failed", err or "unknown"
-    ws.update(
-        range_name=f"{COL_ITER1}{sheet_row}:{COL_ERROR}{sheet_row}",
-        values=[[iter1, iter2, sheet_status, err_msg]],
-        value_input_option="USER_ENTERED",
-    )
-    print(f"  → row {sheet_row}: {sheet_status} (iter1={'✓' if iter1 else '✗'}, iter2={'✓' if iter2 else '✗'})")
+    with _ws_lock:
+        ws.update(
+            range_name=f"{COL_ITER1}{sheet_row}:{COL_ERROR}{sheet_row}",
+            values=[[iter1, iter2, sheet_status, err_msg]],
+            value_input_option="USER_ENTERED",
+        )
+    print(f"=== {name} (row {sheet_row}) → {sheet_status} (iter1={'✓' if iter1 else '✗'}, iter2={'✓' if iter2 else '✗'}) ===", flush=True)
     return {"status": "done" if sheet_status == "Done" else "fail",
             "urls": iter_urls, "error": err}
 
@@ -185,9 +222,17 @@ def main():
                     choices=["auto", "21:9", "16:9", "3:2", "4:3", "5:4", "1:1", "4:5", "3:4", "2:3", "9:16"])
     ap.add_argument("--resolution", default=DEFAULT_RESOLUTION,
                     choices=["1K", "2K", "4K", "512x512"])
+    ap.add_argument("--provider", default="higgsfield",
+                    choices=["higgsfield", "reve-direct"],
+                    help="Image gen provider. Default higgsfield (nano_banana_2). reve-direct uses Reve API for prop/effect refs.")
+    ap.add_argument("--concurrency", type=int, default=1,
+                    help="Max parallel row generations (default 1). Recommended 4-6 with reve-direct.")
     args = ap.parse_args()
 
-    higgs_gen.assert_authed()
+    if args.provider == "higgsfield":
+        higgs_gen.assert_authed()
+    elif args.provider == "reve-direct" and not os.getenv("REVE_API_KEY"):
+        sys.exit("REVE_API_KEY not loaded — check .env")
 
     creds = get_credentials()
     gc = gspread.authorize(creds)
@@ -209,25 +254,47 @@ def main():
 
     data = ws.get(f"A6:J{ws.row_count}", value_render_option="FORMATTED_VALUE")
 
-    overall_start = time.time()
-    results = []
+    # Build the job list first so we can fan out across a thread pool.
+    jobs = []
     for i, row in enumerate(data):
         sheet_row = 6 + i
         if not row or len(row) < 1 or not row[0]:
             continue
         if args.row and sheet_row != args.row:
             continue
-        name = row[0] if len(row) > 0 else ""
+        name = row[0]
         if args.name and (name or "").strip().lower() != args.name.strip().lower():
             continue
         prompt = row[5] if len(row) > 5 else ""
         status = row[8] if len(row) > 8 else ""
-        result = process_row(
-            ws, drive, sheet_row, name, prompt, status,
-            folder_id, args.aspect, args.resolution,
-            iters=args.iters, force=args.force,
-        )
-        results.append((name, result))
+        jobs.append((sheet_row, name, prompt, status))
+
+    overall_start = time.time()
+    results = []
+    concurrency = max(1, int(args.concurrency))
+    print(f"\nProcessing {len(jobs)} rows · provider={args.provider} · concurrency={concurrency}\n", flush=True)
+
+    if concurrency == 1:
+        for sheet_row, name, prompt, status in jobs:
+            r = process_row(
+                ws, drive, sheet_row, name, prompt, status,
+                folder_id, args.aspect, args.resolution,
+                iters=args.iters, force=args.force, provider=args.provider,
+            )
+            results.append((name, r))
+    else:
+        with ThreadPoolExecutor(max_workers=concurrency) as ex:
+            future_map = {
+                ex.submit(
+                    process_row,
+                    ws, drive, sheet_row, name, prompt, status,
+                    folder_id, args.aspect, args.resolution,
+                    iters=args.iters, force=args.force, provider=args.provider,
+                ): name
+                for sheet_row, name, prompt, status in jobs
+            }
+            for fut in as_completed(future_map):
+                results.append((future_map[fut], fut.result()))
 
     total_dt = time.time() - overall_start
     print(f"\n\n=== SUMMARY for {args.tab} ({total_dt:.1f}s) ===")

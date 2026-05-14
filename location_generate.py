@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Generate location reference images via fal.ai Reve text-to-image.
+Generate location reference images via Reve direct API.
 
 Reads the LOCATIONS tab — each row is one location × shot-size variant
 (wide / mid). Generates 2 iterations per row using the rendered prompt from
@@ -24,6 +24,7 @@ import io
 import os
 import re
 import sys
+import threading
 import time
 
 import gspread
@@ -186,9 +187,26 @@ def upload_and_share(drive, folder_id: str, filename: str, content: bytes) -> st
     return file["webViewLink"]
 
 
+_thread_local = threading.local()
+
+
+def _thread_drive():
+    """httplib2 (used by googleapiclient) is NOT thread-safe — sharing one
+    `drive` instance across threads corrupts the SSL connection and triggers
+    `SSL: RECORD_LAYER_FAILURE`. Each thread gets its own client."""
+    if not hasattr(_thread_local, "drive"):
+        _thread_local.drive = build("drive", "v3", credentials=get_credentials())
+    return _thread_local.drive
+
+
+_ws_lock = threading.Lock()
+
+
 def process_row(ws, drive, sheet_row: int, name: str, shot_size: str, prompt: str,
                 status: str, location_root_folder_id: str, aspect: str, provider: str,
                 *, force: bool = False) -> dict:
+    # Replace the shared drive arg with a per-thread one (thread-safe).
+    drive = _thread_drive()
     if not name:
         return {"status": "skip", "reason": "empty name"}
     if not prompt:
@@ -197,9 +215,9 @@ def process_row(ws, drive, sheet_row: int, name: str, shot_size: str, prompt: st
         print(f"\n=== {name} ({shot_size}) row {sheet_row} — SKIP (already Done) ===")
         return {"status": "skip", "reason": "already Done"}
 
-    print(f"\n=== {name} ({shot_size}) — row {sheet_row} ===")
-    print(f"  prompt: {len(prompt)} chars")
-    ws.update(range_name=f"{COL_STATUS}{sheet_row}", values=[["Generating"]])
+    print(f"=== {name} ({shot_size}) — row {sheet_row} — start ({len(prompt)} chars) ===", flush=True)
+    with _ws_lock:
+        ws.update(range_name=f"{COL_STATUS}{sheet_row}", values=[["Generating"]])
 
     # Per-location subfolder (matches the post-reorganization layout)
     sub_folder_id = get_or_create_folder(drive, location_root_folder_id, name)
@@ -267,13 +285,14 @@ def process_row(ws, drive, sheet_row: int, name: str, shot_size: str, prompt: st
         sheet_status, err_msg = "Done", err or ""  # partial success
     else:
         sheet_status, err_msg = "Failed", err or "unknown error"
-    ws.update(
-        range_name=f"{COL_ITER1}{sheet_row}:{COL_ERROR}{sheet_row}",
-        values=[[iter1, iter2, sheet_status, err_msg]],
-        value_input_option="USER_ENTERED",
-    )
-    print(f"  → row {sheet_row}: {sheet_status} (iter1={'✓' if iter1 else '✗'}, iter2={'✓' if iter2 else '✗'})")
-    return {"status": "fail", "error": err}
+    with _ws_lock:
+        ws.update(
+            range_name=f"{COL_ITER1}{sheet_row}:{COL_ERROR}{sheet_row}",
+            values=[[iter1, iter2, sheet_status, err_msg]],
+            value_input_option="USER_ENTERED",
+        )
+    print(f"=== {name} ({shot_size}) row {sheet_row} → {sheet_status} (iter1={'✓' if iter1 else '✗'}, iter2={'✓' if iter2 else '✗'}) ===", flush=True)
+    return {"status": "done" if sheet_status == "Done" else "fail", "error": err}
 
 
 def main():
@@ -286,6 +305,8 @@ def main():
                     choices=["21:9", "16:9", "9:16", "3:2", "2:3", "4:3", "3:4", "1:1", "9:21"])
     ap.add_argument("--provider", default=PROVIDER_DEFAULT, choices=["reve-direct", "fal"],
                     help=f"Image gen provider (default: {PROVIDER_DEFAULT})")
+    ap.add_argument("--concurrency", type=int, default=1,
+                    help="Max parallel row generations (default 1).")
     args = ap.parse_args()
 
     if args.provider == "reve-direct" and not os.getenv("REVE_API_KEY"):
@@ -314,26 +335,47 @@ def main():
     # Read all data rows (sheet rows 5+; columns A:M; headers are in row 4)
     data = ws.get(f"A5:M{ws.row_count}", value_render_option="FORMATTED_VALUE")
 
-    overall_start = time.time()
-    results = []
+    # Build job list first so we can fan out
+    jobs = []
     for i, row in enumerate(data):
         sheet_row = 5 + i
         if not row or len(row) < 1 or not row[0]:
             continue
         if args.row and sheet_row != args.row:
             continue
-        name = row[0] if len(row) > 0 else ""
+        name = row[0]
         if args.location and (name or "").strip().lower() != args.location.strip().lower():
             continue
         shot_size = row[1] if len(row) > 1 else ""
         prompt = row[8] if len(row) > 8 else ""
         status = row[11] if len(row) > 11 else ""
+        jobs.append((sheet_row, name, shot_size, prompt, status))
 
-        result = process_row(
-            ws, drive, sheet_row, name, shot_size, prompt, status,
-            location_folder_id, args.aspect, args.provider, force=args.force,
-        )
-        results.append((f"{name} ({shot_size})", result))
+    overall_start = time.time()
+    results = []
+    concurrency = max(1, int(args.concurrency))
+    print(f"\nProcessing {len(jobs)} rows · concurrency={concurrency}\n", flush=True)
+
+    if concurrency == 1:
+        for sheet_row, name, shot_size, prompt, status in jobs:
+            r = process_row(
+                ws, drive, sheet_row, name, shot_size, prompt, status,
+                location_folder_id, args.aspect, args.provider, force=args.force,
+            )
+            results.append((f"{name} ({shot_size})", r))
+    else:
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        with ThreadPoolExecutor(max_workers=concurrency) as ex:
+            future_map = {
+                ex.submit(
+                    process_row,
+                    ws, drive, sheet_row, name, shot_size, prompt, status,
+                    location_folder_id, args.aspect, args.provider, force=args.force,
+                ): f"{name} ({shot_size})"
+                for sheet_row, name, shot_size, prompt, status in jobs
+            }
+            for fut in as_completed(future_map):
+                results.append((future_map[fut], fut.result()))
 
     total_dt = time.time() - overall_start
     print(f"\n\n=== SUMMARY ({total_dt:.1f}s) ===")
