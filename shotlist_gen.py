@@ -510,7 +510,15 @@ def ensure_ws(sh, title: str, rows: int, cols: int):
         return sh.add_worksheet(title=title, rows=rows, cols=cols)
 
 
-def write_sheet(sheet_id: str, show_name: str, shots: list[list[str]], bibles, dry_run: bool) -> None:
+def write_sheet(sheet_id: str, show_name: str, shots: list[list[str]], bibles,
+                dry_run: bool, *, shotlist_only: bool = False) -> None:
+    """Write atomized shots + bibles to the Sheet.
+
+    shotlist_only=True skips ALL bible-tab writes (CHARACTERS, LOCATIONS,
+    PROPS, COSTUME, EFFECTS). Use this when re-atomizing a script after
+    the bibles have already been populated with generated images and you
+    don't want to lose those URLs. Shotlist + Storyboard Prompts tabs
+    are still rewritten."""
     set_count = math.ceil(len(shots) / 5)
     if dry_run:
         print(f"DRY RUN: would write {len(shots)} shot rows and {set_count} storyboard sets to {sheet_id}")
@@ -529,6 +537,10 @@ def write_sheet(sheet_id: str, show_name: str, shots: list[list[str]], bibles, d
         headers = SHOTLIST_HEADERS_18
         shot_ws.update(range_name="A1:R1", values=[headers], value_input_option="RAW")
     prompt_col, bahasa_col = formula_columns(headers + [""] * 20)
+    # Clear any residue from a prior atomization run before writing — otherwise
+    # a shorter rerun leaves orphaned rows past the new last shot. (Same bug
+    # we hit when the heuristic→Claude rerun left 117→71 ghost rows behind.)
+    shot_ws.batch_clear([f"A2:R{shot_ws.row_count}"])
     shot_ws.update(range_name=f"A2:P{len(shots)+1}", values=shots, value_input_option="USER_ENTERED")
     q_values = [[shotlist_q_formula(r)] for r in range(2, len(shots) + 2)]
     r_values = [[f'=IF(A{r}="","",GOOGLETRANSLATE({prompt_col}{r},"en","id"))'] for r in range(2, len(shots) + 2)]
@@ -539,6 +551,8 @@ def write_sheet(sheet_id: str, show_name: str, shots: list[list[str]], bibles, d
 
     sp = ensure_ws(sh, "Storyboard Prompts", max(50, set_count + 12), 14)
     sp.update(range_name="A10:N10", values=[STORYBOARD_HEADERS], value_input_option="RAW")
+    # Clear residue from prior runs past row 10 (header row).
+    sp.batch_clear([f"A11:N{sp.row_count}"])
     sp_rows = []
     for n in range(1, set_count + 1):
         start, end = (n - 1) * 5 + 1, min(n * 5, len(shots))
@@ -548,6 +562,11 @@ def write_sheet(sheet_id: str, show_name: str, shots: list[list[str]], bibles, d
                         f'=IF(A{10+n}="","",GOOGLETRANSLATE(J{10+n},"en","id"))',
                         "", "", ""])
     sp.update(range_name=f"A11:N{10+set_count}", values=sp_rows, value_input_option="USER_ENTERED")
+
+    if shotlist_only:
+        print(f"Done: wrote {len(shots)} shots, {set_count} sets to {sh.title} "
+              f"(--shotlist-only — bible tabs left untouched).")
+        return
 
     chars, locs, props, costumes, effects = bibles
     ensure_ws(sh, "CHARACTERS", max(50, len(chars) + 2), 23).update(range_name=f"A1:W{len(chars)+1}", values=[CHARACTER_HEADERS] + chars, value_input_option="USER_ENTERED")
@@ -606,6 +625,11 @@ def main():
     ap.add_argument("--heuristic", action="store_true",
                     help="Force the dumb heuristic atomizer (skip Anthropic). "
                          "Auto-fallback already happens if ANTHROPIC_API_KEY is unset.")
+    ap.add_argument("--shotlist-only", action="store_true",
+                    help="Re-atomize the script and rewrite Shotlist + "
+                         "Storyboard Prompts tabs ONLY. Skip all bible "
+                         "writes (CHARACTERS / LOCATIONS / PROPS / COSTUME / "
+                         "EFFECTS). Preserves existing bible URLs / asset codes.")
     args = ap.parse_args()
 
     script_path = Path(args.script).expanduser()
@@ -639,7 +663,8 @@ def main():
             atomizer_used = f"heuristic (claude failed: {type(e).__name__})"
 
     print(f"[atomize] final: atomizer={atomizer_used} · shots={len(shots)}", flush=True)
-    write_sheet(args.sheet, args.name, shots, bibles, args.dry_run)
+    write_sheet(args.sheet, args.name, shots, bibles, args.dry_run,
+                 shotlist_only=args.shotlist_only)
 
 
 if __name__ == "__main__":

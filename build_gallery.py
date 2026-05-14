@@ -80,6 +80,12 @@ def thumb(file_id: str | None, w: int = 1000) -> str:
     return f"https://lh3.googleusercontent.com/d/{file_id}=w{w}" if file_id else ""
 
 
+def drive_thumb(file_id: str | None, w: int = 1000) -> str:
+    """Drive's universal thumbnail endpoint. Works for video files too (lh3 404s
+    on MP4s). Slightly slower (302 redirect) but reliable for any file type."""
+    return f"https://drive.google.com/thumbnail?id={file_id}&sz=w{w}" if file_id else ""
+
+
 def view(file_id: str | None) -> str:
     return f"https://drive.google.com/file/d/{file_id}/view" if file_id else ""
 
@@ -87,6 +93,36 @@ def view(file_id: str | None) -> str:
 def preview(file_id: str | None) -> str:
     """Embeddable Drive preview URL — works as <iframe src> for inline video."""
     return f"https://drive.google.com/file/d/{file_id}/preview" if file_id else ""
+
+
+# Per-process MIME cache for video/image detection.
+_mime_cache: dict[str, str] = {}
+
+
+def mime_of(file_id: str | None, drive=None) -> str:
+    """Lookup MIME type for a Drive file ID. Cached. Returns "" on failure.
+    Falls back to filename extension when mimeType comes back blank."""
+    if not file_id:
+        return ""
+    if file_id in _mime_cache:
+        return _mime_cache[file_id]
+    try:
+        if drive is None:
+            from googleapiclient.discovery import build as _gbuild
+            from auth import get_credentials
+            drive = _gbuild("drive", "v3", credentials=get_credentials())
+        meta = drive.files().get(
+            fileId=file_id, fields="mimeType,name", supportsAllDrives=True,
+        ).execute()
+        mime = meta.get("mimeType", "")
+        if not mime.startswith("video/"):
+            name = (meta.get("name") or "").lower()
+            if any(name.endswith(ext) for ext in (".mp4", ".mov", ".m4v", ".webm")):
+                mime = "video/mp4"
+    except Exception:
+        mime = ""
+    _mime_cache[file_id] = mime
+    return mime
 
 
 # ===== Sheet readers =====
@@ -113,6 +149,22 @@ def read_characters(sh) -> list[dict]:
             continue
         i1 = drive_id(r[19])  # T = Iter 1 URL (white bg)
         i2 = drive_id(r[20])  # U = Iter 2 URL (white bg)
+
+        def _iter(fid, label):
+            if not fid:
+                return None
+            mime = mime_of(fid)
+            is_video = mime.startswith("video/")
+            return {
+                "label": label,
+                "kind": "video" if is_video else "image",
+                # lh3 404s on video files. Use drive.google.com/thumbnail
+                # (universal) for videos, keep faster lh3 for images.
+                "thumb": drive_thumb(fid) if is_video else thumb(fid),
+                "view": view(fid),
+                "embed": preview(fid) if is_video else "",
+            }
+
         out.append({
             "name": name,
             "role": r[2] or "",   # C = Role / Archetype
@@ -121,10 +173,7 @@ def read_characters(sh) -> list[dict]:
             "image_code": (r[25] or "").strip(),  # Z
             "video_code": (r[26] or "").strip(),  # AA
             "audio_code": (r[27] or "").strip(),  # AB
-            "iters": [
-                {"label": "Iter 1", "thumb": thumb(i1), "view": view(i1)} if i1 else None,
-                {"label": "Iter 2", "thumb": thumb(i2), "view": view(i2)} if i2 else None,
-            ],
+            "iters": [_iter(i1, "Iter 1"), _iter(i2, "Iter 2")],
         })
     return out
 
@@ -484,10 +533,21 @@ def render_card_grid(items: list[dict], kind: str) -> str:
         for i in (it.get("iters") or []):
             if not i:
                 continue
-            # Bible asset thumb — wire into the lightbox so click expands the image
-            # inline instead of opening Drive in a new tab. Falls back to view
-            # link if lightbox JS fails to load.
             file_id = drive_id(i["view"])
+            # Video iters (e.g. character clips) render as inline Drive iframes
+            # — play in place, no lightbox. Image iters keep the existing
+            # lightbox + lh3 thumb flow.
+            if i.get("kind") == "video" and i.get("embed"):
+                iters_html += (
+                    f'<div class="thumb video-thumb">'
+                    f'<iframe src="{html.escape(i["embed"])}" '
+                    f'style="width:100%;height:100%;border:0;display:block;background:#000;" '
+                    f'allow="autoplay" loading="lazy"></iframe>'
+                    f'<span class="label">{html.escape(i["label"])}</span>'
+                    f'</div>'
+                )
+                continue
+            # Image iter — Bible asset thumb wired into the lightbox.
             big = thumb(file_id, 2400) if file_id else i["thumb"]
             iters_html += (
                 f'<a class="thumb lb-trigger" href="{html.escape(i["view"])}" '
