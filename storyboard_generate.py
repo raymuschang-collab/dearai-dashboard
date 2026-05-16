@@ -5,10 +5,9 @@ Pending set in the Storyboard Prompts tab. Two iterations per set; uploads
 to the matching Drive folder, sets sharing to anyone-with-link reader, writes
 URLs back to the sheet.
 
-(Provider history: this script was originally fal.ai nano-banana-2; switched
-to Higgsfield gpt_image_2 — see MODEL constant below — for $0 marginal cost
-under the team's Higgsfield MCP. The CLI binary lives at ~/.npm-global/bin/higgs;
-install with `npm install -g @higgsfield/cli` if missing.)
+Provider routing: storyboards use Higgsfield gpt_image_2 via higgs_gen.py.
+The CLI binary lives at ~/.npm-global/bin/higgs; install with
+`npm install -g @higgsfield/cli` if missing.
 
 Idempotent — sets with Status="Done" are skipped unless --force is passed.
 A failed run leaves Status="Failed" + the error in column I; re-running will
@@ -34,7 +33,6 @@ import sys
 import time
 
 import gspread
-import requests
 from dotenv import load_dotenv
 
 # Make print() resilient to a parent-process restart killing our stdout pipe.
@@ -61,11 +59,13 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 
 from auth import get_credentials
+import higgs_gen
 
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 load_dotenv(os.path.join(HERE, ".env"))
 
+MODEL_PROVIDER = "higgsfield"
 MODEL = "gpt_image_2"  # Higgsfield via CLI
 DEFAULT_ASPECT = "16:9"  # landscape storyboard page (5 stick-figure panels)
 DEFAULT_RESOLUTION = "1k"
@@ -109,96 +109,15 @@ def parse_sheet_id(s: str) -> str:
     return m.group(1) if m else s.strip()
 
 
-# Fal.ai endpoint for OpenAI's GPT Image 2 (released Apr 21 2026, photoreal +
-# pixel-perfect text rendering + built-in reasoning). Stateless API key auth
-# via FAL_KEY env var; picks up .env automatically via load_dotenv at import.
-# fal.ai queue API pattern:
-#   POST /fal-ai/gpt-image-2 → {"request_id": "..."}
-#   GET  /fal-ai/gpt-image-2/requests/{id}/status → {"status": "IN_PROGRESS"|"COMPLETED"|...}
-#   GET  /fal-ai/gpt-image-2/requests/{id}        → final response with images[].url
-FAL_QUEUE_BASE = "https://queue.fal.run/fal-ai/gpt-image-2"
-
-# Aspect → fal's image_size enum mapping. gpt-image-2 supports preset names
-# rather than free-form aspect strings; landscape_16_9 covers our 21:9 storyboards.
-FAL_IMAGE_SIZE_MAP = {
-    "16:9":   "landscape_16_9",
-    "21:9":   "landscape_16_9",
-    "9:16":   "portrait_9_16",
-    "1:1":    "square_hd",
-    "4:3":    "landscape_4_3",
-    "3:4":    "portrait_4_3",
-}
-
-
 def generate_image(prompt: str, aspect: str, resolution: str) -> bytes:
-    """Fire fal.ai/gpt-image-2 via the queue API, poll until COMPLETED,
-    download the PNG. Stateless API-key auth — no CLI/OAuth, never expires.
-
-    Replaces the Higgsfield CLI subprocess flow that broke on Render every
-    few hours when the OAuth session expired. Same OpenAI engine,
-    autonomous on Render."""
-    fal_key = os.environ.get("FAL_KEY", "").strip()
-    if not fal_key:
-        raise RuntimeError(
-            "FAL_KEY env var not set. Add it to .env (local) or Render's "
-            "environment variables. Get a key from https://fal.ai/dashboard/keys"
-        )
-    headers = {
-        "Authorization": f"Key {fal_key}",
-        "Content-Type": "application/json",
-    }
-    image_size = FAL_IMAGE_SIZE_MAP.get(aspect, "landscape_16_9")
-
-    # Submit. resolution arg is mapped to fal's "quality" tier (high default).
-    submit = requests.post(
-        FAL_QUEUE_BASE,
-        headers=headers,
-        json={
-            "prompt": prompt,
-            "image_size": image_size,
-            "quality": "high",          # low | medium | high
-            "num_images": 1,
-            "output_format": "png",
-        },
-        timeout=60,
+    """Higgsfield gpt_image_2 via shared CLI wrapper."""
+    return higgs_gen.generate(
+        prompt=prompt,
+        model=MODEL,
+        aspect_ratio=aspect,
+        quality=DEFAULT_QUALITY,
+        resolution=resolution,
     )
-    if submit.status_code != 200:
-        raise RuntimeError(f"fal submit failed: HTTP {submit.status_code} — {submit.text[:300]}")
-    request_id = submit.json().get("request_id")
-    if not request_id:
-        raise RuntimeError(f"no request_id in submit response: {submit.text[:200]}")
-
-    # Poll status
-    status_url = f"{FAL_QUEUE_BASE}/requests/{request_id}/status"
-    deadline = time.time() + 360
-    while time.time() < deadline:
-        s = requests.get(status_url, headers=headers, timeout=30)
-        if s.status_code != 200:
-            time.sleep(4)
-            continue
-        st = s.json().get("status", "")
-        if st == "COMPLETED":
-            break
-        if st in ("FAILED", "CANCELLED"):
-            raise RuntimeError(f"fal job {st.lower()}: {s.text[:300]}")
-        time.sleep(4)
-    else:
-        raise RuntimeError(f"fal job {request_id} timed out after 360s")
-
-    # Fetch result
-    result_url = f"{FAL_QUEUE_BASE}/requests/{request_id}"
-    r = requests.get(result_url, headers=headers, timeout=30)
-    r.raise_for_status()
-    data = r.json()
-    images = data.get("images") or []
-    if not images:
-        raise RuntimeError(f"fal completed but no images: {json.dumps(data)[:300]}")
-    img_url = images[0].get("url")
-    if not img_url:
-        raise RuntimeError(f"fal images[0] has no url: {json.dumps(data)[:300]}")
-    resp = requests.get(img_url, timeout=180)
-    resp.raise_for_status()
-    return resp.content
 
 
 def upload_and_share(drive, folder_id: str, filename: str, content: bytes) -> str:
@@ -276,7 +195,7 @@ def process_row(
 
     # Track per-iter results so a successful iter persists even if the other
     # iter errored. Both iters fire in PARALLEL via a thread pool — each one
-    # is a 30-60s fal.ai gpt-image-2 call, so concurrent dispatch roughly
+    # is a 30-60s Higgsfield gpt_image_2 call, so concurrent dispatch roughly
     # halves wall time (60-120s sequential → 30-60s parallel).
     #
     # googleapi's Drive client is thread-safe for distinct file uploads
@@ -333,20 +252,98 @@ def process_row(
             "urls": [u for u in (iter1, iter2) if u], "error": err}
 
 
+STYLE_PREAMBLES = {
+    "stick": (
+        "Shot with arri 35.\n"
+        "No Music.\n"
+        "Stick figure pencil storyboard with foreground, midground and background depth. "
+        "Figures must be ROUGH STICK FIGURES with NO FACIAL FEATURES — no eyes, "
+        "no mouth, no detailed hair, no skin tone, no clothing texture. Black "
+        "ballpoint-pen / 2B pencil line on white paper aesthetic. Imprecise, "
+        "loose, gestural. Hands are mittens, not detailed. The point of the "
+        "drawing is BLOCKING + CAMERA + STAGING ONLY — never likeness, never "
+        "performance, never lighting, never wardrobe. Anyone studying this "
+        "frame should immediately know it is a coverage sketch, not a still.\n"
+        "Create a 5 panel storyboard based on the following shots. Ensure each "
+        "shot is labelled by number, with a label of the camera angle/movement "
+        "centred at the bottom of the panel. The storyboard should be divided "
+        "by black lines. And the panels should flow sequentially:"
+    ),
+    "pencil": (
+        "Shot with arri 35.\n"
+        "No Music.\n"
+        "Pencil sketch storyboard with foreground, midground and background "
+        "depth. Sketched in graphite pencil with light cross-hatching for "
+        "shading. Loose, characterful linework — but features readable: faces, "
+        "hands, props all rendered with quick gesture. Aesthetic = a director's "
+        "personal storyboard pad. NOT photoreal. NOT colored.\n"
+        "Create a 5 panel storyboard based on the following shots. Ensure each "
+        "shot is labelled by number, with a label of the camera angle/movement "
+        "centred at the bottom of the panel. The storyboard should be divided "
+        "by black lines. And the panels should flow sequentially:"
+    ),
+    "photoreal": (
+        "Shot with Arri Alexa 35, anamorphic 1.55x lenses, Kodak Vision3 250D "
+        "color science. Documentary editorial photography aesthetic. Full "
+        "photoreal frames with natural skin texture, subtle 35mm film grain, "
+        "muted desaturated palette, cinéma vérité framing. Each panel reads as "
+        "a finished still, not a sketch.\n"
+        "Create a 5 panel storyboard based on the following shots. Ensure each "
+        "shot is labelled by number, with a label of the camera angle/movement "
+        "centred at the bottom of the panel. The storyboard should be divided "
+        "by black lines. And the panels should flow sequentially:"
+    ),
+}
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--sheet", required=True, help="Sheet ID or URL")
+    ap.add_argument("--sheet", help="Sheet ID or URL")
     ap.add_argument("--set", type=int, help="Generate only this set number")
     ap.add_argument("--force", action="store_true", help="Regenerate Done sets")
     ap.add_argument("--aspect", default=DEFAULT_ASPECT, help="Aspect ratio (default 21:9)")
     ap.add_argument("--resolution", default=DEFAULT_RESOLUTION, help="Resolution (default 1K)")
+    ap.add_argument("--dry-run", action="store_true",
+                    help="Print the Higgsfield request payload and exit before provider calls")
+    ap.add_argument(
+        "--style",
+        choices=["stick", "pencil", "photoreal", "sheet"],
+        default="stick",
+        help=(
+            "Aesthetic preamble to prepend before the per-set body. "
+            "stick (default) = featureless stick figures, sajangnim aesthetic. "
+            "pencil = director-pad sketch. "
+            "photoreal = full photoreal stills. "
+            "sheet = use whatever's in the SP tab globals (B1:B4) — legacy behavior."
+        ),
+    )
+    ap.add_argument(
+        "--concurrency", type=int, default=1,
+        help=("Max parallel SETS (default 1 = sequential). Each set internally "
+              "fires its 2 iters in parallel, so --concurrency 4 = up to 8 "
+              "simultaneous Higgsfield calls. Use with account-level unlimited tier."),
+    )
     args = ap.parse_args()
 
-    # fal.ai uses a static API key (FAL_KEY env var). No CLI / OAuth /
-    # session-expiry dance like Higgsfield required.
-    if not os.environ.get("FAL_KEY", "").strip():
-        sys.exit("FAL_KEY env var not set. Add it to .env (local) or "
-                 "Render env vars. Get a key from https://fal.ai/dashboard/keys")
+    if args.dry_run:
+        dry_prompt = STYLE_PREAMBLES[args.style if args.style != "sheet" else "stick"]
+        payload = {
+            "provider": MODEL_PROVIDER,
+            "model": MODEL,
+            "aspect_ratio": args.aspect,
+            "resolution": args.resolution,
+            "quality": DEFAULT_QUALITY,
+            "iterations": ITERATIONS,
+            "prompt": dry_prompt,
+        }
+        print("DRY RUN: would submit Higgsfield storyboard request:")
+        print(json.dumps(payload, indent=2))
+        return
+
+    if not args.sheet:
+        ap.error("--sheet is required unless --dry-run is set")
+
+    higgs_gen.assert_authed()
 
     creds = get_credentials()
     gc = gspread.authorize(creds)
@@ -375,12 +372,18 @@ def main():
             "Run `python3 living_doc_migrate.py` to migrate."
         )
 
-    # Read EN globals once (B1-B4) and assemble the preamble. The image gen
-    # script prepends this to each set's body at process_row time.
-    globals_block = sb.get("B1:B4", value_render_option="FORMATTED_VALUE")
-    storyboard_globals = "\n".join(
-        row[0] for row in globals_block if row and row[0]
-    )
+    # Style preamble — by default, FORCE stick-figure aesthetic regardless of
+    # what the sheet's B1:B4 globals say. Sheet globals are only used when
+    # --style sheet is passed (legacy behavior).
+    if args.style == "sheet":
+        globals_block = sb.get("B1:B4", value_render_option="FORMATTED_VALUE")
+        storyboard_globals = "\n".join(
+            row[0] for row in globals_block if row and row[0]
+        )
+        print(f"Style: sheet (using B1:B4 globals)")
+    else:
+        storyboard_globals = STYLE_PREAMBLES[args.style]
+        print(f"Style: {args.style} (forced preamble; sheet globals ignored)")
 
     data = sb.get(
         f"A11:I{sb.row_count}",
@@ -388,8 +391,8 @@ def main():
     )
     data = [r for r in data if len(r) > 0 and r[0]]
 
-    overall_start = time.time()
-    results = []
+    # Build the job queue
+    jobs = []
     for i, row in enumerate(data):
         sheet_row = i + 11
         try:
@@ -398,17 +401,41 @@ def main():
             continue
         if args.set is not None and set_num_int != args.set:
             continue
-        result = process_row(
-            sb,
-            drive,
-            sheet_row,
-            row,
-            aspect=args.aspect,
-            resolution=args.resolution,
-            storyboard_globals=storyboard_globals,
-            force=args.force,
-        )
-        results.append((set_num_int, result))
+        jobs.append((set_num_int, sheet_row, row))
+
+    overall_start = time.time()
+    results = []
+    concurrency = max(1, int(args.concurrency))
+    print(f"\nProcessing {len(jobs)} sets · concurrency={concurrency}\n", flush=True)
+
+    if concurrency == 1:
+        for set_num_int, sheet_row, row in jobs:
+            r = process_row(
+                sb, drive, sheet_row, row,
+                aspect=args.aspect, resolution=args.resolution,
+                storyboard_globals=storyboard_globals, force=args.force,
+            )
+            results.append((set_num_int, r))
+    else:
+        # Each thread gets its own Drive client (httplib2 isn't thread-safe);
+        # gspread (sheets) ws calls share the existing client + are short.
+        import threading
+        _thread_local = threading.local()
+        def _thread_drive():
+            if not hasattr(_thread_local, "drive"):
+                _thread_local.drive = build("drive", "v3", credentials=get_credentials())
+            return _thread_local.drive
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        def _run(set_num_int, sheet_row, row):
+            return (set_num_int, process_row(
+                sb, _thread_drive(), sheet_row, row,
+                aspect=args.aspect, resolution=args.resolution,
+                storyboard_globals=storyboard_globals, force=args.force,
+            ))
+        with ThreadPoolExecutor(max_workers=concurrency) as ex:
+            futures = [ex.submit(_run, sn, sr, rr) for sn, sr, rr in jobs]
+            for fut in as_completed(futures):
+                results.append(fut.result())
 
     total_dt = time.time() - overall_start
     print(f"\n\n=== SUMMARY ({total_dt:.1f}s) ===")
