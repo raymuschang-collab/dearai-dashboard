@@ -534,17 +534,22 @@ def render_card_grid(items: list[dict], kind: str) -> str:
             if not i:
                 continue
             file_id = drive_id(i["view"])
-            # Video iters (e.g. character clips) render as inline Drive iframes
-            # — play in place, no lightbox. Image iters keep the existing
-            # lightbox + lh3 thumb flow.
+            # Video iters (e.g. character clips) — show a still Drive thumbnail
+            # as the poster with a play-button overlay; clicking opens the
+            # lightbox with the Drive /preview iframe inside (autoplay).
             if i.get("kind") == "video" and i.get("embed"):
+                poster = drive_thumb(file_id, 1200) if file_id else i["thumb"]
                 iters_html += (
-                    f'<div class="thumb video-thumb">'
-                    f'<iframe src="{html.escape(i["embed"])}" '
-                    f'style="width:100%;height:100%;border:0;display:block;background:#000;" '
-                    f'allow="autoplay" loading="lazy"></iframe>'
+                    f'<a class="thumb video-thumb lb-trigger" href="{html.escape(i["view"])}" '
+                    f'data-lb-kind="video" '
+                    f'data-lb-embed="{html.escape(i["embed"])}" '
+                    f'data-lb-label="{html.escape(it.get("name", "") + " · " + i["label"])}" '
+                    f'data-lb-view="{html.escape(i["view"])}" '
+                    f'onclick="openLightbox(this); return false;">'
+                    f'<img src="{html.escape(poster)}" alt="{html.escape(i["label"])}" loading="lazy">'
+                    f'<span class="video-play-overlay">▶</span>'
                     f'<span class="label">{html.escape(i["label"])}</span>'
-                    f'</div>'
+                    f'</a>'
                 )
                 continue
             # Image iter — Bible asset thumb wired into the lightbox.
@@ -1172,6 +1177,23 @@ def render_html(data: dict, gallery_name: str = "") -> str:
     font-size: 9px; letter-spacing: 0.05em; text-transform: uppercase;
     border-radius: 3px;
   }}
+  /* Play-button overlay on video thumbnails — clicking opens the lightbox
+     with the Drive /preview iframe inside. */
+  .video-thumb {{ cursor: pointer; }}
+  .video-thumb .video-play-overlay {{
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 44px; height: 44px;
+    background: rgba(0, 0, 0, 0.65); color: white;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; padding-left: 4px;
+    pointer-events: none;
+    transition: background 0.15s ease, transform 0.15s ease;
+  }}
+  .video-thumb:hover .video-play-overlay {{
+    background: rgba(0, 0, 0, 0.85);
+    transform: translate(-50%, -50%) scale(1.1);
+  }}
   .placeholder {{
     background: var(--code-bg); border: 1px dashed var(--line); border-radius: 6px;
     display: flex; align-items: center; justify-content: center;
@@ -1580,6 +1602,16 @@ def render_html(data: dict, gallery_name: str = "") -> str:
   html[data-theme="dark"] #lightbox img {{
     filter: brightness(0.95);
   }}
+  /* Video iframe in lightbox — for vertical 9:16 char clips, size the
+     iframe to fit within the viewport while preserving aspect. */
+  #lightbox #lb-iframe {{
+    display: none;
+    width: min(85vh * 9 / 16, 90vw);
+    height: 85vh;
+    max-height: calc(85vh - 50px);
+    border: 0; background: #000;
+    border-radius: 8px 8px 0 0;
+  }}
   #lightbox .lb-meta {{
     padding: 12px 16px; border-top: 1px solid var(--line);
     display: flex; justify-content: space-between; align-items: center;
@@ -1688,6 +1720,7 @@ def render_html(data: dict, gallery_name: str = "") -> str:
   <div class="lb-frame">
     <button class="lb-close" type="button" onclick="closeLightbox()" aria-label="Close">×</button>
     <img id="lb-img" alt="">
+    <iframe id="lb-iframe" style="display:none;width:100%;height:100%;border:0;background:#000;" allow="autoplay; fullscreen" allowfullscreen></iframe>
     <div class="lb-meta">
       <span id="lb-label"></span>
       <a id="lb-view" href="#" target="_blank" class="lb-view-link">View original on Drive ↗</a>
@@ -1961,16 +1994,32 @@ def render_html(data: dict, gallery_name: str = "") -> str:
   function openLightbox(el) {{
     const lb = document.getElementById('lightbox');
     const img = document.getElementById('lb-img');
+    const iframe = document.getElementById('lb-iframe');
     const label = document.getElementById('lb-label');
     const view = document.getElementById('lb-view');
-    img.src = el.dataset.lbSrc;
     label.textContent = el.dataset.lbLabel || '';
     view.href = el.dataset.lbView || '#';
+    if (el.dataset.lbKind === 'video' && el.dataset.lbEmbed) {{
+      // Video → load Drive /preview iframe; hide still image
+      img.style.display = 'none';
+      img.src = '';
+      iframe.src = el.dataset.lbEmbed;
+      iframe.style.display = 'block';
+    }} else {{
+      iframe.src = '';
+      iframe.style.display = 'none';
+      img.src = el.dataset.lbSrc;
+      img.style.display = 'block';
+    }}
     lb.classList.add('open');
     document.body.style.overflow = 'hidden';
   }}
   function closeLightbox() {{
-    document.getElementById('lightbox').classList.remove('open');
+    const lb = document.getElementById('lightbox');
+    lb.classList.remove('open');
+    // Unload iframe so video stops playing on close
+    const iframe = document.getElementById('lb-iframe');
+    if (iframe) {{ iframe.src = ''; iframe.style.display = 'none'; }}
     document.body.style.overflow = '';
   }}
   function closeLightboxIfBackdrop(e) {{
