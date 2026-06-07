@@ -38,7 +38,7 @@ cd "Shotlist Workflows"
 
 If git isn't installed: download the repo as a ZIP from
 https://github.com/raymus-rgb/dearai-dashboard → "Code" → "Download ZIP" →
-unzip into `~/Desktop/Shotlist Workflows`.
+unzip into `~/Documents/Shotlist Workflows`.
 
 ---
 
@@ -69,7 +69,7 @@ Raymus will share these via 1Password (look for an item called
 channel you receive it in, save the file as exactly:
 
 ```
-~/Desktop/Shotlist Workflows/.env
+~/Documents/Shotlist Workflows/.env
 ```
 
 The file must be named `.env` — note the leading dot. Some Macs hide dot
@@ -94,7 +94,7 @@ OPENAI_API_KEY=sk-proj-...
 Same channel. Save as:
 
 ```
-~/Desktop/Shotlist Workflows/token.json
+~/Documents/Shotlist Workflows/token.json
 ```
 
 This is a refresh token tied to Raymus's Google account. It lets the

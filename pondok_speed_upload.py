@@ -23,11 +23,11 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from dotenv import load_dotenv
 
-sys.path.insert(0, "/Users/raymuschang/Desktop/Shotlist Workflows")
+sys.path.insert(0, "/Users/raymuschang/Documents/Shotlist Workflows")
 from auth import get_credentials
 import byteplus_asset_v2 as bp
 
-load_dotenv("/Users/raymuschang/Desktop/Shotlist Workflows/.env")
+load_dotenv("/Users/raymuschang/Documents/Shotlist Workflows/.env")
 GROUP = os.getenv("BYTEPLUS_GROUP_ID")
 
 SRC = Path("/Users/raymuschang/Downloads/Pondok Indah Test")

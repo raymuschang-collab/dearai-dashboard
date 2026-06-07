@@ -11,7 +11,7 @@ Toggles whether Claude is allowed to ENHANCE prompts before firing any generatio
 (vidgen, storyboard, image). The state persists in a flag file so it survives
 across turns and sessions.
 
-Flag file: `/Users/raymuschang/Desktop/Shotlist Workflows/.enhance_state`
+Flag file: `/Users/raymuschang/Documents/Shotlist Workflows/.enhance_state`
 (contains the single word `on` or `off`; default = `off`).
 
 ## Parse `$ARGUMENTS`

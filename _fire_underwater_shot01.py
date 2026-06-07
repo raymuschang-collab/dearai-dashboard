@@ -20,7 +20,7 @@ if env_file.exists():
 
 ARK_BASE = "https://ark.ap-southeast.bytepluses.com/api/v3"
 ARK_KEY = os.environ["BYTEPLUS_ARK_API_KEY"]
-SHOT_FOLDER = "/Users/raymuschang/Desktop/Video Editing/clients/Channel 8 Test Shoot/cuts/splits/shot 01"
+SHOT_FOLDER = "/Users/raymuschang/Documents/Video Editing/clients/Channel 8 Test Shoot/cuts/splits/shot 01"
 
 PROMPT = """Reference video shows the original take — follow the acting, dialogue, blocking, camera movement 100% from this reference. Match performance, framing, timing, and camera motion exactly.
 

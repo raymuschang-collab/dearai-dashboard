@@ -38,8 +38,8 @@ ARK_BASE = "https://ark.ap-southeast.bytepluses.com/api/v3"
 ARK_KEY = os.environ["BYTEPLUS_ARK_API_KEY"]
 GROUP_ID = "group-20260505195134-wqx2b"
 
-SHOT7_AUDIO_LOCAL = Path("/Users/raymuschang/Desktop/Video Editing/clients/Channel 8 Test Shoot/cuts/splits/shot 07/Shot 7_Audio.mp3")
-OUT_DIR = Path("/Users/raymuschang/Desktop/Channel 8 Underwater — Landed Outputs")
+SHOT7_AUDIO_LOCAL = Path("/Users/raymuschang/Documents/Video Editing/clients/Channel 8 Test Shoot/cuts/splits/shot 07/Shot 7_Audio.mp3")
+OUT_DIR = Path("/Users/raymuschang/Documents/Channel 8 Underwater — Landed Outputs")
 OUT_DIR.mkdir(exist_ok=True)
 
 # Known refs

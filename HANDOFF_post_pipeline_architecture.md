@@ -3,7 +3,7 @@
 **Date**: 2026-05-02
 **For**: another Claude session in a different working directory
 **Owner**: Raymus / dearai.com (SEA microdrama producer)
-**Sibling pipeline**: video shotlist (lives at `/Users/raymuschang/Desktop/Shotlist Workflows/`)
+**Sibling pipeline**: video shotlist (lives at `/Users/raymuschang/Documents/Shotlist Workflows/`)
 
 ---
 
@@ -203,7 +203,7 @@ Scan text = `Visual Brief + Tone + Headline + Subhead + Body Copy + CTA`. Write 
 | `/post-gen <carousel-N> iter <M>` | `post_generate.py` | fire panel gens for one carousel iter |
 | `/post-compose <carousel-N>` | `post_compose.py` | build review grid composite |
 
-Slash commands live in `.claude/commands/` (relative to working dir) as `.md` files. Use the existing `storyboard-build.md` / `set.md` files in `/Users/raymuschang/Desktop/Shotlist Workflows/.claude/commands/` as templates — same frontmatter (description + argument-hint), same "Don't ask, just do" + "Final report" + "Authentication" sections.
+Slash commands live in `.claude/commands/` (relative to working dir) as `.md` files. Use the existing `storyboard-build.md` / `set.md` files in `/Users/raymuschang/Documents/Shotlist Workflows/.claude/commands/` as templates — same frontmatter (description + argument-hint), same "Don't ask, just do" + "Final report" + "Authentication" sections.
 
 ---
 
@@ -251,11 +251,11 @@ Slash commands live in `.claude/commands/` (relative to working dir) as `.md` fi
 
 | Artifact | URL/ID/Path |
 |---|---|
-| **Video pipeline working dir** (sibling, study reference) | `/Users/raymuschang/Desktop/Shotlist Workflows/` |
+| **Video pipeline working dir** (sibling, study reference) | `/Users/raymuschang/Documents/Shotlist Workflows/` |
 | **Video schema reference Sheet** (the parallel architecture, populated with dummy script) | `https://docs.google.com/spreadsheets/d/1dVY9X4D0jGouASUgHgsdE3FXL0Id3m2DFOJDTPAxpIw/edit` |
 | **Video pipeline live show example** (Pharaoh Ep 1) | Sheet ID `1vYn7CjuaaaIE1UONwdfsS5ZLa0dPh8Dsl-bTY0dacTE` |
 | **Sibling scripts to study** | `auth.py`, `storyboard_build.py`, `refs_audit.py`, `fal_vidgen.py`, `flora_run.py` |
-| **Sibling slash commands to study** | `/Users/raymuschang/Desktop/Shotlist Workflows/.claude/commands/storyboard-build.md`, `set.md`, `vidgen.md` |
+| **Sibling slash commands to study** | `/Users/raymuschang/Documents/Shotlist Workflows/.claude/commands/storyboard-build.md`, `set.md`, `vidgen.md` |
 
 Open the schema reference sheet first — it's the fastest way to absorb the parallel video architecture before designing the post equivalent.
 

@@ -29,7 +29,7 @@ load_dotenv(HERE / ".env")
 ARK_KEY = os.getenv("BYTEPLUS_ARK_API_KEY")
 ARK_BASE = "https://ark.ap-southeast.bytepluses.com/api/v3"
 MODEL = "dreamina-seedance-2-0-260128"
-OUT_ROOT = Path("/Users/raymuschang/Desktop/X-men/Generated Videos")
+OUT_ROOT = Path("/Users/raymuschang/Documents/X-men/Generated Videos")
 
 MAN = "asset-20260531201701-cmnc6"
 ASSETS = {a["name"]: a["asset_id"] for a in json.loads((HERE / "xmen_assets.json").read_text())}

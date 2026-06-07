@@ -27,8 +27,8 @@ Display format:
 ## Bash
 
 ```bash
-cd "/Users/raymuschang/Desktop/Shotlist Workflows"
-"/Users/raymuschang/Desktop/Shotlist Workflows/.venv-transcribe/bin/python3" << 'PY'
+cd "/Users/raymuschang/Documents/Shotlist Workflows"
+"/Users/raymuschang/Documents/Shotlist Workflows/.venv-transcribe/bin/python3" << 'PY'
 import json
 import sys
 

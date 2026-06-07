@@ -17,7 +17,7 @@ import byteplus_asset_v2 as bp
 
 load_dotenv(Path(__file__).parent / ".env")
 GROUP = os.getenv("BYTEPLUS_GROUP_ID")
-ASSETS_DIR = Path("/Users/raymuschang/Desktop/X-men/Assets")
+ASSETS_DIR = Path("/Users/raymuschang/Documents/X-men/Assets")
 
 # (local filename, BytePlus asset name)
 SOURCES = [

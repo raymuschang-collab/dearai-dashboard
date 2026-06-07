@@ -24,7 +24,7 @@ from auth import get_credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
-SPLITS = Path("/Users/raymuschang/Desktop/Video Editing/clients/Channel 8 Test Shoot/cuts/splits")
+SPLITS = Path("/Users/raymuschang/Documents/Video Editing/clients/Channel 8 Test Shoot/cuts/splits")
 POSE = SPLITS / "shot 07/first and last frames/pose_v2_minister_4s.png"
 PROMPT = ("underwater scene. small fish swimming. bubbles coming out of the man's mouth "
           "when he talks. waves form when his body moves.")

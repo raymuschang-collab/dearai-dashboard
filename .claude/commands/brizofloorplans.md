@@ -11,8 +11,8 @@ User invoked /brizofloorplans. Args: `$ARGUMENTS`
 
 ## Source concept sheets (James Thoo)
 
-- **The Asteria** — `/Users/raymuschang/Desktop/Brizo (James)/hf_20260529_141431_98df24df-8c7a-4d88-8e7d-41b2a46022d0 (1).png`
-- **The Brizo** — `/Users/raymuschang/Desktop/Brizo (James)/hf_20260529_141909_e1fddfc1-f482-4301-96d5-7a3e46bd04e2.png`
+- **The Asteria** — `/Users/raymuschang/Documents/Brizo (James)/hf_20260529_141431_98df24df-8c7a-4d88-8e7d-41b2a46022d0 (1).png`
+- **The Brizo** — `/Users/raymuschang/Documents/Brizo (James)/hf_20260529_141909_e1fddfc1-f482-4301-96d5-7a3e46bd04e2.png`
 
 (Text on the sheets is partly AI-render gibberish; the spec below is the OCR'd + cleaned canonical reading.)
 

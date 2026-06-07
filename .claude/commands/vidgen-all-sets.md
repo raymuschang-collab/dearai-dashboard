@@ -11,7 +11,7 @@ Run the sequential vidgen orchestrator. It reads Storyboard Prompts rows with St
 If `--mentions @tara @minjun ...` is included, that explicit ref override propagates to every set's gen run.
 
 ```bash
-cd "/Users/raymuschang/Desktop/Shotlist Workflows"
+cd "/Users/raymuschang/Documents/Shotlist Workflows"
 /usr/bin/python3 vidgen_all_sets.py $ARGUMENTS
 ```
 

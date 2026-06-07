@@ -15,7 +15,7 @@ if env_file.exists():
 from kling_api import poll_task, extract_video_url
 
 EP = "/v1/videos/omni-video"
-OUT = Path("/Users/raymuschang/Desktop/Channel 8 Underwater — Landed Outputs")
+OUT = Path("/Users/raymuschang/Documents/Channel 8 Underwater — Landed Outputs")
 OUT.mkdir(parents=True, exist_ok=True)
 tasks = json.loads((HERE / ".kling_omni_julia_tasks.json").read_text())
 

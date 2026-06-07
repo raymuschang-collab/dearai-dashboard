@@ -27,8 +27,8 @@ def tc_to_seconds(_): return 0
 
 
 SHEET_ID = "1iygU-7XAwhVKykkTYXHAqwBh0wD1d7Zk2s6OGfnLXCc"
-OUTPUT = "/Users/raymuschang/Desktop/Shotlist Workflows/sajangnim_ep01_gallery.html"
-HIEROGLYPHICS_BG = "/Users/raymuschang/Desktop/Shotlist Workflows/hieroglyphics_bg.png"
+OUTPUT = "/Users/raymuschang/Documents/Shotlist Workflows/sajangnim_ep01_gallery.html"
+HIEROGLYPHICS_BG = "/Users/raymuschang/Documents/Shotlist Workflows/hieroglyphics_bg.png"
 SHOTLIST_TAB = "Shotlist"
 MAX_SET = 15  # Ep 1 has 15 sets
 

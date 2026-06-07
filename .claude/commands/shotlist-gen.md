@@ -10,7 +10,7 @@ User invoked /shotlist-gen. Args: `$ARGUMENTS`
 Parse `$ARGUMENTS` and run the atomizer. `--dry-run` prints the planned shot and bible rows without writing to Sheets.
 
 ```bash
-cd "/Users/raymuschang/Desktop/Shotlist Workflows"
+cd "/Users/raymuschang/Documents/Shotlist Workflows"
 /usr/bin/python3 shotlist_gen.py $ARGUMENTS
 ```
 

@@ -28,7 +28,7 @@ from pathlib import Path
 
 import gspread
 
-sys.path.insert(0, "/Users/raymuschang/Desktop/Shotlist Workflows")
+sys.path.insert(0, "/Users/raymuschang/Documents/Shotlist Workflows")
 from auth import get_credentials  # type: ignore
 
 CONCEPTS = [
@@ -39,7 +39,7 @@ CONCEPTS = [
                     "<em>'Every chip has a story.'</em> → 4 engineer profiles → "
                     "match-cuts back to setup. Singapore semiconductor industry "
                     "shown through the lives it touches."),
-        "out": "/Users/raymuschang/Desktop/Shotlist Workflows/edb_concept_01_gallery.html",
+        "out": "/Users/raymuschang/Documents/Shotlist Workflows/edb_concept_01_gallery.html",
         "accent": "#22d3ee",  # cyan
     },
     {
@@ -49,7 +49,7 @@ CONCEPTS = [
                     "(loud/dirty · repetitive · no career path) → pivot → "
                     "Vox-style mograph reveal scaling 1 transistor to <em>'1 in 10 "
                     "made here'</em>. The wordplay film."),
-        "out": "/Users/raymuschang/Desktop/Shotlist Workflows/edb_concept_02_gallery.html",
+        "out": "/Users/raymuschang/Documents/Shotlist Workflows/edb_concept_02_gallery.html",
         "accent": "#34d399",  # mint
     },
 ]

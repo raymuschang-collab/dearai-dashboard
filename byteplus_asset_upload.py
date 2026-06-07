@@ -50,7 +50,7 @@ def _resolve_auth():
     candidates = [
         os.path.join(os.getcwd(), "auth.py"),
         os.path.join(str(HERE), "auth.py"),
-        os.path.expanduser("~/Desktop/Shotlist Workflows/auth.py"),
+        os.path.expanduser("~/Documents/Shotlist Workflows/auth.py"),
     ]
     for c in candidates:
         if os.path.exists(c):

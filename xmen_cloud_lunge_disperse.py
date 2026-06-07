@@ -23,13 +23,13 @@ from pathlib import Path
 import requests
 from dotenv import load_dotenv
 
-HERE = Path("/Users/raymuschang/Desktop/Shotlist Workflows")
+HERE = Path("/Users/raymuschang/Documents/Shotlist Workflows")
 load_dotenv(HERE / ".env")
 
 ARK_KEY = os.getenv("BYTEPLUS_ARK_API_KEY")
 ARK_BASE = "https://ark.ap-southeast.bytepluses.com/api/v3"
 MODEL = "dreamina-seedance-2-0-260128"
-OUT_DIR = Path("/Users/raymuschang/Desktop/X-men/Generated Videos/Seq02i_Cloud_Lunge_Disperse")
+OUT_DIR = Path("/Users/raymuschang/Documents/X-men/Generated Videos/Seq02i_Cloud_Lunge_Disperse")
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 MAN          = "asset-20260531201701-cmnc6"

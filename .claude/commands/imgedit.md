@@ -28,7 +28,7 @@ edits require the image as a file.
 ## Run
 
 ```bash
-cd "/Users/raymuschang/Desktop/Shotlist Workflows"
+cd "/Users/raymuschang/Documents/Shotlist Workflows"
 /usr/bin/python3 imgedit.py $ARGUMENTS
 ```
 
@@ -37,7 +37,7 @@ Defaults:
 - `--aspect auto` — detects the source image's aspect ratio and snaps to the nearest
   supported ratio so the frame isn't re-cropped (override with e.g. `--aspect 16:9`)
 - `--resolution 1k`
-- output saved to `~/Desktop/Good Light Generated Videos/_Edits/` unless `--out` is given
+- output saved to `~/Documents/Good Light Generated Videos/_Edits/` unless `--out` is given
 - `--upload` also pushes the result to Drive (anyone-with-link reader) and prints the URL.
   Set env `IMGEDIT_DRIVE_FOLDER` to drop uploads into a specific folder.
 

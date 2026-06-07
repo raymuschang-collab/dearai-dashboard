@@ -26,11 +26,11 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from dotenv import load_dotenv
 
-sys.path.insert(0, "/Users/raymuschang/Desktop/Shotlist Workflows")
+sys.path.insert(0, "/Users/raymuschang/Documents/Shotlist Workflows")
 from auth import get_credentials
 import byteplus_asset_v2 as bp
 
-HERE = Path("/Users/raymuschang/Desktop/Shotlist Workflows")
+HERE = Path("/Users/raymuschang/Documents/Shotlist Workflows")
 load_dotenv(HERE / ".env")
 
 ARK_KEY = os.getenv("BYTEPLUS_ARK_API_KEY")

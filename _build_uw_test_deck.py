@@ -5,7 +5,7 @@ from pathlib import Path
 
 HERE = Path(__file__).parent
 DRIVE = json.loads((HERE / ".channel8_drive_files.json").read_text())
-OUT = Path("/Users/raymuschang/Desktop/Sales Decks/UnderwaterTestShoot_Dark.html")
+OUT = Path("/Users/raymuschang/Documents/Sales Decks/UnderwaterTestShoot_Dark.html")
 
 
 def fid(path: str) -> str:

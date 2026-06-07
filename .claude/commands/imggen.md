@@ -32,7 +32,7 @@ Provider: Higgsfield `gpt_image_2` via `storyboard_generate.py`.
 Resolve `--stick` / `--pencil` / `--photoreal` / `--sheet` from the user's args. Default = `stick`.
 
 ```bash
-cd "/Users/raymuschang/Desktop/Shotlist Workflows"
+cd "/Users/raymuschang/Documents/Shotlist Workflows"
 /usr/bin/python3 storyboard_generate.py --sheet "<sheet>" --style <stick|pencil|photoreal|sheet> [--set <N>] [--force]
 ```
 

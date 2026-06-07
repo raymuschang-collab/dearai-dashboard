@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """Split every X-Men generation MP4 into per-shot clips.
 
-For each generation under ~/Desktop/X-men/Generated Videos/<seq>/:
+For each generation under ~/Documents/X-men/Generated Videos/<seq>/:
   - read the sheet to get the shot # / type / planned duration for that seq
   - scale planned durations proportionally to the actual MP4 runtime (15s)
   - ffmpeg-cut clips, one per shot, with fast keyframe-aware re-encode
 
 Output:
-  ~/Desktop/X-men/Working/sequence_1/   (Seq01_Gym)
-  ~/Desktop/X-men/Working/sequence_2a/  (Seq02a_Climb_Shots09-13)
-  ~/Desktop/X-men/Working/sequence_2b/  (Seq02b_Climb_Shots13-19)
+  ~/Documents/X-men/Working/sequence_1/   (Seq01_Gym)
+  ~/Documents/X-men/Working/sequence_2a/  (Seq02a_Climb_Shots09-13)
+  ~/Documents/X-men/Working/sequence_2b/  (Seq02b_Climb_Shots13-19)
 
 Naming: {seq_short}_{gen}_shot-{NN}_{type}.mp4
         e.g. seq1_v3-iter1_shot-03_Insert.mp4
@@ -24,8 +24,8 @@ import gspread
 from auth import get_credentials
 
 SHEET_ID = "1oex57Ula_gWLTYHRosXgDxzZJlK_ZOO7T-Kx3syIOEw"
-GEN_ROOT = Path("/Users/raymuschang/Desktop/X-men/Generated Videos")
-WORK_ROOT = Path("/Users/raymuschang/Desktop/X-men/Working")
+GEN_ROOT = Path("/Users/raymuschang/Documents/X-men/Generated Videos")
+WORK_ROOT = Path("/Users/raymuschang/Documents/X-men/Working")
 
 # seq folder name -> (work-folder name, shot # range, short tag)
 SEQ_MAP = {

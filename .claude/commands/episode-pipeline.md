@@ -16,7 +16,7 @@ User invoked /episode-pipeline. Args: `$ARGUMENTS`
 Each step gates on previous success. `--from-step`, `--to-step`, and `--skip` are resume controls.
 
 ```bash
-cd "/Users/raymuschang/Desktop/Shotlist Workflows"
+cd "/Users/raymuschang/Documents/Shotlist Workflows"
 /usr/bin/python3 episode_pipeline.py $ARGUMENTS
 ```
 

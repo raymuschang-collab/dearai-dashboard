@@ -28,7 +28,7 @@ from auth import get_credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
-SHOT = Path("/Users/raymuschang/Desktop/Video Editing/clients/Channel 8 Test Shoot/cuts/splits/shot 12")
+SHOT = Path("/Users/raymuschang/Documents/Video Editing/clients/Channel 8 Test Shoot/cuts/splits/shot 12")
 DRIVING_MP4 = SHOT / "shot 12.mp4"
 POSE_PNG = SHOT / "first and last frames/shot12_firstframe.png"
 OUTPUT_DIR = SHOT / "kling mocap"

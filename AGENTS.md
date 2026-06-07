@@ -81,7 +81,7 @@ asks "you sure?" the answer is almost certainly NO.
 ## Recovery: if formulas got overwritten
 
 ```bash
-cd "/Users/raymuschang/Desktop/Shotlist Workflows"
+cd "/Users/raymuschang/Documents/Shotlist Workflows"
 python3 -c "$(grep -A 200 '# Reapply formulas' AGENTS.md | tail -200)"
 # OR re-run the inline script from the conversation that created this file
 ```

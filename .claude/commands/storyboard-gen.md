@@ -14,7 +14,7 @@ If `$ARGUMENTS` is empty or doesn't look like a Sheet ID / Sheets URL, ASK the u
 The script is idempotent: it only generates Pending sets, skips Done ones. If the user wants to regenerate, they pass `--force` explicitly.
 
 ```bash
-cd "/Users/raymuschang/Desktop/Shotlist Workflows"
+cd "/Users/raymuschang/Documents/Shotlist Workflows"
 python3 storyboard_generate.py --sheet "$ARGUMENTS"
 ```
 

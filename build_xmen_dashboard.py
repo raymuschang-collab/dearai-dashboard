@@ -22,7 +22,7 @@ import gspread
 from auth import get_credentials
 
 SHEET_ID = "1oex57Ula_gWLTYHRosXgDxzZJlK_ZOO7T-Kx3syIOEw"
-OUT = "/Users/raymuschang/Desktop/Shotlist Workflows/xmen_dashboard.html"
+OUT = "/Users/raymuschang/Documents/Shotlist Workflows/xmen_dashboard.html"
 
 
 def drive_id(url):
@@ -236,7 +236,7 @@ footer {{ margin-top:60px; padding-top:24px; border-top:1px solid #1e2530; color
         parts.append('</div></section>')
 
     # generated videos — walk every MP4 in each sequence subfolder
-    gen_root = Path("/Users/raymuschang/Desktop/X-men/Generated Videos")
+    gen_root = Path("/Users/raymuschang/Documents/X-men/Generated Videos")
     dash_dir = Path(OUT).parent
     if gen_root.exists():
         seq_folders = sorted([d for d in gen_root.iterdir() if d.is_dir()])

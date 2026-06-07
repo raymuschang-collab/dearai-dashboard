@@ -22,7 +22,7 @@ Notes:
   - Default model is nano_banana_2 (Nano Banana 2 on Higgsfield).
   - --aspect defaults to "auto": the source image's own aspect ratio is detected and
     snapped to the nearest Higgsfield-supported ratio so the frame isn't re-cropped.
-  - Output is saved locally (default: ~/Desktop/Good Light Generated Videos/_Edits/).
+  - Output is saved locally (default: ~/Documents/Good Light Generated Videos/_Edits/).
   - --upload also pushes the result to Drive (anyone-with-link reader) and prints the URL.
 """
 import argparse
@@ -132,7 +132,7 @@ def main():
     ap.add_argument("--model", default="nano_banana_2", help="Higgsfield image model (default nano_banana_2)")
     ap.add_argument("--aspect", default="auto", help="output aspect ratio, or 'auto' to match the source")
     ap.add_argument("--resolution", default="1k", help="1k | 2k (default 1k)")
-    ap.add_argument("--out", help="local output path (default: ~/Desktop/Good Light Generated Videos/_Edits/)")
+    ap.add_argument("--out", help="local output path (default: ~/Documents/Good Light Generated Videos/_Edits/)")
     ap.add_argument("--upload", action="store_true", help="also upload result to Drive and print the URL")
     args, extra = ap.parse_known_args()
 
@@ -154,7 +154,7 @@ def main():
 
     out = args.out
     if not out:
-        d = os.path.expanduser("~/Desktop/Good Light Generated Videos/_Edits")
+        d = os.path.expanduser("~/Documents/Good Light Generated Videos/_Edits")
         os.makedirs(d, exist_ok=True)
         out = os.path.join(d, f"imgedit_{int(time.time())}.png")
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)

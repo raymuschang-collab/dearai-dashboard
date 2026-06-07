@@ -25,7 +25,7 @@ GROUP_ID = "group-20260505195134-wqx2b"
 REFS = [
     (Path("/Users/raymuschang/Downloads/channel8_refs/shot08_replay2/shot08_minister_v2_12s_keyframe.jpg"),
      "image/jpeg", "SHOT8 MINISTER 12s KEYFRAME (scene anchor)", "Image"),
-    (Path("/Users/raymuschang/Desktop/Video Editing/clients/Channel 8 Test Shoot/cuts/splits/shot 07/shot_07_minister_red_vertical.mp4"),
+    (Path("/Users/raymuschang/Documents/Video Editing/clients/Channel 8 Test Shoot/cuts/splits/shot 07/shot_07_minister_red_vertical.mp4"),
      "video/mp4", "SHOT7 MINISTER VERTICAL STRIP 3s (acting + dialogue driver)", "Video"),
 ]
 

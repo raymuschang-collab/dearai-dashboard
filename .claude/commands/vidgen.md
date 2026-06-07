@@ -19,7 +19,7 @@ Their request: `$ARGUMENTS`
 Parse `$ARGUMENTS` — extract sheet ID, set #, slot, optional flags, and any `@name` tokens.
 
 ```bash
-cd "/Users/raymuschang/Desktop/Shotlist Workflows"
+cd "/Users/raymuschang/Documents/Shotlist Workflows"
 python3 byteplus_vidgen.py --sheet "<sheet>" --set <N> --slot <1|2> --sb-slot <1|2> [other flags] [--mentions @tara @minjun]
 ```
 

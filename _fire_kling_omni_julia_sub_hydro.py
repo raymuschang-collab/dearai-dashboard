@@ -25,8 +25,8 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
 JULIA = HERE / "Brizio/Tests/_kling_omni/julia_id.jpg"
-SUB   = Path("/Users/raymuschang/Desktop/Shotlist Workflows/Brizio/Tests/hf_20260527_014710_242cef7a-861d-48bc-bdda-a752d899e9df.png")
-HYDRO = Path("/Users/raymuschang/Desktop/Shotlist Workflows/Brizio/Tests/hf_20260527_015314_f5f7855c-bedc-43be-aec6-eca1ce0b1279.png")
+SUB   = Path("/Users/raymuschang/Documents/Shotlist Workflows/Brizio/Tests/hf_20260527_014710_242cef7a-861d-48bc-bdda-a752d899e9df.png")
+HYDRO = Path("/Users/raymuschang/Documents/Shotlist Workflows/Brizio/Tests/hf_20260527_015314_f5f7855c-bedc-43be-aec6-eca1ce0b1279.png")
 
 NEG = "CGI, 3D render, video game, unreal engine, plastic skin, cartoon, anime, over-smooth, glossy, movie poster, airbrushed, waxy"
 

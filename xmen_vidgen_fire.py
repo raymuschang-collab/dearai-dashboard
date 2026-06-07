@@ -25,7 +25,7 @@ ARK_KEY = os.getenv("BYTEPLUS_ARK_API_KEY")
 ARK_BASE = "https://ark.ap-southeast.bytepluses.com/api/v3"
 MODEL = "dreamina-seedance-2-0-260128"
 
-OUT_ROOT = Path("/Users/raymuschang/Desktop/X-men/Generated Videos")
+OUT_ROOT = Path("/Users/raymuschang/Documents/X-men/Generated Videos")
 OUT_ROOT.mkdir(parents=True, exist_ok=True)
 
 # ----- asset codes -----

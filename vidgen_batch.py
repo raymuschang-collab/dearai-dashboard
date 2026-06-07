@@ -30,8 +30,8 @@ from byteplus_vidgen import submit_seedance_task, poll_task
 PLATE_IMAGE = "asset-20260512205417-db4ps"
 PLATE_VIDEO = "asset-20260512182033-pz6xf"
 PERSONAL_BRAND_GROUP = "group-20260512182023-fvqm7"
-DEFAULT_TAKES_DIR = Path("/Users/raymuschang/Desktop/Social Media Posts (Video)/personal-brand/script-audio-takes")
-OUTPUT_BASE = Path("/Users/raymuschang/Desktop/Social Media Posts (Video)/personal-brand/vidgen-batches")
+DEFAULT_TAKES_DIR = Path("/Users/raymuschang/Documents/Social Media Posts (Video)/personal-brand/script-audio-takes")
+OUTPUT_BASE = Path("/Users/raymuschang/Documents/Social Media Posts (Video)/personal-brand/vidgen-batches")
 
 LOCKED_PROMPT = """Mid shot of a man looking directly at camera, speaking like an engaging content creator. He stands in a clean white studio space with soft diffuse lighting wrapping around him evenly. Measured conviction, natural micro-expressions, slight emphasis on key nouns when they land. Sharp focus on face, soft blurred white background. No music, only natural room tone + dialogue.
 
@@ -327,7 +327,7 @@ def main():
     print(f"\n=== DONE ===")
     print(f"  final: {final_mp4}  ({summary['final_duration_sec']:.1f}s)")
     print(f"  summary: {out_dir / '_batch_summary.json'}")
-    print(f"\nNext: hand off to HyperFrames (in /Users/raymuschang/Desktop/Video Editing/) for captions + motion graphics.")
+    print(f"\nNext: hand off to HyperFrames (in /Users/raymuschang/Documents/Video Editing/) for captions + motion graphics.")
 
 
 if __name__ == "__main__":

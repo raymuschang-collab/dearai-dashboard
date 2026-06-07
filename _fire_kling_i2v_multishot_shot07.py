@@ -30,8 +30,8 @@ from auth import get_credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
-SCENE_PNG = Path("/Users/raymuschang/Desktop/Video Editing/clients/Channel 8 Test Shoot/cuts/splits/shot 07/first and last frames/shot 7.png")
-OUTPUT_DIR = Path("/Users/raymuschang/Desktop/Video Editing/clients/Channel 8 Test Shoot/cuts/splits/shot 07/kling i2v multishot")
+SCENE_PNG = Path("/Users/raymuschang/Documents/Video Editing/clients/Channel 8 Test Shoot/cuts/splits/shot 07/first and last frames/shot 7.png")
+OUTPUT_DIR = Path("/Users/raymuschang/Documents/Video Editing/clients/Channel 8 Test Shoot/cuts/splits/shot 07/kling i2v multishot")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 MINISTER_ELEMENT = 311017617324500

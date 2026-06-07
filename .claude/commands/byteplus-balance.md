@@ -4,7 +4,7 @@ argument-hint: (no args)
 ---
 
 ```bash
-cd "/Users/raymuschang/Desktop/Shotlist Workflows"
+cd "/Users/raymuschang/Documents/Shotlist Workflows"
 python3 byteplus_balance.py
 ```
 

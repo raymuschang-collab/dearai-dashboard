@@ -23,7 +23,7 @@ from auth import get_credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
-SHOT_FOLDER = Path("/Users/raymuschang/Desktop/Video Editing/clients/Channel 8 Test Shoot/cuts/splits/shot 01")
+SHOT_FOLDER = Path("/Users/raymuschang/Documents/Video Editing/clients/Channel 8 Test Shoot/cuts/splits/shot 01")
 NEW_POSE_PNG = SHOT_FOLDER / "first and last frames/Oriental Patterns Style.png"
 OUTPUT_DIR = SHOT_FOLDER / "kling mocap"
 

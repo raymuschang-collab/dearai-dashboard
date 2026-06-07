@@ -20,7 +20,7 @@ if env_file.exists():
             os.environ[k.strip()] = v.strip()
 
 GROUP_ID = "group-20260505195134-wqx2b"
-LOCAL = "/Users/raymuschang/Desktop/Video Editing/clients/Channel 8 Test Shoot/location-refs/Underwater Palace Montage.mp4"
+LOCAL = "/Users/raymuschang/Documents/Video Editing/clients/Channel 8 Test Shoot/location-refs/Underwater Palace Montage.mp4"
 ASSET_NAME = "UNDERWATER PALACE (montage)"
 
 

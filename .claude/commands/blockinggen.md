@@ -37,7 +37,7 @@ If the columns Q/R don't exist yet, add them (headers "Blocking Prompt" /
 ## Step 2 — render
 
 ```bash
-cd "/Users/raymuschang/Desktop/Shotlist Workflows"
+cd "/Users/raymuschang/Documents/Shotlist Workflows"
 /usr/bin/python3 blocking_generate.py --sheet "<sheet>" $ARGUMENTS
 ```
 

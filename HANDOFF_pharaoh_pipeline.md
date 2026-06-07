@@ -35,8 +35,8 @@ Episode 1 of "Strike! Pharaoh King" is shipped. The video-shotlist pipeline is m
 |---|---|
 | **Live Pharaoh Sheet** | `1vYn7CjuaaaIE1UONwdfsS5ZLa0dPh8Dsl-bTY0dacTE` |
 | **Schema reference Sheet (DUMMY)** | `1dVY9X4D0jGouASUgHgsdE3FXL0Id3m2DFOJDTPAxpIw` |
-| **Pharaoh Gallery HTML** | `/Users/raymuschang/Desktop/Shotlist Workflows/pharaoh_king_gallery_PRODUCTION_v2.html` |
-| **Working dir** | `/Users/raymuschang/Desktop/Shotlist Workflows/` |
+| **Pharaoh Gallery HTML** | `/Users/raymuschang/Documents/Shotlist Workflows/pharaoh_king_gallery_PRODUCTION_v2.html` |
+| **Working dir** | `/Users/raymuschang/Documents/Shotlist Workflows/` |
 
 The schema reference sheet is the canonical study/clone template — open it to see the 9-tab layout populated with a tiny dummy script.
 
@@ -46,15 +46,15 @@ The schema reference sheet is the canonical study/clone template — open it to 
 
 1. **Run `refs_audit.py`** to populate shotlist S+T cols with detected bible refs per shot (auto-detect transparency).
    ```bash
-   cd "/Users/raymuschang/Desktop/Shotlist Workflows"
+   cd "/Users/raymuschang/Documents/Shotlist Workflows"
    python3 refs_audit.py
    ```
 
 2. **Rebuild gallery with click-to-play patch live**:
    ```bash
-   cd "/Users/raymuschang/Desktop/Shotlist Workflows"
+   cd "/Users/raymuschang/Documents/Shotlist Workflows"
    python3 build_pharaoh_gallery_production_v2.py
-   open "/Users/raymuschang/Desktop/Shotlist Workflows/pharaoh_king_gallery_PRODUCTION_v2.html"
+   open "/Users/raymuschang/Documents/Shotlist Workflows/pharaoh_king_gallery_PRODUCTION_v2.html"
    ```
 
 3. **Update `microdrama-shotlist` skill docs** to reflect the new Tone of Voice column position (col H) and the new Refs Detected cols (S, T). Skill file lives in `~/.claude/`.

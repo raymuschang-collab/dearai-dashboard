@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Upload all mp4s from ~/Desktop/Channel 8 Underwater — Landed Outputs/ to a
+"""Upload all mp4s from ~/Documents/Channel 8 Underwater — Landed Outputs/ to a
 dedicated Drive folder. Print streaming URLs (uc?export=download&id=) for each
 so they can be played without waiting on Drive's preview transcode.
 """
@@ -19,7 +19,7 @@ if env_file.exists():
             k, v = line.split("=", 1)
             os.environ[k.strip()] = v.strip()
 
-LANDED = Path("/Users/raymuschang/Desktop/Channel 8 Underwater — Landed Outputs")
+LANDED = Path("/Users/raymuschang/Documents/Channel 8 Underwater — Landed Outputs")
 FOLDER_NAME = "Channel 8 Underwater — Seedance Outputs"
 
 

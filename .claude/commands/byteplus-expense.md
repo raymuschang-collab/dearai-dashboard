@@ -4,7 +4,7 @@ argument-hint: [--since YYYY-MM-DD] [--by-set] [--by-model]
 ---
 
 ```bash
-cd "/Users/raymuschang/Desktop/Shotlist Workflows"
+cd "/Users/raymuschang/Documents/Shotlist Workflows"
 python3 byteplus_expense.py "$ARGUMENTS"
 ```
 

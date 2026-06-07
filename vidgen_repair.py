@@ -23,8 +23,8 @@ HERE = Path(__file__).parent
 load_dotenv(HERE / ".env")
 API_KEY = os.getenv("OPENAI_API_KEY")
 
-TAKES_DIR = Path("/Users/raymuschang/Desktop/Social Media Posts (Video)/personal-brand/script-audio-takes")
-VIDGEN_DIR = Path("/Users/raymuschang/Desktop/Social Media Posts (Video)/personal-brand/vidgen-batches")
+TAKES_DIR = Path("/Users/raymuschang/Documents/Social Media Posts (Video)/personal-brand/script-audio-takes")
+VIDGEN_DIR = Path("/Users/raymuschang/Documents/Social Media Posts (Video)/personal-brand/vidgen-batches")
 
 
 def whisper_words(audio_or_video_path: Path, cache_suffix: str = "_whisper.json") -> dict:

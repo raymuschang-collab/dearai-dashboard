@@ -27,7 +27,7 @@ from auth import get_credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
-SHOT_FOLDER = Path("/Users/raymuschang/Desktop/Video Editing/clients/Channel 8 Test Shoot/cuts/splits/shot 01")
+SHOT_FOLDER = Path("/Users/raymuschang/Documents/Video Editing/clients/Channel 8 Test Shoot/cuts/splits/shot 01")
 REVERSED_MP4 = SHOT_FOLDER / "shot_01_reversed.mp4"
 ENDFRAME_PNG = SHOT_FOLDER / "first and last frames/Shot 1_EndFrame.png"
 OUTPUT_DIR = SHOT_FOLDER / "kling mocap"

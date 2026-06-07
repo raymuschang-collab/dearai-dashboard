@@ -12,7 +12,7 @@ If `$ARGUMENTS` is empty or doesn't look like a Sheet ID / Sheets URL, ASK the u
 ## Action — run directly, no dry-run, no confirmation
 
 ```bash
-cd "/Users/raymuschang/Desktop/Shotlist Workflows"
+cd "/Users/raymuschang/Documents/Shotlist Workflows"
 python3 storyboard_build.py --sheet "$ARGUMENTS"
 ```
 

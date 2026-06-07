@@ -12,7 +12,7 @@ If `$ARGUMENTS` is empty, ask the user for the parent folder ID. Do NOT silently
 ## Action — run directly, no dry-run, no confirmation
 
 ```bash
-cd "/Users/raymuschang/Desktop/Shotlist Workflows"
+cd "/Users/raymuschang/Documents/Shotlist Workflows"
 python3 storyboard_build.py --all-in-folder "$ARGUMENTS"
 ```
 

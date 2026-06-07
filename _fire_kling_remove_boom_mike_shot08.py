@@ -23,7 +23,7 @@ from auth import get_credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
-SRC = Path("/Users/raymuschang/Desktop/Video Editing/clients/Channel 8 Test Shoot/cuts/splits/shot 08/seedance outputs/shot_08_underwater_v1_1080p.mp4")
+SRC = Path("/Users/raymuschang/Documents/Video Editing/clients/Channel 8 Test Shoot/cuts/splits/shot 08/seedance outputs/shot_08_underwater_v1_1080p.mp4")
 OUT = SRC.parent / "shot_08_underwater_v1_1080p_nomic.mp4"
 
 PROMPT = (

@@ -10,7 +10,7 @@ User invoked /byteplus-upload-all. Args: `$ARGUMENTS`
 Wrap `byteplus_asset_upload.py` in all-bibles mode. The script is idempotent: rows with Asset Code or Status=Uploaded are skipped unless `--force` is passed.
 
 ```bash
-cd "/Users/raymuschang/Desktop/Shotlist Workflows"
+cd "/Users/raymuschang/Documents/Shotlist Workflows"
 /usr/bin/python3 byteplus_asset_upload.py --all-bibles $ARGUMENTS
 ```
 

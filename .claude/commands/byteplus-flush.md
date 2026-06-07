@@ -10,7 +10,7 @@ User invoked /byteplus-flush. Args: `$ARGUMENTS`
 This is destructive. Default scope is `replaced`, and without `--confirm` the script only prints what would be deleted.
 
 ```bash
-cd "/Users/raymuschang/Desktop/Shotlist Workflows"
+cd "/Users/raymuschang/Documents/Shotlist Workflows"
 /usr/bin/python3 byteplus_flush.py $ARGUMENTS
 ```
 

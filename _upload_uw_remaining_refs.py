@@ -18,7 +18,7 @@ if env_file.exists():
             os.environ[k.strip()] = v.strip()
 
 GROUP_ID = "group-20260505195134-wqx2b"
-BASE = "/Users/raymuschang/Desktop/Video Editing/clients/Channel 8 Test Shoot/cuts/splits"
+BASE = "/Users/raymuschang/Documents/Video Editing/clients/Channel 8 Test Shoot/cuts/splits"
 
 
 def main():

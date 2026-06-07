@@ -12,7 +12,7 @@ If `$ARGUMENTS` is empty, ASK which sheet to target.
 ## Action — run directly
 
 ```bash
-cd "/Users/raymuschang/Desktop/Shotlist Workflows"
+cd "/Users/raymuschang/Documents/Shotlist Workflows"
 python3 ~/.claude/skills/episode-assemble/assemble.py --sheet "$ARGUMENTS"
 ```
 

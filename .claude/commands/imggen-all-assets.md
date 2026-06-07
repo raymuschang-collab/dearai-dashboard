@@ -14,7 +14,7 @@ Run the idempotent asset-image orchestrator. It loops existing scripts:
 - `bible_generate.py` for COSTUME, PROPS, EFFECTS rows missing refs → Higgsfield `nano_banana_2`.
 
 ```bash
-cd "/Users/raymuschang/Desktop/Shotlist Workflows"
+cd "/Users/raymuschang/Documents/Shotlist Workflows"
 /usr/bin/python3 imggen_all_assets.py $ARGUMENTS
 ```
 

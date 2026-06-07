@@ -14,7 +14,7 @@ from auth import get_credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
-LOCAL_ROOT = Path("/Users/raymuschang/Desktop/Video Editing/clients/Channel 8 Test Shoot")
+LOCAL_ROOT = Path("/Users/raymuschang/Documents/Video Editing/clients/Channel 8 Test Shoot")
 SKIP_NAMES = {".DS_Store"}
 
 creds = get_credentials()

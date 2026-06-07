@@ -9,7 +9,7 @@ This README explains the protocol **end-to-end** and ships a one-file CLI you ca
 ## The 90-second version
 
 ```bash
-cd "/Users/raymuschang/Desktop/Shotlist Workflows"
+cd "/Users/raymuschang/Documents/Shotlist Workflows"
 python3 byteplus_upload.py "/path/to/your/file.png" --name "TARA face"
 ```
 
@@ -49,7 +49,7 @@ The CLI does all five steps for you.
 
 ## Setup (one-time)
 
-You need these inside `~/Desktop/Shotlist Workflows/`:
+You need these inside `~/Documents/Shotlist Workflows/`:
 
 1. **`.env`** with at minimum:
    ```
@@ -192,7 +192,7 @@ content = [
 ## tl;dr — copy-paste cheat sheet
 
 ```bash
-cd "/Users/raymuschang/Desktop/Shotlist Workflows"
+cd "/Users/raymuschang/Documents/Shotlist Workflows"
 
 # Image
 python3 byteplus_upload.py "/path/to/face.png" --name "CHAR face"

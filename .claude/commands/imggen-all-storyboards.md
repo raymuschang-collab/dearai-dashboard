@@ -19,7 +19,7 @@ Style flags (mirror `/imggen`):
 Resolve the user's args. If they didn't pass any style flag, default to `--style stick`. If they passed `--pencil`, swap to `--style pencil`. Etc.
 
 ```bash
-cd "/Users/raymuschang/Desktop/Shotlist Workflows"
+cd "/Users/raymuschang/Documents/Shotlist Workflows"
 /usr/bin/python3 storyboard_generate.py --sheet "<sheet>" --style <stick|pencil|photoreal|sheet> [--force]
 ```
 

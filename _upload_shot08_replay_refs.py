@@ -26,7 +26,7 @@ GROUP_ID = "group-20260505195134-wqx2b"
 REFS = [
     (Path("/Users/raymuschang/Downloads/channel8_refs/shot08_replay/shot08_v5_firstframe.jpg"),
      "image/jpeg", "SHOT8 V5 FIRSTFRAME (scene ref)", "Image"),
-    (Path("/Users/raymuschang/Desktop/Video Editing/clients/Channel 8 Test Shoot/cuts/splits/shot 08/shot 08.mp4"),
+    (Path("/Users/raymuschang/Documents/Video Editing/clients/Channel 8 Test Shoot/cuts/splits/shot 08/shot 08.mp4"),
      "video/mp4", "SHOT8 LIVE PLATE 5.6s (acting + timing ref)", "Video"),
 ]
 

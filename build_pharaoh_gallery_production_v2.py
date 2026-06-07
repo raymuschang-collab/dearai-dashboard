@@ -26,8 +26,8 @@ from feedback_data import COMMENTS, tc_to_seconds
 
 
 SHEET_ID = "1vYn7CjuaaaIE1UONwdfsS5ZLa0dPh8Dsl-bTY0dacTE"
-OUTPUT = "/Users/raymuschang/Desktop/Shotlist Workflows/pharaoh_king_gallery_PRODUCTION_v2.html"
-HIEROGLYPHICS_BG = "/Users/raymuschang/Desktop/Shotlist Workflows/hieroglyphics_bg.png"
+OUTPUT = "/Users/raymuschang/Documents/Shotlist Workflows/pharaoh_king_gallery_PRODUCTION_v2.html"
+HIEROGLYPHICS_BG = "/Users/raymuschang/Documents/Shotlist Workflows/hieroglyphics_bg.png"
 SHOTLIST_TAB = "Strike! Pharaoh King - Ep 1"
 MAX_SET = 12  # user is only working through set 12 right now
 

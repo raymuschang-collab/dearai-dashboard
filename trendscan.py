@@ -25,7 +25,7 @@ APIFY_TOKEN = os.getenv("APIFY_TOKEN")
 YT_API_KEY = os.getenv("YT_DATA_API_KEY")
 
 NICHES_CFG = json.loads((HERE / "_niches.json").read_text())
-OUTPUT_BASE = Path("/Users/raymuschang/Desktop/Social Media Calendar Pipelines/Social Media Posts (Image)/personal-brand/_trends")
+OUTPUT_BASE = Path("/Users/raymuschang/Documents/Social Media Calendar Pipelines/Social Media Posts (Image)/personal-brand/_trends")
 
 # ───────────────────────────────────────── YouTube Data API ──────────────────
 def yt_search(query: str, max_results: int = 20, days: int = 14) -> list[dict]:

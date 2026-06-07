@@ -60,7 +60,7 @@ Default (no args, or `status`): print the slate table above, then read each ep's
 - vidgen progress (sets with a Video Iter URL in SP col M or N)
 
 ```bash
-cd "/Users/raymuschang/Desktop/Shotlist Workflows"
+cd "/Users/raymuschang/Documents/Shotlist Workflows"
 /usr/bin/python3 - <<'PY'
 import gspread
 from auth import get_credentials

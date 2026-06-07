@@ -24,7 +24,7 @@ if env_file.exists():
             k, v = line.split("=", 1)
             os.environ[k.strip()] = v.strip()
 
-LANDED = Path("/Users/raymuschang/Desktop/Channel 8 Underwater — Landed Outputs")
+LANDED = Path("/Users/raymuschang/Documents/Channel 8 Underwater — Landed Outputs")
 FOLDER_NAME = "Channel 8 Underwater — Seedance Outputs"
 
 # User's ordered sample list with captions (in their voice)

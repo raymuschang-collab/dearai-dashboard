@@ -15,7 +15,7 @@ for line in env.splitlines():
 
 import byteplus_asset_v2 as bp
 
-OUT = Path("/Users/raymuschang/Desktop/Sales Decks/Seedance_Elements_Gallery.html")
+OUT = Path("/Users/raymuschang/Documents/Sales Decks/Seedance_Elements_Gallery.html")
 HERE = Path(".")
 
 # Friendly labels for known groups

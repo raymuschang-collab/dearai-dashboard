@@ -20,8 +20,8 @@ from auth import get_credentials
 
 
 SHEET_ID = "1vYn7CjuaaaIE1UONwdfsS5ZLa0dPh8Dsl-bTY0dacTE"
-OUTPUT = "/Users/raymuschang/Desktop/Shotlist Workflows/pharaoh_king_gallery.html"
-HIEROGLYPHICS_BG = "/Users/raymuschang/Desktop/Shotlist Workflows/hieroglyphics_bg.png"
+OUTPUT = "/Users/raymuschang/Documents/Shotlist Workflows/pharaoh_king_gallery.html"
+HIEROGLYPHICS_BG = "/Users/raymuschang/Documents/Shotlist Workflows/hieroglyphics_bg.png"
 
 
 def load_bg_data_url() -> str:

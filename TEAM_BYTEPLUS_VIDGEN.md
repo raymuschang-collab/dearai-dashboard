@@ -37,7 +37,7 @@ The repo doesn't ship the `.env` (secrets) — Raymus will send you a copy
 of his via 1Password / Slack DM. Drop it at:
 
 ```
-~/Desktop/Shotlist Workflows/.env
+~/Documents/Shotlist Workflows/.env
 ```
 
 The file has these keys (you don't edit them — just receive the file):

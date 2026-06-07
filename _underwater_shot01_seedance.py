@@ -36,7 +36,7 @@ ARK_BASE = "https://ark.ap-southeast.bytepluses.com/api/v3"
 ARK_KEY = os.environ["BYTEPLUS_ARK_API_KEY"]
 GROUP_ID = "group-20260505195134-wqx2b"
 
-SHOT_DIR = Path("/Users/raymuschang/Desktop/Video Editing/clients/Channel 8 Test Shoot/cuts/splits/shot 01")
+SHOT_DIR = Path("/Users/raymuschang/Documents/Video Editing/clients/Channel 8 Test Shoot/cuts/splits/shot 01")
 AUDIO_LOCAL = SHOT_DIR / "Shot 1_Audio.mp3"   # BytePlus rejects .m4a; mp3 only
 IMAGE_LOCAL = SHOT_DIR / "first and last frames" / "shot 1.png"
 OUT_DIR = SHOT_DIR / "seedance outputs"

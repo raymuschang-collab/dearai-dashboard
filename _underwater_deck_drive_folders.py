@@ -22,7 +22,7 @@ if env_file.exists():
             k, v = line.split("=", 1)
             os.environ[k.strip()] = v.strip()
 
-DECK = Path("/Users/raymuschang/Desktop/Sales Decks/UnderwaterTestShoot_Dark.html")
+DECK = Path("/Users/raymuschang/Documents/Sales Decks/UnderwaterTestShoot_Dark.html")
 
 
 def parse_slides() -> dict:
@@ -157,7 +157,7 @@ def main():
         }
         print(f"  📦 {folder_link}")
 
-    out = Path("/Users/raymuschang/Desktop/Shotlist Workflows/_underwater_deck_drive_folders.json")
+    out = Path("/Users/raymuschang/Documents/Shotlist Workflows/_underwater_deck_drive_folders.json")
     out.write_text(json.dumps(results, indent=2))
     print(f"\n=== SUMMARY ===")
     for k, v in results.items():

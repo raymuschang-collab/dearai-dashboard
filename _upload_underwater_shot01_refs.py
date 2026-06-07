@@ -39,8 +39,8 @@ def main():
         drive.permissions().create(fileId=parent, body={"role": "reader", "type": "anyone"}, fields="id").execute()
 
     refs = [
-        ("shot01_throne_look", "/Users/raymuschang/Desktop/Video Editing/clients/Channel 8 Test Shoot/cuts/splits/shot 01/shot 1.png", "Image"),
-        ("shot01_blocking_ref", "/Users/raymuschang/Desktop/Video Editing/clients/Channel 8 Test Shoot/cuts/splits/shot 01/shot 01.mp4", "Video"),
+        ("shot01_throne_look", "/Users/raymuschang/Documents/Video Editing/clients/Channel 8 Test Shoot/cuts/splits/shot 01/shot 1.png", "Image"),
+        ("shot01_blocking_ref", "/Users/raymuschang/Documents/Video Editing/clients/Channel 8 Test Shoot/cuts/splits/shot 01/shot 01.mp4", "Video"),
     ]
 
     results = []

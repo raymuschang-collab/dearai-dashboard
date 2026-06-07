@@ -23,7 +23,7 @@ if env_file.exists():
 GROUP_ID = "group-20260505195134-wqx2b"
 
 REFS = [
-    (Path("/Users/raymuschang/Desktop/Video Editing/clients/Channel 8 Test Shoot/location-refs/Underwater Palace Collage.png"),
+    (Path("/Users/raymuschang/Documents/Video Editing/clients/Channel 8 Test Shoot/location-refs/Underwater Palace Collage.png"),
      "image/png", "UNDERWATER PALACE COLLAGE"),
     (Path("/Users/raymuschang/Downloads/channel8_refs/shot08_v2/MINISTER_still.jpg"),
      "image/jpeg", "MINISTER STILL"),

@@ -36,7 +36,7 @@ if env_file.exists():
 ARK_BASE = "https://ark.ap-southeast.bytepluses.com/api/v3"
 ARK_KEY = os.environ["BYTEPLUS_ARK_API_KEY"]
 
-OUT_DIR = Path("/Users/raymuschang/Desktop/Channel 8 Underwater — Landed Outputs")
+OUT_DIR = Path("/Users/raymuschang/Documents/Channel 8 Underwater — Landed Outputs")
 OUT_DIR.mkdir(exist_ok=True)
 
 # Refs

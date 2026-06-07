@@ -12,7 +12,7 @@ Idempotent — re-run any time. Pulls the live state of the sheet, so when
 storyboard_generate.py finishes another set, just re-run this and the new
 storyboard appears.
 
-Output: /Users/raymuschang/Desktop/Shotlist Workflows/answer_gallery.html
+Output: /Users/raymuschang/Documents/Shotlist Workflows/answer_gallery.html
 """
 from __future__ import annotations
 
@@ -24,11 +24,11 @@ from pathlib import Path
 
 import gspread
 
-sys.path.insert(0, "/Users/raymuschang/Desktop/Shotlist Workflows")
+sys.path.insert(0, "/Users/raymuschang/Documents/Shotlist Workflows")
 from auth import get_credentials  # type: ignore
 
 SHEET_ID = "1TrKp-hzqxqSv-s-wU97Ud8i98nSWQJGTr2D8npnjF3k"
-OUTPUT = "/Users/raymuschang/Desktop/Shotlist Workflows/answer_gallery.html"
+OUTPUT = "/Users/raymuschang/Documents/Shotlist Workflows/answer_gallery.html"
 
 
 def drive_id(url: str) -> str | None:

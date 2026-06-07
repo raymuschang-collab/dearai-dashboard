@@ -15,7 +15,7 @@ Tabs:
   Expense       — full ledger from .byteplus_expense.json
 
 Run:
-  cd "/Users/raymuschang/Desktop/Shotlist Workflows" && python3 dash_app/app.py
+  cd "/Users/raymuschang/Documents/Shotlist Workflows" && python3 dash_app/app.py
   → http://localhost:8050
 """
 from __future__ import annotations

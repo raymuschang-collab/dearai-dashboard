@@ -37,7 +37,7 @@ from byteplus_vidgen import submit_seedance_task, poll_task
 DEFAULT_VIDEO_REF = "asset://asset-20260530190201-mgnvk"   # outdoor mid-14.9s · normal speed
 DEFAULT_AUDIO_REF = "asset://asset-20260526124346-76ss5"   # Raymus voice · SG English
 
-OUT_LOCAL = Path("/Users/raymuschang/Desktop/Social Media Posts (Video)/personal-brand/vidgen-batches/_cartest")
+OUT_LOCAL = Path("/Users/raymuschang/Documents/Social Media Posts (Video)/personal-brand/vidgen-batches/_cartest")
 OUT_DRIVE = Path("/Users/raymuschang/Library/CloudStorage/GoogleDrive-raymuschang@gmail.com/My Drive/PocketShow and Raymus Brand/_to-phone-cartest")
 
 

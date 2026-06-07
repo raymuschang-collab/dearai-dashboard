@@ -16,14 +16,14 @@ import os, sys, re, subprocess, json, base64
 from pathlib import Path
 
 # Load .env
-ENV_PATH = "/Users/raymuschang/Desktop/Shotlist Workflows/.env"
+ENV_PATH = "/Users/raymuschang/Documents/Shotlist Workflows/.env"
 for line in open(ENV_PATH):
     line = line.strip()
     if line and not line.startswith("#") and "=" in line:
         k, v = line.split("=", 1)
         os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
 
-ROOT = Path("/Users/raymuschang/Desktop/Social Media Calendar Pipelines")
+ROOT = Path("/Users/raymuschang/Documents/Social Media Calendar Pipelines")
 SHOWS = ROOT / "Social Media Posts (Video)" / "10-shows"
 LOGO = ROOT / "Social Media Posts (Image)" / "Logos" / "PocketShow Logo.png"
 OUT_ROOT = ROOT / "PocketShow" / "episode-carousels"

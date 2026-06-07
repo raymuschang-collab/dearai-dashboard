@@ -30,7 +30,7 @@ if env_file.exists():
 ARK_BASE = "https://ark.ap-southeast.bytepluses.com/api/v3"
 ARK_KEY = os.environ["BYTEPLUS_ARK_API_KEY"]
 
-SHOT_DIR = Path("/Users/raymuschang/Desktop/Video Editing/clients/Channel 8 Test Shoot/cuts/splits/shot 08")
+SHOT_DIR = Path("/Users/raymuschang/Documents/Video Editing/clients/Channel 8 Test Shoot/cuts/splits/shot 08")
 OUT_DIR = SHOT_DIR / "seedance outputs"
 OUT_DIR.mkdir(exist_ok=True)
 

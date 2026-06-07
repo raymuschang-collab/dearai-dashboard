@@ -24,7 +24,7 @@ PREREQS:
   3. ffmpeg installed (only needed for m4a → mp3 conversion)
   4. GROUP_ID for the project (default below is Channel 8 / Sajangnim group)
 
-Run from the project root (~/Desktop/Shotlist Workflows).
+Run from the project root (~/Documents/Shotlist Workflows).
 """
 from __future__ import annotations
 import argparse, os, sys, subprocess

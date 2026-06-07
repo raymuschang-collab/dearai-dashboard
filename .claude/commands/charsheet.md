@@ -29,7 +29,7 @@ Defaults: aspect `16:9` · quality `high` · resolution `2k` · single iter.
 If `$ARGUMENTS` contains `--sheet <id-or-url>` AND `--char "Name"`, dispatch to the production script:
 
 ```bash
-cd "/Users/raymuschang/Desktop/Shotlist Workflows"
+cd "/Users/raymuschang/Documents/Shotlist Workflows"
 /usr/bin/python3 character_generate.py --sheet "<sheet>" --char "<name>" [--force]
 ```
 
@@ -40,7 +40,7 @@ This reads the row from the CHARACTERS bible tab, builds the full 17-field promp
 If `$ARGUMENTS` contains `--name "X"` (required), parse all of the bible-field flags and pass through:
 
 ```bash
-cd "/Users/raymuschang/Desktop/Shotlist Workflows"
+cd "/Users/raymuschang/Documents/Shotlist Workflows"
 /usr/bin/python3 _charsheet_adhoc.py \
   --name "X" \
   [--role "..."] [--age N] [--gender "..."] [--ethnicity "..."] \

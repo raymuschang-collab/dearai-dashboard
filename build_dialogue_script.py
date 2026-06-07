@@ -23,8 +23,8 @@ from auth import get_credentials
 
 SHEET_ID = "1vYn7CjuaaaIE1UONwdfsS5ZLa0dPh8Dsl-bTY0dacTE"
 SHOTLIST_TAB = "Strike! Pharaoh King - Ep 1"
-OUTPUT = "/Users/raymuschang/Desktop/Shotlist Workflows/pharaoh_king_dialogue.html"
-HIEROGLYPHICS_BG = "/Users/raymuschang/Desktop/Shotlist Workflows/hieroglyphics_bg.png"
+OUTPUT = "/Users/raymuschang/Documents/Shotlist Workflows/pharaoh_king_dialogue.html"
+HIEROGLYPHICS_BG = "/Users/raymuschang/Documents/Shotlist Workflows/hieroglyphics_bg.png"
 
 # Each dialogue line in col G usually looks like "SPEAKER: line of dialogue".
 SPEAKER_LINE_RE = re.compile(r"^\s*([A-Z][A-Z0-9 _\-/]+?)\s*:\s*(.+)$", re.DOTALL)

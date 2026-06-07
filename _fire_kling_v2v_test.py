@@ -22,7 +22,7 @@ from auth import get_credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
-SPLITS = Path("/Users/raymuschang/Desktop/Video Editing/clients/Channel 8 Test Shoot/cuts/splits")
+SPLITS = Path("/Users/raymuschang/Documents/Video Editing/clients/Channel 8 Test Shoot/cuts/splits")
 
 CLIPS = [
     ("shot 02", SPLITS / "shot 02/shot 02.mp4", 5),    # 6.6s → 5s

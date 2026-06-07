@@ -22,7 +22,7 @@ if env_file.exists():
 GROUP_ID = "group-20260505195134-wqx2b"
 
 FF_DIR = Path("/Users/raymuschang/Downloads/channel8_refs/3s_ff")
-SHOT8_DIR = Path("/Users/raymuschang/Desktop/Video Editing/clients/Channel 8 Test Shoot/cuts/splits/shot 08")
+SHOT8_DIR = Path("/Users/raymuschang/Documents/Video Editing/clients/Channel 8 Test Shoot/cuts/splits/shot 08")
 
 REFS = [
     ("video/mp4",  FF_DIR / "PALACE_3s.mp4",        "UNDERWATER PALACE 3s (5x FF)",      "Video"),

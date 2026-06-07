@@ -35,7 +35,7 @@ ARK_BASE = "https://ark.ap-southeast.bytepluses.com/api/v3"
 ARK_KEY = os.environ["BYTEPLUS_ARK_API_KEY"]
 GROUP_ID = "group-20260505195134-wqx2b"
 
-SHOT_DIR = Path("/Users/raymuschang/Desktop/Video Editing/clients/Channel 8 Test Shoot/cuts/splits/shot 07")
+SHOT_DIR = Path("/Users/raymuschang/Documents/Video Editing/clients/Channel 8 Test Shoot/cuts/splits/shot 07")
 AUDIO_LOCAL = SHOT_DIR / "Shot 7_Audio.mp3"
 OUT_DIR = SHOT_DIR / "seedance outputs"
 OUT_DIR.mkdir(exist_ok=True)
