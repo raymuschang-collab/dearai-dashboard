@@ -109,14 +109,23 @@ def parse_sheet_id(s: str) -> str:
     return m.group(1) if m else s.strip()
 
 
+LOCREF_PATH = None  # optional local path to a location reference image (--locref)
+
+
 def generate_image(prompt: str, aspect: str, resolution: str) -> bytes:
-    """Higgsfield gpt_image_2 via shared CLI wrapper."""
+    """Higgsfield gpt_image_2 via shared CLI wrapper.
+
+    When LOCREF_PATH is set (via --locref), the location reference image is
+    threaded through as a media reference so the model honors the real
+    location's architecture while drawing in the stick-figure pencil style.
+    """
     return higgs_gen.generate(
         prompt=prompt,
         model=MODEL,
         aspect_ratio=aspect,
         quality=DEFAULT_QUALITY,
         resolution=resolution,
+        image_ref_path=LOCREF_PATH,
     )
 
 
@@ -296,7 +305,33 @@ STYLE_PREAMBLES = {
 }
 
 
+# Location-conditioned mode (--locref): detailed pencil ENVIRONMENT that honors
+# a real location reference image + featureless STICK-FIGURE people. Validated
+# to hold the pencil look on gpt_image_2 without photoreal drift.
+LOCREF_PREAMBLE = (
+    "Shot with arri 35.\n"
+    "No Music.\n"
+    "REFERENCE IMAGE: the attached photo sheet shows the real location from multiple "
+    "angles (exterior and interior) plus a top-down floor plan. Use it as the "
+    "architectural / layout reference — match the storefront, counter, furniture, "
+    "fixtures, window placement, materials and spatial depth. Do NOT copy its "
+    "photographic rendering, color or lighting.\n"
+    "Render the LOCATION and ENVIRONMENT in detailed graphite pencil with light "
+    "cross-hatching — architecture, furniture, props and depth (foreground / midground "
+    "/ background) all sketched with care. BUT every HUMAN FIGURE must be a ROUGH STICK "
+    "FIGURE ONLY: a simple circle head with NO facial features (no eyes, no mouth, no "
+    "hair), a simple line / gesture body, mitten hands. No likeness, no clothing detail, "
+    "no skin tone. People are pure blocking / staging markers; the ENVIRONMENT is the "
+    "detailed part. NOT photoreal. NOT colored.\n"
+    "Create a 5 panel storyboard based on the following shots. Ensure each shot is "
+    "labelled by number, with a label of the camera angle/movement centred at the bottom "
+    "of the panel. The storyboard should be divided by black lines. And the panels should "
+    "flow sequentially:"
+)
+
+
 def main():
+    global ITERATIONS, MODEL, LOCREF_PATH
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--sheet", help="Sheet ID or URL")
     ap.add_argument("--set", type=int, help="Generate only this set number")
@@ -320,10 +355,58 @@ def main():
     ap.add_argument(
         "--concurrency", type=int, default=1,
         help=("Max parallel SETS (default 1 = sequential). Each set internally "
-              "fires its 2 iters in parallel, so --concurrency 4 = up to 8 "
+              "fires its iters in parallel, so --concurrency 4 with --iters 2 = up to 8 "
               "simultaneous Higgsfield calls. Use with account-level unlimited tier."),
     )
+    ap.add_argument(
+        "--iters", type=int, default=ITERATIONS, choices=[1, 2],
+        help=("Storyboard iterations per set (default 2). Use --iters 1 for ONE "
+              "board per set — faster, cheaper, simpler review. Writes iter 1 URL; "
+              "iter 2 column left blank."),
+    )
+    ap.add_argument(
+        "--model", default=MODEL,
+        help=("Higgsfield model for the boards (default gpt_image_2). "
+              "e.g. --model nano_banana_pro for the higher-quality Gemini-3-pro image model."),
+    )
+    ap.add_argument(
+        "--locref", default=None,
+        help=("Location reference image (local path or Drive/HTTP URL). When set, ALL "
+              "sets use the location-conditioned pencil + stick-figure preamble and the "
+              "image is threaded to the model as an architectural reference, so boards "
+              "match the real location while people stay featureless stick figures. "
+              "Best with --model gpt_image_2."),
+    )
+    ap.add_argument(
+        "--auto-locref", action="store_true",
+        help=("Automatically pick EACH set's location reference from the SP 'Location' "
+              "column (the indicator shown below the globals) and thread it as that set's "
+              "storyboard ref, using the location-conditioned pencil + stick-figure "
+              "preamble. Per-set: each set gets its own matched location bible iter-1 image. "
+              "No manual --locref needed."),
+    )
     args = ap.parse_args()
+    ITERATIONS = args.iters
+    MODEL = args.model
+
+    # Resolve --locref to a local file path (download Drive/HTTP refs to a temp file).
+    if args.locref:
+        ref = args.locref
+        if ref.startswith("http"):
+            import tempfile
+            import requests as _rq
+            m = re.search(r"/d/([A-Za-z0-9_-]+)", ref)
+            ref_dl = (f"https://drive.google.com/uc?export=download&id={m.group(1)}"
+                      if m else ref)
+            tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+            tmp.write(_rq.get(ref_dl, timeout=180).content)
+            tmp.close()
+            LOCREF_PATH = tmp.name
+        else:
+            LOCREF_PATH = os.path.expanduser(ref)
+        if not os.path.exists(LOCREF_PATH):
+            sys.exit(f"--locref file not found: {LOCREF_PATH}")
+        print(f"Locref: {LOCREF_PATH}")
 
     if args.dry_run:
         dry_prompt = STYLE_PREAMBLES[args.style if args.style != "sheet" else "stick"]
@@ -385,6 +468,11 @@ def main():
         storyboard_globals = STYLE_PREAMBLES[args.style]
         print(f"Style: {args.style} (forced preamble; sheet globals ignored)")
 
+    # --locref overrides any --style: location-conditioned pencil + stick figures.
+    if args.locref:
+        storyboard_globals = LOCREF_PREAMBLE
+        print("Style: locref (location-conditioned pencil + stick figures; ref threaded as --image)")
+
     data = sb.get(
         f"A11:I{sb.row_count}",
         value_render_option="FORMATTED_VALUE",
@@ -408,8 +496,54 @@ def main():
     concurrency = max(1, int(args.concurrency))
     print(f"\nProcessing {len(jobs)} sets · concurrency={concurrency}\n", flush=True)
 
+    # --auto-locref: resolve a PER-SET location reference from the SP "Location"
+    # column (L). Each set's label is matched (in bible row order) against the
+    # LOCATIONS bible names; the matched row's iter-1 image is downloaded once
+    # and threaded as that set's --image. Uses the location-conditioned preamble.
+    auto_ref_by_row = {}
+    if args.auto_locref:
+        storyboard_globals = LOCREF_PREAMBLE
+        print("Style: auto-locref (per-set location ref from SP!L + pencil/stick preamble)")
+        loc_ws = sb.spreadsheet.worksheet("LOCATIONS")
+        loc_rows = loc_ws.get("A5:J60", value_render_option="FORMATTED_VALUE")
+        bible = []  # (name, iter1_view_url) in bible row order
+        for lr in loc_rows:
+            nm = lr[0].strip() if len(lr) > 0 else ""
+            iturl = lr[9].strip() if len(lr) > 9 else ""
+            if nm and iturl and "montage" not in nm.lower() and "/d/" in iturl:
+                bible.append((nm, iturl))
+        last_row = jobs[-1][1] if jobs else 11
+        lcol = sb.get(f"L11:L{last_row}", value_render_option="FORMATTED_VALUE")
+        labels = {11 + i: (lv[0].strip() if lv and lv[0] else "") for i, lv in enumerate(lcol)}
+        import tempfile
+        import requests as _rq
+        _dl_cache = {}
+        def _dl_ref(view_url):
+            if view_url in _dl_cache:
+                return _dl_cache[view_url]
+            m = re.search(r"/d/([A-Za-z0-9_-]+)", view_url)
+            if not m:
+                return None
+            dl = f"https://drive.google.com/uc?export=download&id={m.group(1)}"
+            t = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+            t.write(_rq.get(dl, timeout=180).content)
+            t.close()
+            _dl_cache[view_url] = t.name
+            return t.name
+        for _, sheet_row, _ in jobs:
+            lbl = labels.get(sheet_row, "").lower()
+            chosen = next((u for nm, u in bible if nm.lower() in lbl), None)
+            auto_ref_by_row[sheet_row] = _dl_ref(chosen) if chosen else (LOCREF_PATH if args.locref else None)
+        print("Auto-locref map: " + ", ".join(
+            f"set@{r}:{'✓' if auto_ref_by_row.get(r) else '—'}" for _, r, _ in jobs))
+        if concurrency != 1:
+            print("  (forcing concurrency=1 so per-set refs don't race)")
+            concurrency = 1
+
     if concurrency == 1:
         for set_num_int, sheet_row, row in jobs:
+            if args.auto_locref:
+                LOCREF_PATH = auto_ref_by_row.get(sheet_row)
             r = process_row(
                 sb, drive, sheet_row, row,
                 aspect=args.aspect, resolution=args.resolution,

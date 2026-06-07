@@ -136,7 +136,21 @@ python3 byteplus_vidgen.py \
 
 This auto-pulls body + globals + storyboard ref from the sheet, auto-detects
 character/location/prop refs from the body text, and writes V1/V2 URLs
-back to SP!M/N. Ideal for production runs that match the locked shotlist.
+back to SP!M/N. Default resolution is 480p. After Drive upload, it also
+saves a local copy to `~/Desktop/<Project> Generated Videos/`. Ideal for
+production runs that match the locked shotlist.
+
+Manual ref override for set-based runs:
+
+```bash
+python3 byteplus_vidgen.py \
+  --sheet 1iygU-7XAwhVKykkTYXHAqwBh0wD1d7Zk2s6OGfnLXCc \
+  --set 9 --slot 1 --resolution 480p \
+  --mentions @tara @minjun @kitchen
+```
+
+When `--mentions` is present, `byteplus_vidgen.py` skips body auto-detect and
+uses only matching Asset Library rows for those tokens.
 
 ### Natural-language shorthand patterns
 
@@ -471,3 +485,79 @@ is too unstable for the long-running BytePlus calls).
 ---
 
 — Last updated: 2026-05-08
+
+## Production slash commands
+
+### /shotlist-gen
+
+EN:
+> `/shotlist-gen --script scripts/episode_01.md --sheet 1TeAD8QAM8RfTtm8QzDzeCdNQzTKNwwOSXARn1DexM8Y --name "EDB Concept 01" --locale generic --dry-run`
+
+Bahasa Indonesia:
+> `/shotlist-gen --script scripts/episode_01.md --sheet 1TeAD8QAM8RfTtm8QzDzeCdNQzTKNwwOSXARn1DexM8Y --name "EDB Konsep 01" --locale jakarta --dry-run`
+
+Atomizes a locked script into Shotlist + Storyboard Prompts rows and text-only bible rows. Remove `--dry-run` to write.
+
+### /imggen-all-assets
+
+EN:
+> `/imggen-all-assets --sheet 1TeAD8QAM8RfTtm8QzDzeCdNQzTKNwwOSXARn1DexM8Y --bibles characters,locations`
+
+Bahasa Indonesia:
+> `/imggen-all-assets --sheet 1TeAD8QAM8RfTtm8QzDzeCdNQzTKNwwOSXARn1DexM8Y --bibles characters,locations --dry-run`
+
+Generates missing bible reference images through the existing character, location, props, costume, and effects generators.
+Provider routing: CHARACTERS → Higgsfield `gpt_image_2`; COSTUME / PROPS / EFFECTS → Higgsfield `nano_banana_2`; LOCATIONS → Reve direct.
+
+### /imggen-all-storyboards
+
+EN:
+> `/imggen-all-storyboards --sheet 1TeAD8QAM8RfTtm8QzDzeCdNQzTKNwwOSXARn1DexM8Y`
+
+Bahasa Indonesia:
+> `/imggen-all-storyboards --sheet 1TeAD8QAM8RfTtm8QzDzeCdNQzTKNwwOSXARn1DexM8Y --force`
+
+Runs `storyboard_generate.py` for all Pending Storyboard Prompts sets. Use `--force` only to regenerate Done sets.
+Provider: Higgsfield `gpt_image_2`.
+
+### /byteplus-upload-all
+
+EN:
+> `/byteplus-upload-all --sheet 1iygU-7XAwhVKykkTYXHAqwBh0wD1d7Zk2s6OGfnLXCc --bibles characters,locations`
+
+Bahasa Indonesia:
+> `/byteplus-upload-all --sheet 1iygU-7XAwhVKykkTYXHAqwBh0wD1d7Zk2s6OGfnLXCc --bibles characters,locations --force`
+
+Uploads Asset Library source URLs to BytePlus and skips rows that already have asset codes unless `--force` is passed.
+
+### /byteplus-flush
+
+EN:
+> `/byteplus-flush --sheet 1iygU-7XAwhVKykkTYXHAqwBh0wD1d7Zk2s6OGfnLXCc --scope replaced`
+
+Bahasa Indonesia:
+> `/byteplus-flush --sheet 1iygU-7XAwhVKykkTYXHAqwBh0wD1d7Zk2s6OGfnLXCc --scope replaced --confirm`
+
+Destructive cleanup for Asset Library rows marked Replaced. Without `--confirm`, it only prints what would be deleted.
+
+### /vidgen-all-sets
+
+EN:
+> `/vidgen-all-sets --sheet 1TeAD8QAM8RfTtm8QzDzeCdNQzTKNwwOSXARn1DexM8Y --slot 1 --dry-run`
+
+Bahasa Indonesia:
+> `/vidgen-all-sets --sheet 1TeAD8QAM8RfTtm8QzDzeCdNQzTKNwwOSXARn1DexM8Y --max-set 8 --slot 1`
+
+Sequentially fires `byteplus_vidgen.py` for Pending sets, one set at a time.
+Default video resolution is 480p. Include `--mentions @tara @minjun ...` to propagate a manual ref override to every set.
+
+### /episode-pipeline
+
+EN:
+> `/episode-pipeline --sheet 1TeAD8QAM8RfTtm8QzDzeCdNQzTKNwwOSXARn1DexM8Y --script scripts/episode_01.md --name "EDB Concept 01" --dry-run`
+
+Bahasa Indonesia:
+> `/episode-pipeline --sheet 1TeAD8QAM8RfTtm8QzDzeCdNQzTKNwwOSXARn1DexM8Y --from-step 2 --to-step 5 --skip 3`
+
+Chains shotlist generation, bible refs, BytePlus upload, storyboards, and sequential vidgen. Use resume flags for partial reruns.
+Provider routing: bible refs use Higgsfield except locations via Reve; storyboards use Higgsfield `gpt_image_2`; vidgen uses BytePlus Seedance at 480p unless overridden.

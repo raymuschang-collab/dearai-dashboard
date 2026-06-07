@@ -16,11 +16,11 @@ Their request: `$ARGUMENTS`
 
 ## Action — run directly, no dry-run
 
-Parse `$ARGUMENTS` — extract sheet ID, set #, slot, optional flags.
+Parse `$ARGUMENTS` — extract sheet ID, set #, slot, optional flags, and any `@name` tokens.
 
 ```bash
 cd "/Users/raymuschang/Desktop/Shotlist Workflows"
-python3 byteplus_vidgen.py --sheet "<sheet>" --set <N> --slot <1|2> --sb-slot <1|2> [other flags]
+python3 byteplus_vidgen.py --sheet "<sheet>" --set <N> --slot <1|2> --sb-slot <1|2> [other flags] [--mentions @tara @minjun]
 ```
 
 If user passes `--confirm`, the script prints detected refs + prompt, waits [y/N] before submitting. **Use this gate liberally** — it's the cheapest line of defense against ref bleed and bad prompts.
@@ -42,12 +42,16 @@ Globals come from **Video Prompts** tab:
 
 ### 2. Detect refs from Asset Library
 
-`detect_bible_refs(body, sh)` walks `Asset Library!A5:L500` finding rows where:
+By default, `detect_bible_refs(body, sh)` walks `Asset Library!A5:L500` finding rows where:
 - Status = `Uploaded`
 - Asset Code is set
 - Name (or its split-word for chars, or alias for locations) matches body text
 
 Sorted **CHARACTERS first, LOCATIONS second** (priority for the 6-ref cap).
+
+If the user includes `@name` tokens, pass them through as `--mentions @tara @minjun ...`.
+That disables body auto-detect and attaches only matching Asset Library rows whose
+Name contains the stripped token.
 
 **Multiple Asset Library rows can share the same canonical Name** — e.g. `PARK MIN-JUN` appears as both an `Image` row (still photo) and a `Video` row (face loop). Both get attached. Dedup is by `asset_code`, not by name.
 
@@ -69,7 +73,7 @@ Read `Storyboard Prompts!G{10+set}` (sb-slot 1) or `H{10+set}` (sb-slot 2). Conv
   ],
   "ratio": "9:16",
   "duration": 15,
-  "resolution": "720p",
+  "resolution": "480p",
   "watermark": false
 }
 ```
@@ -107,7 +111,7 @@ The `Reference identities:` block (fix B) is **auto-built from CHARACTERS bible 
 
 ### 6. Submit + poll
 
-`POST {ARK_BASE}/contents/generations/tasks` → returns `{"id": "cgt-..."}`. Poll `GET .../tasks/<id>` every 15s. Status flow: `queued` → `in_progress` → `succeeded` (or `failed`/`expired`/`cancelled`). Typical wall time at 720p/15s: 90-180s.
+`POST {ARK_BASE}/contents/generations/tasks` → returns `{"id": "cgt-..."}`. Poll `GET .../tasks/<id>` every 15s. Status flow: `queued` → `in_progress` → `succeeded` (or `failed`/`expired`/`cancelled`). Typical wall time at 480p/15s: 90-180s.
 
 ### 7. Drive upload + sheet writeback
 
@@ -115,6 +119,7 @@ The `Reference identities:` block (fix B) is **auto-built from CHARACTERS bible 
 - Upload to `<show>/videos/set-NN/video-iteration-{slot}-{resolution}-{duration}s.mp4`
 - Archive any same-name existing file → `set-NN/archive/{ts}_<filename>`
 - Set anyone-with-link reader on new file
+- Save local copy to `~/Desktop/<Project> Generated Videos/set-{set_num:02d}-iter-{slot}-{resolution}-{duration}s.mp4`
 - Write Drive view URL to **`Storyboard Prompts!M{row}`** (slot 1) or **`!N{row}`** (slot 2) — NOT L (L is Location SOT)
 
 `SLOT_TO_COL = {1: "M", 2: "N"}` — locked.
@@ -125,7 +130,9 @@ Update `Asset Library!I` (Used In Eps) + `!L` (Last Used) for each ref's row.
 
 ### 9. Cost log
 
-Append to `.byteplus_expense.json` (rough estimate: 720p ≈ $0.08/sec; 15s ≈ $1.20). Real billing on BytePlus dashboard is in CNY 毫 (0.0001元) — divide raw number by 10,000 then ÷ 7.2 for USD.
+Append to `.byteplus_expense.json` (rough estimate: 480p ≈ $0.05/sec; 15s ≈ $0.75). Real billing on BytePlus dashboard is in CNY 毫 (0.0001元) — divide raw number by 10,000 then ÷ 7.2 for USD.
+
+720p / 1080p still available via `--resolution` flag for hero deliverables.
 
 ## Asset library — what to upload, what to skip
 
@@ -155,12 +162,21 @@ TOS signed URLs from `GetAsset` work for inspection only — moderated when subm
 
 ## Spend ballpark
 
-- 720p / 5s ≈ $0.40 USD per gen
-- 720p / 15s ≈ $1.20 USD per gen (current default)
-- 1080p / 15s ≈ $1.98 USD per gen (defer until model proven on 720p)
+- 480p / 5s ≈ $0.25 USD per gen
+- 480p / 15s ≈ $0.75 USD per gen (current default)
+- 720p / 15s ≈ $1.20 USD per gen
+- 1080p / 15s ≈ $1.98 USD per gen (hero deliverables only)
 - HK wallet had $1M credit; ~$15 used as of 2026-05-05 evening session
 
 Per-click cost (V1 or V2 button): 2× single-gen since each click fires 2 parallel jobs.
+
+## Manual @-mention override
+
+```text
+/vidgen sheet --set 1 --slot 1                        → auto-detect
+/vidgen sheet --set 1 --slot 1 @tara @minjun @kitchen → only these 3 refs
+/vidgen sheet --set 1 --slot 1 @galih                 → only Galih
+```
 
 ## When things break
 

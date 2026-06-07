@@ -15,11 +15,16 @@ Workflow:
   3. Report
 
 Usage:
-  python3 byteplus_asset_upload.py --sheet <SHEET_ID> [--row N] [--media-file path] [--media-type image|video] [--bible-name "MIN-JUN"]
+  python3 byteplus_asset_upload.py --sheet <SHEET_ID> [--row N] [--all-bibles] [--bibles characters,locations]
+  python3 byteplus_asset_upload.py --sheet <SHEET_ID> --force
+  python3 byteplus_asset_upload.py --media-file path --media-type image|video --bible-name "MIN-JUN"
 
 Modes:
   --row N                       Upload only the entry at Asset Library row N
   --media-file + --bible-name   Upload a one-off file (ad-hoc smoke test) without sheet
+  --all-bibles                  Walk Asset Library rows for every supported bible tab
+  --bibles LIST                 Restrict to selected bible tabs
+  --force                       Re-upload even rows that already have an Asset Code
   (default)                     Walk all Pending rows
 """
 from __future__ import annotations
@@ -244,6 +249,30 @@ def parse_sheet_id(s: str) -> str:
     return m.group(1) if m else s.strip()
 
 
+SUPPORTED_BIBLES = {"CHARACTERS", "LOCATIONS", "PROPS", "COSTUME", "EFFECTS"}
+
+
+def parse_bibles(value: str | None) -> set[str] | None:
+    if not value or value.strip().lower() == "all":
+        return None
+    aliases = {
+        "characters": "CHARACTERS",
+        "locations": "LOCATIONS",
+        "props": "PROPS",
+        "costume": "COSTUME",
+        "effects": "EFFECTS",
+    }
+    out = set()
+    for part in value.split(","):
+        key = part.strip().lower()
+        if not key:
+            continue
+        if key not in aliases:
+            sys.exit(f"Unknown bible {part!r}; choose characters,locations,props,costume,effects")
+        out.add(aliases[key])
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser(description="Upload bibles → BytePlus Private Avatar Library")
     ap.add_argument("--sheet", help="Sheet ID with Asset Library tab")
@@ -251,6 +280,12 @@ def main():
     ap.add_argument("--media-file", help="One-off: local file path to upload (skip sheet)")
     ap.add_argument("--media-type", default="image", choices=["image", "video"])
     ap.add_argument("--bible-name", help="Required if --media-file: name to register asset under")
+    ap.add_argument("--all-bibles", action="store_true",
+                    help="Process all supported Asset Library bible tabs (default sheet-walk behavior)")
+    ap.add_argument("--bibles", default="all",
+                    help="Comma list: characters,locations,props,costume,effects (default all)")
+    ap.add_argument("--force", action="store_true",
+                    help="Re-upload rows even if Asset Code/Uploaded status already exists")
     args = ap.parse_args()
 
     # Mode 1: ad-hoc upload of a local file (smoke test)
@@ -278,6 +313,7 @@ def main():
     sh = gc.open_by_key(sheet_id)
     ws = sh.worksheet("Asset Library")
     rows = ws.get("A5:L500", value_render_option="FORMATTED_VALUE")
+    bible_filter = parse_bibles(args.bibles)
 
     targets = []
     for i, r in enumerate(rows, start=5):
@@ -288,7 +324,12 @@ def main():
         asset_code = r[2].strip() if len(r) > 2 else ""
         source_url = r[3].strip() if len(r) > 3 else ""
         status = r[5].strip() if len(r) > 5 else ""
-        if asset_code or status == "Uploaded":
+        if bible_tab not in SUPPORTED_BIBLES:
+            print(f"  → row {i} ({name}): unsupported bible tab {bible_tab!r}, skipping")
+            continue
+        if bible_filter is not None and bible_tab not in bible_filter:
+            continue
+        if (asset_code or status == "Uploaded") and not args.force:
             print(f"  → row {i} ({name}): already uploaded, skipping")
             continue
         if not source_url:

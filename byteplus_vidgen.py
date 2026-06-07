@@ -12,9 +12,10 @@ Workflow:
   6. Poll /tasks/{id} until succeeded
   7. Download MP4 from results url (24-hour expiry — must be fast)
   8. Upload to Drive videos/set-NN/, archive prior file
-  9. Write URL to Storyboard Prompts!L (slot 1) or M (slot 2)
- 10. --confirm gate prints refs + waits [y/N] before submit (anti ref-bleed)
- 11. Append usage to .byteplus_expense.json (cumulative spend tally)
+  9. Save local MP4 copy to ~/Desktop/<Project> Generated Videos/
+ 10. Write URL to Storyboard Prompts!M (slot 1) or N (slot 2)
+ 11. --confirm gate prints refs + waits [y/N] before submit (anti ref-bleed)
+ 12. Append usage to .byteplus_expense.json (cumulative spend tally)
 
 Usage:
   python3 byteplus_vidgen.py --sheet <ID> --set N --slot 1|2 [--iter 3|4]
@@ -127,9 +128,10 @@ PENDING_LOG = HERE / ".byteplus_pending.json"
 DURATION_CACHE = HERE / ".byteplus_asset_durations.json"
 
 # BytePlus rejects vidgen submissions when the SUM of video_url ref
-# durations exceeds 15s. We use 14s as a soft cap so a 1s clock-drift
-# / rounding fuzz doesn't push us over.
-VIDEO_BUDGET_SECONDS = 14.0
+# durations exceeds 15s. We use 14.9s as a soft cap — tiny rounding
+# buffer for ffprobe drift while still allowing two 7s face refs to
+# co-exist (14.0 + 7.0 + 7.0 was rejecting both for the sake of 0.1s).
+VIDEO_BUDGET_SECONDS = 14.9
 # Conservative fallback when ffprobe can't read a URL — most refs we've
 # uploaded are 4.9s shorts, but anything legacy can be longer. Treat
 # unknowns as 5s so the enforcer still keeps trimming when it has to.
@@ -502,6 +504,56 @@ def detect_bible_refs(body: str, sh) -> list[dict]:
     return detected
 
 
+def resolve_mentioned_refs(tokens: list[str], sh) -> list[dict]:
+    """
+    Resolve explicit @name tokens against Asset Library rows.
+    Only includes rows where Status='Uploaded' and Asset Code is set.
+    Matching is case-insensitive substring against Name.
+    """
+    try:
+        ws = sh.worksheet("Asset Library")
+    except Exception:
+        print(f"  ⚠ no 'Asset Library' tab — refs cannot be resolved to asset codes")
+        return []
+
+    rows = ws.get("A5:L500", value_render_option="FORMATTED_VALUE")
+    refs = []
+    seen_codes = set()
+    for raw in tokens:
+        token = (raw or "").strip().lstrip("@")
+        if not token:
+            continue
+        token_lc = token.lower()
+        matches = []
+        for r in rows:
+            if not r or not r[0].strip():
+                continue
+            name = r[0].strip()
+            bible_tab = r[1].strip() if len(r) > 1 else ""
+            asset_code = r[2].strip() if len(r) > 2 else ""
+            source_url = r[3].strip() if len(r) > 3 else ""
+            asset_type = r[4].strip().lower() if len(r) > 4 else ""
+            status = r[5].strip() if len(r) > 5 else ""
+            if status.lower() != "uploaded" or not asset_code:
+                continue
+            if token_lc not in name.lower():
+                continue
+            if asset_code in seen_codes:
+                continue
+            seen_codes.add(asset_code)
+            matches.append({
+                "name": name,
+                "bible_tab": bible_tab,
+                "asset_code": asset_code,
+                "source_url": source_url,
+                "asset_type": asset_type,
+            })
+        if not matches:
+            print(f"  ⚠ @{token} not found in Asset Library — skipped")
+        refs.extend(matches)
+    return refs
+
+
 def detect_shotlist_tab(sh) -> str | None:
     non_shotlist = {"Storyboard Prompts", "Video Prompts", "CHARACTERS", "LOCATIONS",
                     "PROPS", "COSTUME", "EFFECTS", "README", "_README",
@@ -720,8 +772,11 @@ def main():
     # 480p = $0.05/s, 720p = $0.08/s, 1080p = $0.132/s (1080p is ~2.6× more
     # expensive). Producers iterate at 480p, approve, then re-run a single
     # set at 1080p just before final delivery.
-    ap.add_argument("--resolution", default="480p", choices=["480p","720p","1080p","2K"])
+    ap.add_argument("--resolution", default="480p", choices=["480p","720p","1080p","2K"],
+                    help="480p is the default; use 720p/1080p for hero deliverables")
     ap.add_argument("--aspect", default="9:16")
+    ap.add_argument("--mentions", nargs="+", default=None,
+                    help="Explicit @name tokens to use as refs instead of auto-detecting from body")
     ap.add_argument("--fast", action="store_true", help="Use fast tier (cheaper, slightly lower quality)")
     ap.add_argument("--confirm", action="store_true",
                     help="Print refs + prompt, wait [y/N] before submit")
@@ -782,10 +837,17 @@ def main():
         print(f"  ⚠ no storyboard iter at {sb_col}{set_row} — proceeding without composition ref")
 
     # Detect bible refs from Asset Library — chars + locations get asset://
-    # codes (face-moderation-bypass). Sort so CHARACTERS (identity) come
-    # before LOCATIONS (background) — when the 6-ref cap kicks in we want
-    # to keep identity refs over scenery refs.
-    refs = detect_bible_refs(body, sh)
+    # codes (face-moderation-bypass). Explicit --mentions overrides body
+    # auto-detect and resolves only the requested @name tokens.
+    mention_tokens = [m for m in (args.mentions or []) if m.strip()]
+    if mention_tokens:
+        refs = resolve_mentioned_refs(mention_tokens, sh)
+        print(f"Refs: explicit ({len(mention_tokens)} mentions)")
+    else:
+        refs = detect_bible_refs(body, sh)
+        print(f"Refs: auto-detect ({len(refs)} found)")
+    # Sort so CHARACTERS (identity) come before LOCATIONS (background) —
+    # when the 6-ref cap kicks in we want to keep identity refs over scenery.
     bible_priority = {"CHARACTERS": 0, "LOCATIONS": 1, "COSTUME": 2,
                       "PROPS": 3, "EFFECTS": 4}
     refs.sort(key=lambda r: bible_priority.get(r.get("bible_tab", ""), 99))
@@ -894,6 +956,12 @@ def main():
             print(f"  ⤳ skipping char-image {r['name']} (video face-loop already attached)")
             continue
         filtered_refs.append(r)
+
+    max_bible_refs = 5 if sb_url else 6
+    if len(filtered_refs) > max_bible_refs:
+        print(f"  ⚠ ref cap: keeping {max_bible_refs} bible refs "
+              f"({'storyboard + ' if sb_url else ''}max 6 total)")
+        filtered_refs = filtered_refs[:max_bible_refs]
 
     # Rebuild ref_urls in the new filtered order. The storyboard slot
     # (always at index 0 if present) is preserved; bible refs are
@@ -1102,7 +1170,16 @@ def main():
     drive.permissions().create(fileId=new_file["id"], body={"role":"reader","type":"anyone"}, fields="id").execute()
     print(f"\n  ✓ Drive: {new_file['webViewLink']}")
 
-    # Write URL to Storyboard Prompts L or M
+    project_name = sh.title
+    local_folder = os.path.expanduser(f"~/Desktop/{project_name} Generated Videos/")
+    os.makedirs(local_folder, exist_ok=True)
+    local_filename = f"set-{args.set_num:02d}-iter-{args.slot}-{args.resolution}-{args.duration}s.mp4"
+    local_path = os.path.join(local_folder, local_filename)
+    with open(local_path, "wb") as f:
+        f.write(mp4)
+    print(f"✓ Local copy: {local_path}")
+
+    # Write URL to Storyboard Prompts M or N
     target_col = SLOT_TO_COL[args.slot]
     sb_ws.update(values=[[new_file["webViewLink"]]], range_name=f"{target_col}{set_row}")
     print(f"  ✓ Storyboard Prompts!{target_col}{set_row} written")

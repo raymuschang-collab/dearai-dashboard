@@ -284,6 +284,11 @@ def submit_to_byteplus(prompt: str, content_refs: list[dict],
                     or resp.get("data", {}).get("id"))
         if not task_id:
             return None, f"no task_id in response: {resp}"
+        # Log every successful submit so freeform/custom callers are counted too.
+        try:
+            log_expense(task_id, "fast" if fast else "standard", duration, resolution)
+        except Exception:
+            pass
         return task_id, None
     except Exception as e:
         return None, f"exception: {e}"
@@ -705,8 +710,8 @@ def main():
         drive_url = new_file["webViewLink"]
         print(f"  ✓ Drive: {drive_url}")
 
-    log_expense(task_id, "fast" if args.fast else "standard",
-                args.duration, args.resolution)
+    # NOTE: expense is now logged inside submit_to_byteplus() at submit time,
+    # so we no longer log here (avoids double-counting).
     remove_pending(task_id)
 
     print(f"\n=== DONE ===")
