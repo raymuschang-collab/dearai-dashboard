@@ -1,0 +1,20 @@
+{
+  "_meta": "VO ID → audio-take stem. Used by /talkinghead-raymus to dispatch batch mode.",
+  "vo_to_stem": {
+    "VO1":     "01_creative-industry",
+    "VO3":     "03_good-prompt",
+    "VO4":     "04_one-person-job",
+    "VO5":     "05_not-cheap",
+    "VO7":     "07_agentic-studio",
+    "VO8":     "08_ads-and-ai",
+    "VO9":     "09_same-ad-budget",
+    "VO11":    "11_lego-movie",
+    "VO-BTS3": "BTS-3_manager-choi",
+    "VO-BTS4": "BTS-4_microdrama-vs-netflix"
+  },
+  "_numeric_aliases": {
+    "1": "VO1",  "3": "VO3",  "4": "VO4",  "5": "VO5",
+    "7": "VO7",  "8": "VO8",  "9": "VO9",  "11": "VO11",
+    "BTS3": "VO-BTS3",  "BTS4": "VO-BTS4"
+  }
+}

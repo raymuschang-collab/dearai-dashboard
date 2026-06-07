@@ -1,0 +1,885 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ANSWER · MOE Demo · 2026</title>
+<style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, "SF Pro Text", "Inter", system-ui, sans-serif;
+      background: #f7f5f1;
+      color: #1a1a1a;
+      line-height: 1.5;
+    }
+    header.hero {
+      max-width: 1200px; margin: 0 auto;
+      padding: 64px 48px 32px;
+      border-bottom: 1px solid #e8e4dc;
+    }
+    header.hero h1 {
+      margin: 0 0 8px;
+      font-family: "SF Pro Display", -apple-system, system-ui, sans-serif;
+      font-size: 48px; font-weight: 700; letter-spacing: -0.02em;
+    }
+    header.hero .meta {
+      display: flex; gap: 16px; flex-wrap: wrap;
+      font-size: 13px; color: #6a6660;
+    }
+    header.hero .meta span:not(:last-child)::after {
+      content: " · "; margin-left: 16px; color: #c8c2b6;
+    }
+    header.hero p.logline {
+      margin: 24px 0 0; max-width: 720px;
+      font-size: 18px; color: #3a3a3a; font-style: italic;
+    }
+
+    main { max-width: 1200px; margin: 0 auto; padding: 32px 48px 96px; }
+
+    .toc {
+      display: flex; gap: 8px; flex-wrap: wrap;
+      padding: 16px 0 32px; border-bottom: 1px solid #e8e4dc;
+      margin-bottom: 40px;
+    }
+    .toc a {
+      padding: 6px 14px; border-radius: 999px;
+      font-size: 12px; font-weight: 600; letter-spacing: 0.02em;
+      color: #1a1a1a; text-decoration: none;
+      background: #fff; border: 1px solid #e8e4dc;
+      transition: all 0.15s;
+    }
+    .toc a:hover { background: #1a1a1a; color: #f7f5f1; border-color: #1a1a1a; }
+
+    .set {
+      background: #fff;
+      border: 1px solid #e8e4dc;
+      border-radius: 14px;
+      padding: 32px;
+      margin-bottom: 32px;
+      scroll-margin-top: 24px;
+    }
+    .set-head {
+      display: flex; justify-content: space-between; align-items: baseline;
+      margin-bottom: 24px; padding-bottom: 16px;
+      border-bottom: 1px solid #efebe2;
+    }
+    .set-head h2 {
+      margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.01em;
+    }
+    .set-head .shots {
+      font-size: 13px; color: #6a6660; font-weight: 500;
+    }
+    .set-head .status {
+      font-size: 11px; padding: 4px 10px; border-radius: 4px;
+      letter-spacing: 0.05em; text-transform: uppercase; font-weight: 600;
+      background: #efebe2; color: #6a6660;
+    }
+    .set-head .status.done { background: #def4e2; color: #2c6c3a; }
+    .set-head .status.failed { background: #f9d8d8; color: #962020; }
+
+    .set-grid {
+      display: grid;
+      grid-template-columns: 1.6fr 1fr;
+      gap: 32px;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .set-grid { grid-template-columns: 1fr; }
+    }
+
+    .storyboards { display: flex; flex-direction: column; gap: 16px; }
+    .storyboards .iter {
+      position: relative;
+      border: 1px solid #e8e4dc; border-radius: 10px; overflow: hidden;
+      background: #faf8f4;
+    }
+    .storyboards .iter img {
+      width: 100%; height: auto; display: block;
+      cursor: zoom-in;
+    }
+    .storyboards .iter .iter-label {
+      position: absolute; top: 8px; left: 8px;
+      padding: 3px 8px; background: rgba(0,0,0,0.7); color: #fff;
+      font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase;
+      font-weight: 600; border-radius: 3px;
+    }
+    .storyboards .placeholder {
+      aspect-ratio: 16/9;
+      display: flex; align-items: center; justify-content: center;
+      background: #faf8f4; border: 1px dashed #d8d2c4;
+      border-radius: 10px;
+      color: #a39a87; font-size: 12px; text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .shots-list { display: flex; flex-direction: column; gap: 12px; }
+    .shot {
+      display: flex; gap: 14px;
+      padding: 12px; border-radius: 8px;
+      background: #faf8f4;
+    }
+    .shot .num {
+      flex: 0 0 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      background: #1a1a1a; color: #f7f5f1;
+      font-family: "SF Mono", "JetBrains Mono", monospace;
+      font-size: 13px; font-weight: 700;
+      border-radius: 6px;
+    }
+    .shot .body { flex: 1; min-width: 0; }
+    .shot .meta {
+      display: flex; gap: 8px; flex-wrap: wrap;
+      font-family: "SF Mono", "JetBrains Mono", monospace;
+      font-size: 10px; color: #6a6660; font-weight: 600;
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+    }
+    .shot .meta .pill {
+      padding: 1px 6px; background: #efebe2; border-radius: 3px;
+    }
+    .shot .meta .pill.dur { color: #1a1a1a; background: #fff; }
+    .shot .desc { font-size: 13px; color: #1a1a1a; line-height: 1.45; }
+    .shot .dialogue {
+      font-size: 12px; color: #4a4a4a; font-style: italic;
+      margin-top: 4px; padding-left: 10px;
+      border-left: 2px solid #d8d2c4;
+    }
+    .shot .microexp {
+      font-size: 11px; color: #8a8275;
+      margin-top: 3px; font-variant-caps: small-caps;
+      letter-spacing: 0.04em;
+    }
+
+    /* Beat pills */
+    .beat-pill {
+      display: inline-block; padding: 2px 8px; border-radius: 4px;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-left: 8px;
+    }
+    .beat-hook { background: #fcd34d; color: #5a3700; }
+    .beat-jolt { background: #93c5fd; color: #1e3a5c; }
+    .beat-payoff { background: #a7f3d0; color: #1a4a32; }
+    .beat-cliff { background: #fca5a5; color: #6c1414; }
+    .beat-flashback { background: #ddd6fe; color: #3a2a6c; }
+    .beat-bridge { background: #e5e7eb; color: #4a4a4a; }
+
+    /* Lightbox */
+    #lightbox {
+      position: fixed; inset: 0; display: none;
+      background: rgba(0,0,0,0.92);
+      z-index: 100;
+      align-items: center; justify-content: center;
+    }
+    #lightbox.open { display: flex; }
+    #lightbox img { max-width: 95vw; max-height: 90vh; }
+    #lightbox .close {
+      position: absolute; top: 24px; right: 32px;
+      color: #fff; font-size: 32px; cursor: pointer;
+      background: none; border: none;
+    }
+
+    footer { max-width: 1200px; margin: 0 auto;
+      padding: 32px 48px 64px; border-top: 1px solid #e8e4dc;
+      font-size: 12px; color: #8a8275;
+    }
+    </style>
+</head>
+<body>
+
+<header class="hero">
+  <h1>ANSWER</h1>
+  <div class="meta">
+    <span>2-minute short film</span>
+    <span>Singapore</span>
+    <span>Single-protagonist</span>
+    <span>Voiceover-led</span>
+    <span>8 sets · 40 shots</span>
+    <span>8/8 storyboards generated</span>
+  </div>
+  <p class="logline">A 14-year-old Singaporean girl can't write her school essay on
+  <em>"What does it mean to be Singaporean?"</em> — until she stops trying to define it
+  and starts noticing it.</p>
+</header>
+
+<main>
+  <nav class="toc"><a href="#set-1">Set 1 · 1-5</a><a href="#set-2">Set 2 · 6-10</a><a href="#set-3">Set 3 · 11-15</a><a href="#set-4">Set 4 · 16-20</a><a href="#set-5">Set 5 · 21-25</a><a href="#set-6">Set 6 · 26-30</a><a href="#set-7">Set 7 · 31-35</a><a href="#set-8">Set 8 · 36-40</a></nav>
+  
+        <section class="set" id="set-1">
+          <div class="set-head">
+            <h2>Set 1</h2>
+            <span class="shots">shots 1-5</span>
+            <span class="status done">Done</span>
+          </div>
+          <div class="set-grid">
+            <div class="storyboards"><div class="iter"><span class="iter-label">Iter 1</span><img src="https://lh3.googleusercontent.com/d/1ZUni14z9z6fbttY1L-nGKWqv8Pjjzr_1=w1600" alt="Set 1 Iter 1" data-full="https://lh3.googleusercontent.com/d/1ZUni14z9z6fbttY1L-nGKWqv8Pjjzr_1=w2400" onclick="openLightbox(this)" loading="lazy"></div><div class="iter"><span class="iter-label">Iter 2</span><img src="https://lh3.googleusercontent.com/d/1ExYFCeP6w8c2aZZyCYstd1_NsM7t2SoG=w1600" alt="Set 1 Iter 2" data-full="https://lh3.googleusercontent.com/d/1ExYFCeP6w8c2aZZyCYstd1_NsM7t2SoG=w2400" onclick="openLightbox(this)" loading="lazy"></div></div>
+            <div class="shots-list">
+              <div class="shot">
+                <div class="num">1</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">4s</span>
+                    <span class="pill">Insert</span>
+                    <span class="pill">Static</span>
+                    <span class="beat-pill beat-hook">HOOK</span>
+                  </div>
+                  <div class="desc">CU on laptop screen — document title &#x27;What does it mean to be Singaporean?&#x27; with the cursor blinking on a blank white page.</div>
+                  <div class="dialogue">ZHI (V.O.): Sir said write about being Singaporean.</div>
+                  
+                </div>
+              </div>
+              <div class="shot">
+                <div class="num">2</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">4s</span>
+                    <span class="pill">WS</span>
+                    <span class="pill">Static</span>
+                    
+                  </div>
+                  <div class="desc">Wide on Zhi at her desk in a small HDB bedroom — single bed behind her, study lamp glowing, school books stacked.</div>
+                  
+                  <div class="microexp">Tired; shoulders slumped</div>
+                </div>
+              </div>
+              <div class="shot">
+                <div class="num">3</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">3s</span>
+                    <span class="pill">CU</span>
+                    <span class="pill">Static</span>
+                    
+                  </div>
+                  <div class="desc">Tight on Zhi&#x27;s face — pen between teeth, eyes locked on the screen, brow furrowed.</div>
+                  <div class="dialogue">ZHI (V.O.): I&#x27;ve been staring at this for an hour.</div>
+                  <div class="microexp">Frustrated; faint sigh</div>
+                </div>
+              </div>
+              <div class="shot">
+                <div class="num">4</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">3s</span>
+                    <span class="pill">Insert</span>
+                    <span class="pill">Static</span>
+                    
+                  </div>
+                  <div class="desc">CU on Zhi&#x27;s hands at the keyboard — types one word, hovers, then taps backspace several times. Cursor returns to start.</div>
+                  
+                  
+                </div>
+              </div>
+              <div class="shot">
+                <div class="num">5</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">4s</span>
+                    <span class="pill">MS</span>
+                    <span class="pill">Static</span>
+                    
+                  </div>
+                  <div class="desc">Zhi closes the laptop softly. Leans back. Stares at the ceiling.</div>
+                  
+                  <div class="microexp">Resigned; small breath</div>
+                </div>
+              </div></div>
+          </div>
+        </section>
+        <section class="set" id="set-2">
+          <div class="set-head">
+            <h2>Set 2</h2>
+            <span class="shots">shots 6-10</span>
+            <span class="status done">Done</span>
+          </div>
+          <div class="set-grid">
+            <div class="storyboards"><div class="iter"><span class="iter-label">Iter 1</span><img src="https://lh3.googleusercontent.com/d/1Ds3x6s7uoWvH7hVz_LLMtynhVJgEfvAA=w1600" alt="Set 2 Iter 1" data-full="https://lh3.googleusercontent.com/d/1Ds3x6s7uoWvH7hVz_LLMtynhVJgEfvAA=w2400" onclick="openLightbox(this)" loading="lazy"></div><div class="iter"><span class="iter-label">Iter 2</span><img src="https://lh3.googleusercontent.com/d/1kIYBcuIeW8ZhHZer2dcQOUuOdqNPpyEC=w1600" alt="Set 2 Iter 2" data-full="https://lh3.googleusercontent.com/d/1kIYBcuIeW8ZhHZer2dcQOUuOdqNPpyEC=w2400" onclick="openLightbox(this)" loading="lazy"></div></div>
+            <div class="shots-list">
+              <div class="shot">
+                <div class="num">6</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">4s</span>
+                    <span class="pill">WS</span>
+                    <span class="pill">Static</span>
+                    
+                  </div>
+                  <div class="desc">Long HDB corridor — overhead bamboo poles draped with fresh laundry catch morning light. Concrete floor still wet from washing.</div>
+                  
+                  
+                </div>
+              </div>
+              <div class="shot">
+                <div class="num">7</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">3s</span>
+                    <span class="pill">MS</span>
+                    <span class="pill">Static</span>
+                    
+                  </div>
+                  <div class="desc">Zhi steps out of her flat, school bag on shoulder, pulls the gate closed behind her.</div>
+                  
+                  
+                </div>
+              </div>
+              <div class="shot">
+                <div class="num">8</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">4s</span>
+                    <span class="pill">WS</span>
+                    <span class="pill">Tracking</span>
+                    
+                  </div>
+                  <div class="desc">Neighbour&#x27;s kid on a bike whips past Zhi down the corridor — bell ringing.</div>
+                  <div class="dialogue">ZHI (V.O.): I tried &#x27;merlion&#x27; first.</div>
+                  
+                </div>
+              </div>
+              <div class="shot">
+                <div class="num">9</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">3s</span>
+                    <span class="pill">CU</span>
+                    <span class="pill">Static</span>
+                    
+                  </div>
+                  <div class="desc">Zhi pauses, lifts her chin — catches the smell of fishball noodles drifting from the unit at the end.</div>
+                  <div class="dialogue">ZHI (V.O.): Deleted it.</div>
+                  <div class="microexp">Tiny smile; almost</div>
+                </div>
+              </div>
+              <div class="shot">
+                <div class="num">10</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">4s</span>
+                    <span class="pill">WS</span>
+                    <span class="pill">Static</span>
+                    
+                  </div>
+                  <div class="desc">Zhi steps onto an MRT carriage at Toa Payoh interchange — chime sounds, doors close behind her.</div>
+                  
+                  
+                </div>
+              </div></div>
+          </div>
+        </section>
+        <section class="set" id="set-3">
+          <div class="set-head">
+            <h2>Set 3</h2>
+            <span class="shots">shots 11-15</span>
+            <span class="status done">Done</span>
+          </div>
+          <div class="set-grid">
+            <div class="storyboards"><div class="iter"><span class="iter-label">Iter 1</span><img src="https://lh3.googleusercontent.com/d/1zaIQ72utAkf6MEIfgdAQeVJ7KL63aDdz=w1600" alt="Set 3 Iter 1" data-full="https://lh3.googleusercontent.com/d/1zaIQ72utAkf6MEIfgdAQeVJ7KL63aDdz=w2400" onclick="openLightbox(this)" loading="lazy"></div><div class="iter"><span class="iter-label">Iter 2</span><img src="https://lh3.googleusercontent.com/d/1f3-shvzXoHF8QHdvzaQGlAKBm5kBu-HA=w1600" alt="Set 3 Iter 2" data-full="https://lh3.googleusercontent.com/d/1f3-shvzXoHF8QHdvzaQGlAKBm5kBu-HA=w2400" onclick="openLightbox(this)" loading="lazy"></div></div>
+            <div class="shots-list">
+              <div class="shot">
+                <div class="num">11</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">3s</span>
+                    <span class="pill">MS</span>
+                    <span class="pill">Static</span>
+                    
+                  </div>
+                  <div class="desc">Zhi sits by the window of the MRT carriage, school bag in her lap.</div>
+                  
+                  <div class="microexp">Watching; quiet</div>
+                </div>
+              </div>
+              <div class="shot">
+                <div class="num">12</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">4s</span>
+                    <span class="pill">MCU</span>
+                    <span class="pill">Static</span>
+                    
+                  </div>
+                  <div class="desc">An auntie next to Zhi works the Lianhe Zaobao crossword in blue ballpoint — fills in a square with care.</div>
+                  
+                  <div class="microexp">Concentrated; deliberate</div>
+                </div>
+              </div>
+              <div class="shot">
+                <div class="num">13</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">4s</span>
+                    <span class="pill">POV</span>
+                    <span class="pill">Tracking</span>
+                    
+                  </div>
+                  <div class="desc">POV through the train window — view sweeps from old HDB blocks to BTO construction cranes to the CBD skyline.</div>
+                  <div class="dialogue">ZHI (V.O.): I tried &#x27;rojak culture.&#x27; Sir&#x27;s exact phrase.</div>
+                  
+                </div>
+              </div>
+              <div class="shot">
+                <div class="num">14</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">3s</span>
+                    <span class="pill">Insert</span>
+                    <span class="pill">Static</span>
+                    
+                  </div>
+                  <div class="desc">Insert on the auntie&#x27;s pen filling another crossword square — careful, unhurried.</div>
+                  <div class="dialogue">ZHI (V.O.): Deleted that too.</div>
+                  
+                </div>
+              </div>
+              <div class="shot">
+                <div class="num">15</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">3s</span>
+                    <span class="pill">CU</span>
+                    <span class="pill">Static</span>
+                    
+                  </div>
+                  <div class="desc">Zhi&#x27;s reflection in the train window — superimposed on passing rail tracks.</div>
+                  <div class="dialogue">ZHI (V.O.): Sounded like I was trying.</div>
+                  <div class="microexp">Watching herself watch</div>
+                </div>
+              </div></div>
+          </div>
+        </section>
+        <section class="set" id="set-4">
+          <div class="set-head">
+            <h2>Set 4</h2>
+            <span class="shots">shots 16-20</span>
+            <span class="status done">Done</span>
+          </div>
+          <div class="set-grid">
+            <div class="storyboards"><div class="iter"><span class="iter-label">Iter 1</span><img src="https://lh3.googleusercontent.com/d/1O0VJC9pJb-ThSCrIvzhP4Sz0rKcDbI-r=w1600" alt="Set 4 Iter 1" data-full="https://lh3.googleusercontent.com/d/1O0VJC9pJb-ThSCrIvzhP4Sz0rKcDbI-r=w2400" onclick="openLightbox(this)" loading="lazy"></div><div class="iter"><span class="iter-label">Iter 2</span><img src="https://lh3.googleusercontent.com/d/1vkvnWg3CxzTRXb1MAQUFGXGjGcL0_2_J=w1600" alt="Set 4 Iter 2" data-full="https://lh3.googleusercontent.com/d/1vkvnWg3CxzTRXb1MAQUFGXGjGcL0_2_J=w2400" onclick="openLightbox(this)" loading="lazy"></div></div>
+            <div class="shots-list">
+              <div class="shot">
+                <div class="num">16</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">4s</span>
+                    <span class="pill">WS</span>
+                    <span class="pill">Pan L</span>
+                    
+                  </div>
+                  <div class="desc">Wide on the busy lunchtime hawker centre — steel tables, plastic stools, smoke rising from wok stations.</div>
+                  
+                  
+                </div>
+              </div>
+              <div class="shot">
+                <div class="num">17</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">3s</span>
+                    <span class="pill">MS</span>
+                    <span class="pill">Static</span>
+                    
+                  </div>
+                  <div class="desc">Zhi at the chai tow kway stall — points at the menu, holds up two fingers.</div>
+                  
+                  
+                </div>
+              </div>
+              <div class="shot">
+                <div class="num">18</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">3s</span>
+                    <span class="pill">Insert</span>
+                    <span class="pill">Static</span>
+                    
+                  </div>
+                  <div class="desc">Hawker auntie&#x27;s hands flip and plate the chai tow kway in one fluid motion — XO sauce on the side.</div>
+                  <div class="dialogue">ZHI (V.O.): I tried &#x27;always rushing.&#x27;</div>
+                  
+                </div>
+              </div>
+              <div class="shot">
+                <div class="num">19</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">3s</span>
+                    <span class="pill">MS</span>
+                    <span class="pill">Static</span>
+                    
+                  </div>
+                  <div class="desc">At the next stall a makcik slides a plate of mee siam to a regular without a word — the regular nods, slides cash back.</div>
+                  <div class="dialogue">ZHI (V.O.): Felt cliché.</div>
+                  
+                </div>
+              </div>
+              <div class="shot">
+                <div class="num">20</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">4s</span>
+                    <span class="pill">CU</span>
+                    <span class="pill">Static</span>
+                    
+                  </div>
+                  <div class="desc">Zhi watches the wordless transaction — something registers behind her eyes.</div>
+                  <div class="dialogue">ZHI (V.O.): Sir would&#x27;ve put a red squiggly under it.</div>
+                  <div class="microexp">Quiet recognition</div>
+                </div>
+              </div></div>
+          </div>
+        </section>
+        <section class="set" id="set-5">
+          <div class="set-head">
+            <h2>Set 5</h2>
+            <span class="shots">shots 21-25</span>
+            <span class="status done">Done</span>
+          </div>
+          <div class="set-grid">
+            <div class="storyboards"><div class="iter"><span class="iter-label">Iter 1</span><img src="https://lh3.googleusercontent.com/d/1chjqyDA2uq6ajivvVQinwOX3wMGh57CD=w1600" alt="Set 5 Iter 1" data-full="https://lh3.googleusercontent.com/d/1chjqyDA2uq6ajivvVQinwOX3wMGh57CD=w2400" onclick="openLightbox(this)" loading="lazy"></div><div class="iter"><span class="iter-label">Iter 2</span><img src="https://lh3.googleusercontent.com/d/1D3xnNvJ7u6UPsXnZouB4aOQixPTvqvCb=w1600" alt="Set 5 Iter 2" data-full="https://lh3.googleusercontent.com/d/1D3xnNvJ7u6UPsXnZouB4aOQixPTvqvCb=w2400" onclick="openLightbox(this)" loading="lazy"></div></div>
+            <div class="shots-list">
+              <div class="shot">
+                <div class="num">21</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">4s</span>
+                    <span class="pill">WS</span>
+                    <span class="pill">Static</span>
+                    
+                  </div>
+                  <div class="desc">Wide on Ah Gong&#x27;s small one-bedder — old wooden TV cabinet with Channel 8 drama on, low volume; brass radio playing Rediffusion in the corner.</div>
+                  
+                  
+                </div>
+              </div>
+              <div class="shot">
+                <div class="num">22</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">3s</span>
+                    <span class="pill">MS</span>
+                    <span class="pill">Static</span>
+                    
+                  </div>
+                  <div class="desc">Zhi sits opposite Ah Gong at a small round table. A tin of biscuits sits between them.</div>
+                  
+                  
+                </div>
+              </div>
+              <div class="shot">
+                <div class="num">23</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">4s</span>
+                    <span class="pill">CU</span>
+                    <span class="pill">Static</span>
+                    
+                  </div>
+                  <div class="desc">CU Zhi — leans forward, fidgets with the table edge.</div>
+                  <div class="dialogue">ZHI: Ah Gong, the assignment is &#x27;what does it mean to be Singaporean.&#x27; I can&#x27;t write it.</div>
+                  <div class="microexp">Earnest; small frown</div>
+                </div>
+              </div>
+              <div class="shot">
+                <div class="num">24</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">3s</span>
+                    <span class="pill">Insert</span>
+                    <span class="pill">Static</span>
+                    
+                  </div>
+                  <div class="desc">Ah Gong&#x27;s hand picks up a biscuit from the tin — turns it once, considers it.</div>
+                  
+                  
+                </div>
+              </div>
+              <div class="shot">
+                <div class="num">25</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">4s</span>
+                    <span class="pill">CU</span>
+                    <span class="pill">Static</span>
+                    <span class="beat-pill beat-jolt">JOLT 2</span>
+                  </div>
+                  <div class="desc">CU on Ah Gong — looks at Zhi, kind eyes, slow exhale.</div>
+                  <div class="dialogue">AH GONG: You don&#x27;t have to write about Singapore.</div>
+                  <div class="microexp">Patient; warm</div>
+                </div>
+              </div></div>
+          </div>
+        </section>
+        <section class="set" id="set-6">
+          <div class="set-head">
+            <h2>Set 6</h2>
+            <span class="shots">shots 26-30</span>
+            <span class="status done">Done</span>
+          </div>
+          <div class="set-grid">
+            <div class="storyboards"><div class="iter"><span class="iter-label">Iter 1</span><img src="https://lh3.googleusercontent.com/d/1DDM_zxJx06VJbSKJJBah1ZhJHsaxjP9i=w1600" alt="Set 6 Iter 1" data-full="https://lh3.googleusercontent.com/d/1DDM_zxJx06VJbSKJJBah1ZhJHsaxjP9i=w2400" onclick="openLightbox(this)" loading="lazy"></div><div class="iter"><span class="iter-label">Iter 2</span><img src="https://lh3.googleusercontent.com/d/1OtFiPgOf3XRJQjWBLSyv4FzTs3uMtp-Y=w1600" alt="Set 6 Iter 2" data-full="https://lh3.googleusercontent.com/d/1OtFiPgOf3XRJQjWBLSyv4FzTs3uMtp-Y=w2400" onclick="openLightbox(this)" loading="lazy"></div></div>
+            <div class="shots-list">
+              <div class="shot">
+                <div class="num">26</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">3s</span>
+                    <span class="pill">CU</span>
+                    <span class="pill">Static</span>
+                    
+                  </div>
+                  <div class="desc">CU Zhi — confused, head tilts.</div>
+                  <div class="dialogue">ZHI: But that&#x27;s the assignment.</div>
+                  <div class="microexp">Puzzled</div>
+                </div>
+              </div>
+              <div class="shot">
+                <div class="num">27</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">4s</span>
+                    <span class="pill">CU</span>
+                    <span class="pill">Static</span>
+                    
+                  </div>
+                  <div class="desc">CU Ah Gong — gentle, unhurried.</div>
+                  <div class="dialogue">AH GONG: Then write about anything Singaporean. Anything you&#x27;ve seen today.</div>
+                  <div class="microexp">Wise; soft eyes</div>
+                </div>
+              </div>
+              <div class="shot">
+                <div class="num">28</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">3s</span>
+                    <span class="pill">MS</span>
+                    <span class="pill">Static</span>
+                    
+                  </div>
+                  <div class="desc">Ah Gong gestures toward the open window — sunlight cuts through the louvres.</div>
+                  
+                  <div class="microexp">Inviting</div>
+                </div>
+              </div>
+              <div class="shot">
+                <div class="num">29</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">4s</span>
+                    <span class="pill">WS</span>
+                    <span class="pill">Static</span>
+                    
+                  </div>
+                  <div class="desc">View out the window — mid-rise construction, a busker on the void deck, a kid on a scooter, an MRT pulling out of Toa Payoh interchange.</div>
+                  
+                  
+                </div>
+              </div>
+              <div class="shot">
+                <div class="num">30</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">4s</span>
+                    <span class="pill">CU</span>
+                    <span class="pill">Static</span>
+                    <span class="beat-pill beat-jolt">JOLT 3</span>
+                  </div>
+                  <div class="desc">Back on Ah Gong — quiet, eyes meeting Zhi&#x27;s.</div>
+                  <div class="dialogue">AH GONG: The country&#x27;s already there. You just have to look.</div>
+                  <div class="microexp">Settled; certain</div>
+                </div>
+              </div></div>
+          </div>
+        </section>
+        <section class="set" id="set-7">
+          <div class="set-head">
+            <h2>Set 7</h2>
+            <span class="shots">shots 31-35</span>
+            <span class="status done">Done</span>
+          </div>
+          <div class="set-grid">
+            <div class="storyboards"><div class="iter"><span class="iter-label">Iter 1</span><img src="https://lh3.googleusercontent.com/d/14SM-VYwC1zWDNQIQeiqOhZ_HInqr0Pqw=w1600" alt="Set 7 Iter 1" data-full="https://lh3.googleusercontent.com/d/14SM-VYwC1zWDNQIQeiqOhZ_HInqr0Pqw=w2400" onclick="openLightbox(this)" loading="lazy"></div><div class="iter"><span class="iter-label">Iter 2</span><img src="https://lh3.googleusercontent.com/d/1Jr3Ir8X40GtHe39zAFxsF5rhwn2Zxk4i=w1600" alt="Set 7 Iter 2" data-full="https://lh3.googleusercontent.com/d/1Jr3Ir8X40GtHe39zAFxsF5rhwn2Zxk4i=w2400" onclick="openLightbox(this)" loading="lazy"></div></div>
+            <div class="shots-list">
+              <div class="shot">
+                <div class="num">31</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">3s</span>
+                    <span class="pill">CU</span>
+                    <span class="pill">Static</span>
+                    
+                  </div>
+                  <div class="desc">CU on a hawker auntie ladling laksa soup into a bowl without spilling a drop.</div>
+                  
+                  <div class="microexp">Practiced; calm</div>
+                </div>
+              </div>
+              <div class="shot">
+                <div class="num">32</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">3s</span>
+                    <span class="pill">MS</span>
+                    <span class="pill">Static</span>
+                    
+                  </div>
+                  <div class="desc">Bus uncle lowers the wheelchair ramp at a bus stop for a young mum with a stroller — quiet nod between them.</div>
+                  
+                  <div class="microexp">Routine kindness</div>
+                </div>
+              </div>
+              <div class="shot">
+                <div class="num">33</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">3s</span>
+                    <span class="pill">MS</span>
+                    <span class="pill">Static</span>
+                    
+                  </div>
+                  <div class="desc">Two teenage boys on the MRT — one Malay, one Chinese — share a single earpiece, both nodding to the same beat.</div>
+                  
+                  <div class="microexp">Easy companionship</div>
+                </div>
+              </div>
+              <div class="shot">
+                <div class="num">34</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">3s</span>
+                    <span class="pill">CU</span>
+                    <span class="pill">Static</span>
+                    
+                  </div>
+                  <div class="desc">CU on a construction worker pouring tea from his thermos into a cup, hands the cup to his teammate.</div>
+                  
+                  <div class="microexp">Wordless care</div>
+                </div>
+              </div>
+              <div class="shot">
+                <div class="num">35</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">4s</span>
+                    <span class="pill">WS</span>
+                    <span class="pill">Static</span>
+                    
+                  </div>
+                  <div class="desc">Wide on a void deck — old man feeds pigeons from a paper bag, a small child watches from behind a pillar, half-smiling.</div>
+                  
+                  <div class="microexp">Quiet wonder</div>
+                </div>
+              </div></div>
+          </div>
+        </section>
+        <section class="set" id="set-8">
+          <div class="set-head">
+            <h2>Set 8</h2>
+            <span class="shots">shots 36-40</span>
+            <span class="status done">Done</span>
+          </div>
+          <div class="set-grid">
+            <div class="storyboards"><div class="iter"><span class="iter-label">Iter 1</span><img src="https://lh3.googleusercontent.com/d/1RNVqKM9JxTJCh-jKZaIRp4ywVU6IWGHH=w1600" alt="Set 8 Iter 1" data-full="https://lh3.googleusercontent.com/d/1RNVqKM9JxTJCh-jKZaIRp4ywVU6IWGHH=w2400" onclick="openLightbox(this)" loading="lazy"></div><div class="iter"><span class="iter-label">Iter 2</span><img src="https://lh3.googleusercontent.com/d/1o98PbqRR8t-hi8Lu_zwfYOxr7YsDB--7=w1600" alt="Set 8 Iter 2" data-full="https://lh3.googleusercontent.com/d/1o98PbqRR8t-hi8Lu_zwfYOxr7YsDB--7=w2400" onclick="openLightbox(this)" loading="lazy"></div></div>
+            <div class="shots-list">
+              <div class="shot">
+                <div class="num">36</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">4s</span>
+                    <span class="pill">MS</span>
+                    <span class="pill">Static</span>
+                    <span class="beat-pill beat-payoff">PAYOFF</span>
+                  </div>
+                  <div class="desc">Zhi at her desk at night — laptop open. Page is FULL of writing. Study lamp warm.</div>
+                  
+                  <div class="microexp">Settled; small smile</div>
+                </div>
+              </div>
+              <div class="shot">
+                <div class="num">37</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">3s</span>
+                    <span class="pill">Insert</span>
+                    <span class="pill">Static</span>
+                    
+                  </div>
+                  <div class="desc">CU on the laptop screen — paragraphs of black text fill the page. Bottom line in italics.</div>
+                  
+                  
+                </div>
+              </div>
+              <div class="shot">
+                <div class="num">38</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">4s</span>
+                    <span class="pill">CU</span>
+                    <span class="pill">Static</span>
+                    
+                  </div>
+                  <div class="desc">Zhi reads the last line aloud, quietly, almost to herself.</div>
+                  <div class="dialogue">ZHI: Maybe being Singaporean isn&#x27;t something we agree on. Maybe it&#x27;s that everyone — quietly — makes room.</div>
+                  <div class="microexp">Calm; resolved; small breath</div>
+                </div>
+              </div>
+              <div class="shot">
+                <div class="num">39</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">4s</span>
+                    <span class="pill">WS</span>
+                    <span class="pill">Static</span>
+                    
+                  </div>
+                  <div class="desc">Wide on Zhi closing the laptop — the lights of the HDB block opposite reflect across the dark screen.</div>
+                  
+                  <div class="microexp">Done</div>
+                </div>
+              </div>
+              <div class="shot">
+                <div class="num">40</div>
+                <div class="body">
+                  <div class="meta">
+                    <span class="pill dur">4s</span>
+                    <span class="pill">Insert</span>
+                    <span class="pill">Static</span>
+                    <span class="beat-pill beat-cliff">CLIFF</span>
+                  </div>
+                  <div class="desc">Title card on a deep midnight blue background — clean serif type centred: &#x27;For every story, a teacher.&#x27; / Below in smaller cap: MINISTRY OF EDUCATION.</div>
+                  
+                  
+                </div>
+              </div></div>
+          </div>
+        </section>
+</main>
+
+<footer>
+  ANSWER · MOE Demo · 2026 · Generated by DearAI Studio · Click any storyboard to expand.
+  Source script: <code>ANSWER · 2-min Short Script · Dear.AI</code>
+</footer>
+
+<div id="lightbox" onclick="closeLightbox(event)">
+  <button class="close" onclick="closeLightbox()">×</button>
+  <img id="lb-img" src="" alt="">
+</div>
+
+<script>
+    function openLightbox(img) {
+      const lb = document.getElementById('lightbox');
+      const lbImg = document.getElementById('lb-img');
+      lbImg.src = img.dataset.full || img.src;
+      lb.classList.add('open');
+    }
+    function closeLightbox(ev) {
+      if (ev && ev.target.tagName === 'IMG') return;
+      document.getElementById('lightbox').classList.remove('open');
+    }
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeLightbox();
+    });
+    </script>
+</body>
+</html>

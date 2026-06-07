@@ -1,0 +1,693 @@
+{
+  "project": {
+    "name": "DearAI · Production Team Guide Explainer",
+    "version": "1.0",
+    "format": {
+      "aspect_ratio": "9:16",
+      "width": 1080,
+      "height": 1920,
+      "fps": 30,
+      "duration_seconds": 75,
+      "container": "mp4",
+      "audio_channels": "stereo"
+    },
+    "use_cases": ["internal team onboarding", "WhatsApp/Telegram share", "IG Reels social", "Discord pin", "client pitch supplement"],
+    "renderers_supported": ["remotion", "hyperframes", "seedance_2_text_to_video", "veo3"],
+    "source_panels": "panduan_tim_panels.html (ID) and panduan_tim_panels_EN.html (EN) — 11 still panels at 1080×1920 each"
+  },
+
+  "design_tokens": {
+    "palette": {
+      "bg_page": "#060810",
+      "bg_panel": "#0a0e1a",
+      "bg_card": "#11161f",
+      "bg_card_2": "#161c28",
+      "border": "#1c2333",
+      "border_strong": "#2a3346",
+      "bone": "#f5f4ef",
+      "bone_2": "#d8d6cc",
+      "mute": "#8896a4",
+      "dim": "#5a6573",
+      "accent_cyan": "#22d3ee",
+      "accent_green": "#34d399",
+      "accent_warm": "#f59e0b",
+      "accent_red": "#f87171",
+      "accent_purple": "#a78bfa"
+    },
+    "typography": {
+      "display": {
+        "family": "Archivo Black",
+        "weight": 900,
+        "letterspacing_em": -0.025
+      },
+      "mono": {
+        "family": "JetBrains Mono",
+        "weight": 700,
+        "letterspacing_em": 0.05
+      },
+      "body": {
+        "family": "Inter",
+        "weight": 500,
+        "letterspacing_em": 0
+      }
+    },
+    "audio_design": {
+      "music_bed": "minimal cinematic underscore, 60-75 BPM, electric piano + sub bass + analog pad. Warm, confident, no swelling drama. Ducks under VO by -8dB.",
+      "sfx_palette": [
+        "soft mechanical key click for each slash command appearance (50ms attack, dry)",
+        "warm glassy chime for @-mention resolution (200ms decay, single note D5)",
+        "low whoosh transition between beats (300ms, neutral pan)",
+        "synth pulse for big numbers (480p, $0.08, 2 jam) — 80ms with sub kick",
+        "soft pad swell on Episode Pipeline reveal (1.2s rise, hold)"
+      ],
+      "vo_treatment": "warm dry close-mic, slight compression, no reverb. Pace: confident-relaxed. Pause 0.4s between beats."
+    },
+    "motion_principles": [
+      "Slash commands type-on letter-by-letter, mono font, cyan color",
+      "@ mentions pulse + glow on appearance, then settle",
+      "Tables and panel screenshots fade-up with subtle 8px upward translate",
+      "Big numbers (480p, ~2 jam, etc.) snap-in on bass kick",
+      "Transitions = clean cuts on beat downbeats, no fancy wipes"
+    ]
+  },
+
+  "voice_overs": {
+    "id": {
+      "narrator_profile": "Indonesian male/female 25-35, Jakarta accent, warm confident tone. Like an internal team lead briefing colleagues — not corporate, not influencer.",
+      "total_words": "approx 165",
+      "language": "Bahasa Indonesia"
+    },
+    "en": {
+      "narrator_profile": "Singapore/SEA-English neutral 25-35, warm confident tone. Same vibe as ID version.",
+      "total_words": "approx 155",
+      "language": "English"
+    }
+  },
+
+  "sequence": [
+    {
+      "beat_id": "B01_hook",
+      "label": "Hook / Cover",
+      "start": 0,
+      "duration": 5,
+      "background": "#060810 with cyan radial glow top-right (var(--c01) at 18% opacity, 600px diameter)",
+      "transition_in": "instant",
+      "transition_out": "cut on beat",
+      "elements": [
+        {
+          "type": "text_stack",
+          "anchor": "left_center",
+          "position": {"x": 80, "y": 480},
+          "lines": [
+            {"text": "DEARAI STUDIO", "size": 26, "color": "accent_cyan", "font": "mono", "tracking": "0.2em", "animation": "fade_up:0.0:0.4"},
+            {"text": "PRODUCTION", "size": 152, "color": "bone", "font": "display", "animation": "fade_up:0.3:0.5"},
+            {"text": "TEAM GUIDE", "size": 152, "color": "accent_cyan", "font": "display", "animation": "fade_up:0.6:0.5"}
+          ]
+        },
+        {
+          "type": "subtitle",
+          "anchor": "left_top",
+          "position": {"x": 80, "y": 1100},
+          "text": "Cara cepat pakai / commands · No coding",
+          "size": 38,
+          "color": "mute",
+          "animation": "fade_up:1.4:0.4"
+        }
+      ],
+      "audio_cues": [
+        {"at": 0.0, "type": "music_bed_start", "fade_in": 1.5},
+        {"at": 0.3, "type": "soft_pad_swell"}
+      ],
+      "vo": {
+        "id": "Hai tim. Kalian mau buat episode microdrama 10× lebih cepat? Tonton 60 detik ini.",
+        "en": "Hey team. Want to ship microdrama episodes 10× faster? Watch this for 60 seconds."
+      },
+      "video_prompt_seedance": "Vertical 9:16 motion graphics. Dark navy background #060810 with subtle cyan radial glow at top-right corner. Large bone-white display type animates in left-aligned: 'DEARAI STUDIO' in mono (small cyan eyebrow), then 'PRODUCTION' (bone), then 'TEAM GUIDE' (cyan accent). Subtle cinematic music starts. Subtitle fades in below: 'Cara cepat pakai / commands · No coding'. Calm warm voice-over begins."
+    },
+
+    {
+      "beat_id": "B02_the_problem",
+      "label": "The Old Way (problem)",
+      "start": 5,
+      "duration": 9,
+      "background": "#060810",
+      "transition_in": "cut",
+      "elements": [
+        {
+          "type": "title",
+          "position": {"x": 80, "y": 200},
+          "text": "TANPA / COMMAND...",
+          "size": 64,
+          "color": "accent_red",
+          "font": "display",
+          "animation": "fade_up:0.0:0.3"
+        },
+        {
+          "type": "list_with_strikethrough",
+          "position": {"x": 80, "y": 380},
+          "items": [
+            {"text": "Copy-paste 600 kata", "appears_at": 0.4, "strike_at": 7.0},
+            {"text": "Salah ketik kode BytePlus", "appears_at": 1.4, "strike_at": 7.2},
+            {"text": "Lupa attach storyboard ref", "appears_at": 2.4, "strike_at": 7.4},
+            {"text": "Tiap orang hasilnya beda", "appears_at": 3.4, "strike_at": 7.6}
+          ],
+          "size": 48,
+          "color": "bone_2",
+          "strike_color": "accent_red"
+        }
+      ],
+      "audio_cues": [
+        {"at": 0.4, "type": "key_click"},
+        {"at": 1.4, "type": "key_click"},
+        {"at": 2.4, "type": "key_click"},
+        {"at": 3.4, "type": "key_click"},
+        {"at": 7.0, "type": "low_whoosh"}
+      ],
+      "vo": {
+        "id": "Cara lama: kalian copy-paste prompt 600 kata. Salah ketik kode BytePlus. Lupa attach reference. Tiap orang hasilnya beda. Lambat. Frustrasi.",
+        "en": "Old way: copy-paste 600-word prompts. Mistype BytePlus codes. Forget the storyboard reference. Every team member outputs differently. Slow. Frustrating."
+      },
+      "video_prompt_seedance": "Vertical 9:16. Dark background. Red title fades in: 'TANPA / COMMAND...'. Below, four bullet points type in one by one over ~3 seconds — 'Copy-paste 600 kata', 'Salah ketik kode BytePlus', 'Lupa attach storyboard ref', 'Tiap orang hasilnya beda'. At 7s, all four lines get a clean red strikethrough drawn left-to-right in sync."
+    },
+
+    {
+      "beat_id": "B03_the_solution",
+      "label": "Slash command intro",
+      "start": 14,
+      "duration": 7,
+      "background": "#060810",
+      "transition_in": "fast_fade:0.3",
+      "elements": [
+        {
+          "type": "centered_title",
+          "position": {"x": 540, "y": 600},
+          "anchor": "center",
+          "lines": [
+            {"text": "/", "size": 280, "color": "accent_cyan", "font": "mono", "animation": "snap_in_with_glow:0.0"},
+            {"text": "command", "size": 96, "color": "bone", "font": "display", "animation": "fade_up:0.3:0.4"},
+            {"text": "= TOMBOL SHORTCUT", "size": 48, "color": "accent_cyan", "font": "display", "animation": "fade_up:0.7:0.4"}
+          ]
+        },
+        {
+          "type": "type_animation",
+          "position": {"x": 280, "y": 1300},
+          "text": "/vidgen set 1 V1",
+          "size": 56,
+          "color": "accent_green",
+          "font": "mono",
+          "animation": "type_on:2.5:1.5",
+          "cursor_blink": true
+        },
+        {
+          "type": "label",
+          "position": {"x": 540, "y": 1450},
+          "anchor": "center",
+          "text": "→ Claude lakukan 10 langkah",
+          "size": 36,
+          "color": "mute",
+          "animation": "fade_up:4.5:0.4"
+        }
+      ],
+      "audio_cues": [
+        {"at": 0.0, "type": "synth_pulse_kick"},
+        {"at": 2.5, "type": "key_click_sequence", "count": 18, "spacing": 0.08}
+      ],
+      "vo": {
+        "id": "Cara baru: slash command. Tombol shortcut. Kalian ketik empat kata, Claude lakuin sepuluh langkah otomatis.",
+        "en": "New way: slash commands. Shortcut buttons. You type four words, Claude executes ten steps automatically."
+      },
+      "video_prompt_seedance": "Vertical 9:16. Huge cyan slash '/' appears center frame with glow effect. Below it 'command = TOMBOL SHORTCUT' in display type. Then near the bottom, '/vidgen set 1 V1' types out letter-by-letter in green mono with blinking cursor. Subtitle below: '→ Claude lakukan 10 langkah'."
+    },
+
+    {
+      "beat_id": "B04_at_system",
+      "label": "The @ System",
+      "start": 21,
+      "duration": 9,
+      "background": "#0a0e1a",
+      "transition_in": "cut",
+      "elements": [
+        {
+          "type": "giant_at_symbol",
+          "position": {"x": 540, "y": 400},
+          "anchor": "center",
+          "text": "@",
+          "size": 280,
+          "color": "accent_cyan",
+          "glow": true,
+          "animation": "snap_in_with_pulse:0.0"
+        },
+        {
+          "type": "tag_resolution_demo",
+          "position": {"x": 80, "y": 850},
+          "items": [
+            {"tag": "@tara", "resolves_to": "TARA ANJANI · still + face video + voice", "appears_at": 1.0},
+            {"tag": "@kitchen", "resolves_to": "INT. Hanbyeol Bistro Kitchen", "appears_at": 2.5},
+            {"tag": "@bibimbap", "resolves_to": "Bibimbap bowl prop", "appears_at": 4.0}
+          ],
+          "tag_size": 44,
+          "tag_color": "accent_cyan",
+          "tag_font": "mono",
+          "resolves_size": 28,
+          "resolves_color": "bone_2",
+          "arrow_color": "mute",
+          "row_animation": "fade_up_with_glassy_chime"
+        }
+      ],
+      "audio_cues": [
+        {"at": 0.0, "type": "warm_chime_swell"},
+        {"at": 1.0, "type": "glassy_chime"},
+        {"at": 2.5, "type": "glassy_chime"},
+        {"at": 4.0, "type": "glassy_chime"}
+      ],
+      "vo": {
+        "id": "Sistem at. Satu tag, semua asset di Asset Library otomatis nyambung. At-tara, dapet gambar + video face + voice clip TARA. Gak hafal kode random.",
+        "en": "The at-system. One tag — every asset in Asset Library auto-attaches. At-tara pulls the still, the face video, the voice clip. No random codes to memorize."
+      },
+      "video_prompt_seedance": "Vertical 9:16. A massive cyan '@' symbol fills the center upper third of frame with a soft glow halo. Below it, three rows fade in one by one with glassy chime — '@tara → TARA ANJANI · still + face video + voice', '@kitchen → INT. Hanbyeol Bistro Kitchen', '@bibimbap → Bibimbap bowl prop'. Each tag in cyan mono, resolution in bone-white sans-serif."
+    },
+
+    {
+      "beat_id": "B05_imggen_modes",
+      "label": "/imggen — 4 storyboard modes",
+      "start": 30,
+      "duration": 8,
+      "background": "#0a0e1a",
+      "transition_in": "low_whoosh",
+      "elements": [
+        {
+          "type": "command_title",
+          "position": {"x": 80, "y": 200},
+          "lines": [
+            {"text": "/imggen", "size": 84, "color": "accent_cyan", "font": "mono"},
+            {"text": "4 STORYBOARD MODES", "size": 36, "color": "mute", "font": "mono"}
+          ],
+          "animation": "fade_up:0.0:0.4"
+        },
+        {
+          "type": "mode_grid_2x2",
+          "position": {"x": 80, "y": 450},
+          "cards": [
+            {
+              "flag": "--stick",
+              "title": "STICK FIGURES",
+              "tag": "DEFAULT",
+              "color": "accent_cyan",
+              "is_default": true,
+              "appears_at": 0.6
+            },
+            {
+              "flag": "--pencil",
+              "title": "PENCIL SKETCH",
+              "color": "accent_warm",
+              "appears_at": 1.2
+            },
+            {
+              "flag": "--photoreal",
+              "title": "PHOTOREAL",
+              "color": "accent_purple",
+              "appears_at": 1.8
+            },
+            {
+              "flag": "--sheet",
+              "title": "SHEET LEGACY",
+              "color": "mute",
+              "appears_at": 2.4
+            }
+          ],
+          "card_animation": "fade_up_stagger"
+        },
+        {
+          "type": "highlight_pulse",
+          "target": "default_card",
+          "at": 5.0,
+          "duration": 0.8,
+          "color": "accent_cyan"
+        }
+      ],
+      "audio_cues": [
+        {"at": 0.0, "type": "low_whoosh"},
+        {"at": 0.6, "type": "soft_pop"},
+        {"at": 1.2, "type": "soft_pop"},
+        {"at": 1.8, "type": "soft_pop"},
+        {"at": 2.4, "type": "soft_pop"},
+        {"at": 5.0, "type": "synth_pulse_kick"}
+      ],
+      "vo": {
+        "id": "/imggen punya empat mode. Default: stick figures tanpa wajah — buat validasi blocking, paling murah. Pencil, photoreal, atau sheet legacy kalau perlu override.",
+        "en": "/imggen has four modes. Default: featureless stick figures — for blocking validation, cheapest option. Pencil, photoreal, or sheet legacy when you need an override."
+      },
+      "video_prompt_seedance": "Vertical 9:16. Top: '/imggen' in cyan mono, 'four storyboard modes' below in muted text. Then four mode cards stagger in 2x2 grid: '--stick STICK FIGURES (DEFAULT)' highlighted with cyan border and glow, then '--pencil PENCIL SKETCH', '--photoreal PHOTOREAL', '--sheet SHEET LEGACY'. The default card pulses cyan at the end of the beat."
+    },
+
+    {
+      "beat_id": "B06_vidgen_modes",
+      "label": "/vidgen — 4 video modes",
+      "start": 38,
+      "duration": 11,
+      "background": "#0a0e1a",
+      "transition_in": "low_whoosh",
+      "elements": [
+        {
+          "type": "command_title",
+          "position": {"x": 80, "y": 200},
+          "lines": [
+            {"text": "/vidgen", "size": 84, "color": "accent_cyan", "font": "mono"},
+            {"text": "DEFAULT 480p · @ OVERRIDE", "size": 32, "color": "mute", "font": "mono"}
+          ],
+          "animation": "fade_up:0.0:0.4"
+        },
+        {
+          "type": "mode_terminal_examples",
+          "position": {"x": 80, "y": 450},
+          "examples": [
+            {
+              "label": "LOCKED",
+              "command": "/vidgen set 1 V1",
+              "subtitle": "Auto-detect refs from shotlist body",
+              "color": "accent_cyan",
+              "appears_at": 0.8
+            },
+            {
+              "label": "HYBRID",
+              "command": "/vidgen set 1 V1 @tara @minjun @kitchen",
+              "subtitle": "@-mentions WIN. Auto-detect skipped.",
+              "color": "accent_warm",
+              "appears_at": 2.5
+            },
+            {
+              "label": "FREEFORM",
+              "command": "/vidgen @tara plating bibimbap di @kitchen",
+              "subtitle": "Body + refs free. Test new scenes.",
+              "color": "accent_purple",
+              "appears_at": 4.5
+            },
+            {
+              "label": "RAW",
+              "command": "(paste full prompt → edit → fire)",
+              "subtitle": "Maximum control.",
+              "color": "mute",
+              "appears_at": 6.5
+            }
+          ]
+        },
+        {
+          "type": "callout_chip",
+          "position": {"x": 80, "y": 1700},
+          "text": "Local copy → ~/Desktop/<Project> Generated Videos/",
+          "size": 26,
+          "color": "accent_warm",
+          "background": "rgba(245, 158, 11, 0.12)",
+          "border": "1px solid accent_warm",
+          "animation": "fade_up:8.0:0.5"
+        }
+      ],
+      "audio_cues": [
+        {"at": 0.0, "type": "low_whoosh"},
+        {"at": 0.8, "type": "key_click_sequence"},
+        {"at": 2.5, "type": "key_click_sequence"},
+        {"at": 4.5, "type": "key_click_sequence"},
+        {"at": 6.5, "type": "key_click_sequence"},
+        {"at": 8.0, "type": "synth_pulse_kick"}
+      ],
+      "vo": {
+        "id": "/vidgen punya empat mode. Locked: pakai shotlist apa adanya. Hybrid: at-mention manual yang menang. Freeform: bikin scene dari nol. Raw: paste prompt full, edit bebas, fire as-is. Default 480p — murah dan cepat. Auto-save lokal di Desktop.",
+        "en": "/vidgen has four modes. Locked: use the shotlist as-is. Hybrid: explicit at-mentions win. Freeform: build a scene from scratch. Raw: paste the full prompt, edit freely, fire as-is. Default 480p — fast and cheap. Auto-saves locally to Desktop."
+      },
+      "video_prompt_seedance": "Vertical 9:16. Top: '/vidgen' cyan mono. Then four terminal-style example boxes stagger in: 'LOCKED — /vidgen set 1 V1', 'HYBRID — /vidgen set 1 V1 @tara @minjun @kitchen' (warm amber), 'FREEFORM — /vidgen @tara plating bibimbap di @kitchen' (purple), 'RAW — paste prompt → edit → fire' (muted). Each command types-on with key clicks. Final amber callout at bottom: 'Local copy → ~/Desktop/<Project> Generated Videos/'."
+    },
+
+    {
+      "beat_id": "B07_bulk_commands",
+      "label": "Bulk commands",
+      "start": 49,
+      "duration": 7,
+      "background": "#0a0e1a",
+      "transition_in": "low_whoosh",
+      "elements": [
+        {
+          "type": "title",
+          "position": {"x": 80, "y": 200},
+          "text": "BULK MODE",
+          "size": 84,
+          "color": "bone",
+          "font": "display",
+          "animation": "fade_up:0.0:0.3"
+        },
+        {
+          "type": "subtitle",
+          "position": {"x": 80, "y": 320},
+          "text": "Sekali fire. Semua set / semua bible jadi.",
+          "size": 32,
+          "color": "mute"
+        },
+        {
+          "type": "bulk_grid_2x2",
+          "position": {"x": 80, "y": 480},
+          "cards": [
+            {"cmd": "/imggen-all-storyboards", "title": "ALL STORYBOARDS", "time": "~25 min", "appears_at": 0.6},
+            {"cmd": "/imggen-all-assets", "title": "ALL BIBLES", "time": "~30 min", "appears_at": 1.2},
+            {"cmd": "/byteplus-upload-all", "title": "UPLOAD TO BYTEPLUS", "time": "~10 min", "appears_at": 1.8},
+            {"cmd": "/vidgen-all-sets", "title": "ALL VIDEOS", "time": "~45 min", "appears_at": 2.4}
+          ]
+        }
+      ],
+      "audio_cues": [
+        {"at": 0.0, "type": "low_whoosh"},
+        {"at": 0.6, "type": "soft_pop"},
+        {"at": 1.2, "type": "soft_pop"},
+        {"at": 1.8, "type": "soft_pop"},
+        {"at": 2.4, "type": "soft_pop"}
+      ],
+      "vo": {
+        "id": "Mau fire semua sekaligus? Bulk commands. Storyboards, bibles, upload BytePlus, semua video — sekali ketik, jalan otomatis.",
+        "en": "Want to fire everything at once? Bulk commands. Storyboards, bibles, BytePlus upload, all videos — single command, runs automatically."
+      },
+      "video_prompt_seedance": "Vertical 9:16. Title 'BULK MODE' fades in. Below, four cards stagger into a 2x2 grid: '/imggen-all-storyboards · ALL STORYBOARDS · ~25min', '/imggen-all-assets · ALL BIBLES · ~30min', '/byteplus-upload-all · UPLOAD TO BYTEPLUS · ~10min', '/vidgen-all-sets · ALL VIDEOS · ~45min'. Green mono command names, bone-white titles, cyan time stamps."
+    },
+
+    {
+      "beat_id": "B08_episode_pipeline",
+      "label": "Episode Pipeline reveal",
+      "start": 56,
+      "duration": 10,
+      "background": "linear-gradient(180deg, #060810 0%, #0a1220 100%)",
+      "transition_in": "soft_pad_swell:1.2",
+      "elements": [
+        {
+          "type": "red_button_tag",
+          "position": {"x": 80, "y": 200},
+          "text": "🔴 TOMBOL MERAH BESAR",
+          "size": 28,
+          "color": "#000",
+          "background": "accent_red",
+          "animation": "fade_up:0.0:0.3"
+        },
+        {
+          "type": "huge_command",
+          "position": {"x": 80, "y": 280},
+          "lines": [
+            {"text": "/episode-", "size": 96, "color": "accent_cyan", "font": "mono"},
+            {"text": "pipeline", "size": 96, "color": "accent_cyan", "font": "mono"}
+          ],
+          "animation": "fade_up_stagger:0.4"
+        },
+        {
+          "type": "step_ladder",
+          "position": {"x": 80, "y": 600},
+          "steps": [
+            {"num": 1, "cmd": "/shotlist-gen", "appears_at": 1.5},
+            {"num": 2, "cmd": "/imggen-all-assets", "appears_at": 2.3},
+            {"num": 3, "cmd": "/byteplus-upload-all", "appears_at": 3.1},
+            {"num": 4, "cmd": "/imggen-all-storyboards", "appears_at": 3.9},
+            {"num": 5, "cmd": "/vidgen-all-sets", "appears_at": 4.7},
+            {"num": 6, "cmd": "/episode-assemble", "appears_at": 5.5}
+          ],
+          "step_animation": "fade_up_with_arrow_drawing"
+        },
+        {
+          "type": "huge_total_bar",
+          "position": {"x": 80, "y": 1700},
+          "text": "⚡ ~2 JAM · 1 EPISODE FULL JADI",
+          "size": 48,
+          "color": "#000",
+          "background": "linear-gradient(135deg, accent_green, accent_cyan)",
+          "animation": "snap_in_with_kick:7.5"
+        }
+      ],
+      "audio_cues": [
+        {"at": 0.0, "type": "soft_pad_swell"},
+        {"at": 1.5, "type": "key_click"},
+        {"at": 2.3, "type": "key_click"},
+        {"at": 3.1, "type": "key_click"},
+        {"at": 3.9, "type": "key_click"},
+        {"at": 4.7, "type": "key_click"},
+        {"at": 5.5, "type": "key_click"},
+        {"at": 7.5, "type": "synth_pulse_kick_with_sub"}
+      ],
+      "vo": {
+        "id": "Tombol merah besar: slash episode pipeline. Script ke episode jadi, sekali fire, dua jam selesai. Enam step otomatis tersusun.",
+        "en": "The big red button: slash episode pipeline. Script to finished episode, single fire, done in two hours. Six steps chained automatically."
+      },
+      "video_prompt_seedance": "Vertical 9:16. Red 'BIG RED BUTTON' tag at top. Then huge cyan mono '/episode-pipeline' command. Below, six numbered steps animate in one by one with arrow drawing between them — /shotlist-gen → /imggen-all-assets → /byteplus-upload-all → /imggen-all-storyboards → /vidgen-all-sets → /episode-assemble. Final huge cyan-green gradient bar snaps in: '~2 JAM · 1 EPISODE FULL JADI' with bass kick."
+    },
+
+    {
+      "beat_id": "B09_provider_routing",
+      "label": "Provider routing",
+      "start": 66,
+      "duration": 6,
+      "background": "#0a0e1a",
+      "transition_in": "cut",
+      "elements": [
+        {
+          "type": "title",
+          "position": {"x": 80, "y": 200},
+          "text": "PROVIDER ROUTING",
+          "size": 64,
+          "color": "bone",
+          "font": "display"
+        },
+        {
+          "type": "routing_table_compact",
+          "position": {"x": 80, "y": 380},
+          "rows": [
+            {"asset": "STORYBOARD + CHARS", "provider": "HIGGSFIELD", "model": "gpt_image_2", "color": "accent_cyan", "appears_at": 0.6},
+            {"asset": "COSTUME · PROPS · FX", "provider": "HIGGSFIELD", "model": "nano_banana_2", "color": "accent_cyan", "appears_at": 1.4},
+            {"asset": "LOCATIONS", "provider": "REVE", "model": "text-to-image", "color": "accent_purple", "appears_at": 2.2},
+            {"asset": "VIDEO LIVE-ACTION", "provider": "BYTEPLUS", "model": "Seedance 2.0", "color": "accent_green", "appears_at": 3.0}
+          ]
+        }
+      ],
+      "audio_cues": [
+        {"at": 0.6, "type": "key_click"},
+        {"at": 1.4, "type": "key_click"},
+        {"at": 2.2, "type": "key_click"},
+        {"at": 3.0, "type": "key_click"}
+      ],
+      "vo": {
+        "id": "Provider routing locked. Storyboards, characters, costume, props, effects — Higgsfield. Lokasi — Reve. Video — BytePlus Seedance dua. Otomatis, gak perlu pilih.",
+        "en": "Provider routing is locked. Storyboards, characters, costume, props, effects — Higgsfield. Locations — Reve. Video — BytePlus Seedance two. Automatic, no manual picks."
+      },
+      "video_prompt_seedance": "Vertical 9:16. 'PROVIDER ROUTING' title. Then a compact 4-row table fades in row by row with provider chips: STORYBOARD+CHARS → HIGGSFIELD gpt_image_2 (cyan), COSTUME·PROPS·FX → HIGGSFIELD nano_banana_2 (cyan), LOCATIONS → REVE text-to-image (purple), VIDEO → BYTEPLUS Seedance 2.0 (green)."
+    },
+
+    {
+      "beat_id": "B10_outro",
+      "label": "Outro / CTA",
+      "start": 72,
+      "duration": 3,
+      "background": "linear-gradient(180deg, #060810 0%, #0a1220 100%)",
+      "transition_in": "soft_pad_swell",
+      "elements": [
+        {
+          "type": "huge_centered_stamp",
+          "position": {"x": 540, "y": 700},
+          "anchor": "center",
+          "lines": [
+            {"text": "KALAU RAGU,", "size": 96, "color": "bone", "font": "display"},
+            {"text": "TANYA.", "size": 144, "color": "accent_cyan", "font": "display"}
+          ],
+          "animation": "fade_up_stagger"
+        },
+        {
+          "type": "cta_links",
+          "position": {"x": 540, "y": 1100},
+          "anchor": "center",
+          "text": "#dev-help · #production · DearAI Discord",
+          "size": 28,
+          "color": "mute",
+          "animation": "fade_up:1.0:0.4"
+        },
+        {
+          "type": "panduan_link_bar",
+          "position": {"x": 80, "y": 1700},
+          "anchor": "left",
+          "lines": [
+            {"text": "Full guide:", "size": 22, "color": "mute"},
+            {"text": "PANDUAN_TIM_PRODUCTION.md", "size": 26, "color": "accent_cyan", "font": "mono"}
+          ],
+          "animation": "fade_up:1.5:0.4"
+        }
+      ],
+      "audio_cues": [
+        {"at": 0.0, "type": "soft_pad_swell"},
+        {"at": 2.5, "type": "music_bed_outro_button"}
+      ],
+      "vo": {
+        "id": "Kalau ragu, tanya. Selamat produksi.",
+        "en": "When in doubt, ask. Happy producing."
+      },
+      "video_prompt_seedance": "Vertical 9:16. 'KALAU RAGU,' fades in white display, then huge cyan 'TANYA.' below. Subtitle: '#dev-help · #production · DearAI Discord'. Bottom of frame: 'Full guide: PANDUAN_TIM_PRODUCTION.md' in cyan mono. Music swells then buttons out."
+    }
+  ],
+
+  "remotion_hints": {
+    "composition_id": "TeamGuideExplainer",
+    "fps": 30,
+    "duration_frames": 2250,
+    "approach": "One <Sequence> per beat, using interpolate() with the beat's start/duration for in/out timing. Each beat maps to a TSX component that takes the beat object as a prop and renders elements[] declaratively. Use <Audio> for music_bed at root, layered <Audio> for sfx per beat. <Video> for any live-action plate inserts.",
+    "components_to_build": [
+      "<TextStack/> — ordered array of {text, size, color, font, animation}",
+      "<TypeOnText/> — for type-on slash command animations",
+      "<TagResolutionRow/> — @-mention to asset resolution row",
+      "<ModeCard/> — flag + title + tag + description card",
+      "<StepLadder/> — numbered step rows with arrow drawing between",
+      "<RoutingTableRow/> — provider chip + model row",
+      "<HugeCenteredStamp/> — display type stamp with stagger fade-up"
+    ],
+    "transitions": "Cuts on beat downbeats by default. soft_pad_swell uses interpolate() opacity 0→1 over 36 frames. low_whoosh = 9 frame opacity dip + 9 frame return."
+  },
+
+  "hyperframes_hints": {
+    "scene_per_beat": true,
+    "deck_orientation": "portrait_9_16",
+    "approach": "Each beat is a separate Hyperframes scene with native primitives (text, shape, image). Re-implement type-on as keyframe animation on text element with linear opacity per character. Background colors map to scene background. Audio cues become global timeline markers."
+  },
+
+  "seedance_hints": {
+    "fallback_path": "If you don't have Remotion/Hyperframes infra, fire each beat as a standalone Seedance 2 vertical clip using its video_prompt_seedance string + audio_cues + vo overlay in post. Concat the 10 clips with clean cuts using ffmpeg or any NLE.",
+    "per_clip_specs": {
+      "model": "seedance_2_0",
+      "aspect_ratio": "9:16",
+      "resolution": "720p",
+      "duration": "match each beat duration",
+      "vo_strategy": "ElevenLabs SEA-English or SEA-Indonesian, dropped over the Seedance plate in post"
+    },
+    "limitation": "Seedance won't render typography reliably — comp the text overlays in After Effects/Premiere/CapCut over the live plate. Treat Seedance as the visual texture; type/UI lives in post."
+  },
+
+  "delivery_versions": [
+    {
+      "version_id": "id_75s_master",
+      "language": "Bahasa Indonesia",
+      "use_case": "Indonesia production team Discord/Slack pin",
+      "vo_track": "voice_overs.id"
+    },
+    {
+      "version_id": "en_75s_master",
+      "language": "English",
+      "use_case": "SEA + global team, IG Reels public",
+      "vo_track": "voice_overs.en"
+    },
+    {
+      "version_id": "30s_teaser",
+      "language": "either",
+      "use_case": "WhatsApp / TikTok hook",
+      "beats_included": ["B01", "B03", "B06", "B08", "B10"],
+      "tightening_notes": "trim each beat duration by 30%, drop beats 2 / 4 / 5 / 7 / 9"
+    }
+  ],
+
+  "production_checklist": [
+    "✓ Render 11 panel PNGs at 1080x1920 from panduan_tim_panels.html (use Download All button)",
+    "✓ Decide language master (ID first if Indonesia team, EN for SEA/global)",
+    "□ Record VO from voice_overs.id or .en — 75s budget, calm warm tone, ElevenLabs or human read",
+    "□ Build Remotion comp using design_tokens + sequence array (or fire Seedance per beat)",
+    "□ Layer sfx_palette per beat audio_cues array",
+    "□ Add subtle music bed (-8db under VO)",
+    "□ Render 1080x1920 mp4, h264, 30fps, AAC stereo",
+    "□ Trim 30s teaser version per delivery_versions",
+    "□ Ship to Discord, Slack, WhatsApp"
+  ]
+}

@@ -1,0 +1,86 @@
+#!/usr/bin/env python3
+"""Upload all remaining underwater refs (shots 04, 06, 07, 08, 09, 10, 12, 14)."""
+import os, sys, json
+from pathlib import Path
+
+HERE = Path(__file__).parent
+sys.path.insert(0, str(HERE))
+from auth import get_credentials
+import byteplus_asset_v2 as bp
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
+
+env_file = HERE / ".env"
+if env_file.exists():
+    for line in env_file.read_text().splitlines():
+        if "=" in line and not line.startswith("#"):
+            k, v = line.split("=", 1)
+            os.environ[k.strip()] = v.strip()
+
+GROUP_ID = "group-20260505195134-wqx2b"
+BASE = "/Users/raymuschang/Desktop/Video Editing/clients/Channel 8 Test Shoot/cuts/splits"
+
+
+def main():
+    creds = get_credentials()
+    drive = build("drive", "v3", credentials=creds)
+    q = "name='Channel 8 Test Shoot — Character Refs' and mimeType='application/vnd.google-apps.folder' and trashed=false"
+    parent = drive.files().list(q=q, fields="files(id)", pageSize=5).execute()["files"][0]["id"]
+
+    refs = [
+        # shot 04 — 3 refs
+        ("shot04_blocking", f"{BASE}/shot 04/shot 04.mp4", "Video"),
+        ("shot04_first_reskin", f"{BASE}/shot 04/shot4_firstframe.png", "Image"),
+        ("shot04_end_reskin", f"{BASE}/shot 04/shot4 end frame.png", "Image"),
+        # shot 06
+        ("shot06_blocking", f"{BASE}/shot 06/shot 06.mp4", "Video"),
+        ("shot06_look_6b", f"{BASE}/shot 06/shot 6b.png", "Image"),
+        # shot 07
+        ("shot07_blocking", f"{BASE}/shot 07/shot 07.mp4", "Video"),
+        ("shot07_look", f"{BASE}/shot 07/shot 7.png", "Image"),
+        # shot 08
+        ("shot08_blocking", f"{BASE}/shot 08/shot 08.mp4", "Video"),
+        ("shot08_look", f"{BASE}/shot 08/shot8_endframe.png", "Image"),
+        # shot 09
+        ("shot09_blocking", f"{BASE}/shot 09/shot 09.mp4", "Video"),
+        ("shot09_look", f"{BASE}/shot 09/shot 9.png", "Image"),
+        # shot 10
+        ("shot10_blocking", f"{BASE}/shot 10/shot 10.mp4", "Video"),
+        ("shot10_look", f"{BASE}/shot 10/Shot 10_EndFrame.png", "Image"),
+        # shot 12
+        ("shot12_blocking", f"{BASE}/shot 12/shot 12.mp4", "Video"),
+        ("shot12_look", f"{BASE}/shot 12/shot12_firstframe.png", "Image"),
+        # shot 14
+        ("shot14_blocking", f"{BASE}/shot 14/shot 14.mp4", "Video"),
+        ("shot14_look", f"{BASE}/shot 14/shot 14 firstframe.png", "Image"),
+    ]
+
+    results = {}
+    for name, local, atype in refs:
+        if not Path(local).exists():
+            print(f"⚠ MISSING: {local}")
+            continue
+        print(f"  {name} ({atype})")
+        mime = "image/png" if atype == "Image" else "video/mp4"
+        media = MediaFileUpload(local, mimetype=mime, resumable=True, chunksize=1024*1024)
+        f = drive.files().create(
+            body={"name": f"{name}::{Path(local).name}", "parents": [parent]},
+            media_body=media, fields="id,webViewLink",
+        ).execute()
+        drive.permissions().create(fileId=f["id"], body={"role": "reader", "type": "anyone"}, fields="id").execute()
+        fid = f["id"]
+        url = (f"https://lh3.googleusercontent.com/d/{fid}=w2048" if atype == "Image"
+               else f"https://drive.google.com/uc?export=download&id={fid}")
+        aid = bp.create_asset(GROUP_ID, url, atype, name=name)
+        bp.poll_asset(aid, timeout=300)
+        results[name] = aid
+        print(f"    → {aid}")
+
+    out = Path(HERE / ".uw_remaining_codes.json")
+    out.write_text(json.dumps(results, indent=2))
+    print(f"\nSaved {len(results)} codes to {out}")
+    print(json.dumps(results, indent=2))
+
+
+if __name__ == "__main__":
+    main()

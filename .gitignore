@@ -51,3 +51,18 @@ pharaoh_king_gallery_PRODUCTION_v2.html
 .idea/
 .vscode/
 *.swp
+
+# --- Local runtime state / job caches (curation 2026-06-07) ---
+.*.json
+.enhance_state
+*_jobs.json
+*_codes.json
+*_drive_files.json
+*_drive_folders.json
+*_drive_to_*.json
+*_tasks.json
+xmen_assets.json
+
+# --- Heavy generated outputs / project asset folders ---
+edb_t2v_outputs/
+Brizio/

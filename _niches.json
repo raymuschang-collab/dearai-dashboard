@@ -1,0 +1,90 @@
+{
+  "_meta": {
+    "purpose": "Locked niche tags + benchmark creators for /trendscan",
+    "owner": "Raymus personal brand",
+    "last_updated": "2026-05-13"
+  },
+  "niches": [
+    {
+      "id": "ai_video",
+      "label": "AI Video",
+      "tt_hashtags": ["aivideo", "aifilmmaking", "aigenerated", "veo3"],
+      "ig_hashtags": ["aivideo", "aifilmmaking", "aigeneration"],
+      "yt_queries": ["AI video tutorial", "AI video tools", "AI video pipeline"],
+      "benchmark_creators": [
+        {"handle": "curiousrefuge", "platforms": ["tiktok", "instagram", "youtube"]},
+        {"handle": "pierrickchev",  "platforms": ["tiktok", "instagram"]},
+        {"handle": "pjacereturns",  "platforms": ["tiktok", "instagram"]}
+      ]
+    },
+    {
+      "id": "ai_filmmaking",
+      "label": "AI Filmmaking",
+      "tt_hashtags": ["aifilm", "aifilmmaker", "aimovie", "aicinema"],
+      "ig_hashtags": ["aifilm", "aifilmmaker", "aicinema"],
+      "yt_queries": ["AI filmmaking", "AI cinema", "Runway film", "Sora cinema"],
+      "benchmark_creators": [
+        {"handle": "davesai_",       "platforms": ["tiktok", "instagram"]},
+        {"handle": "caleb_ward",     "platforms": ["instagram", "youtube"]},
+        {"handle": "cvalenzuelab",   "platforms": ["twitter", "instagram"]}
+      ]
+    },
+    {
+      "id": "sea_founder",
+      "label": "Southeast Asia Founder",
+      "tt_hashtags": ["seafounder", "singaporetech", "startupsg", "indonesianstartup"],
+      "ig_hashtags": ["seafounder", "sgtech", "startupasia"],
+      "yt_queries": ["Southeast Asia founder", "Singapore startup", "SEA tech founder"],
+      "benchmark_creators": [
+        {"handle": "jeremyau",       "platforms": ["linkedin", "tiktok"]},
+        {"handle": "gregisenberg",   "platforms": ["tiktok", "instagram", "youtube"]},
+        {"handle": "iqbalhariadi",   "platforms": ["instagram", "tiktok"]}
+      ],
+      "_note": "SEA founder picks are placeholder — swap with real handles you benchmark against"
+    },
+    {
+      "id": "microdrama",
+      "label": "Microdrama / Vertical Drama",
+      "tt_hashtags": ["microdrama", "verticaldrama", "shortdrama", "duanju", "reelshort"],
+      "ig_hashtags": ["microdrama", "verticaldrama", "shortform"],
+      "yt_queries": ["microdrama", "vertical drama", "shortform drama"],
+      "benchmark_creators": [
+        {"handle": "reelshort",  "platforms": ["tiktok", "instagram", "youtube"]},
+        {"handle": "dramabox",   "platforms": ["tiktok", "instagram"]},
+        {"handle": "holywater",  "platforms": ["tiktok", "instagram"]}
+      ]
+    },
+    {
+      "id": "creative_tech",
+      "label": "Creative Tech",
+      "tt_hashtags": ["creativetechnologist", "creativecoding", "designengineer", "aitools"],
+      "ig_hashtags": ["creativetech", "designengineer", "designtools"],
+      "yt_queries": ["creative technologist", "design engineer", "creative coding"],
+      "benchmark_creators": [
+        {"handle": "linusboman",          "platforms": ["instagram", "youtube"]},
+        {"handle": "tobiasvanschneider",  "platforms": ["instagram", "youtube"]},
+        {"handle": "marc_louvion",        "platforms": ["twitter", "instagram"]}
+      ]
+    }
+  ],
+  "defaults": {
+    "lookback_days": 14,
+    "max_per_platform_per_niche": 20,
+    "min_engagement": 1000,
+    "platforms": ["tiktok", "instagram", "youtube"]
+  },
+  "apify_actors": {
+    "tiktok_hashtag": "clockworks/tiktok-scraper",
+    "instagram_hashtag": "apify/instagram-hashtag-scraper",
+    "linkedin": "apimaestro/linkedin-post-search-scraper"
+  },
+  "cost_estimates_usd": {
+    "_per_run_typical": {
+      "tiktok_per_niche": 0.30,
+      "instagram_per_niche": 0.40,
+      "youtube_per_niche": 0.00,
+      "total_5_niches": 3.50
+    },
+    "_note": "On Apify FREE plan ($5/mo) you have budget for ~1-2 full scans/month. Cut niches or use --niches flag to scope."
+  }
+}

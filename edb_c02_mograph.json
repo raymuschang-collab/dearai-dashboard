@@ -1,0 +1,472 @@
+{
+  "project": {
+    "id": "edb_c02_mograph_reveal",
+    "title": "The Semi-Con — Mograph Reveal Sequence",
+    "context": "EDB Singapore Semicon pitch · Concept 02 · 2:00–2:40 closing scale-reveal sequence",
+    "deck_reference": "Slide 11 (beat sheet) — 'Mograph Reveal' beat",
+    "duration_seconds": 40,
+    "fps": 30,
+    "aspect_ratio": "16:9",
+    "resolution": [1920, 1080],
+    "render_targets": {
+      "primary": "remotion",
+      "fallback": "seedance_2_text_to_video",
+      "stills_fallback": "after_effects_or_hyperframes"
+    },
+    "comments": "Each `beat` block carries both a structured `elements` array (consumable by Remotion / Hyperframes) and a `video_prompt` string (consumable by Seedance / Veo / Kling). Pick one path per render."
+  },
+
+  "design": {
+    "palette": {
+      "bg_primary":    "#0b1320",
+      "bg_secondary":  "#142544",
+      "ink_primary":   "#f0f4f8",
+      "ink_secondary": "#a8b2c5",
+      "ink_muted":     "#6a7080",
+      "accent_mint":   "#34d399",
+      "accent_cyan":   "#22d3ee",
+      "accent_gold":   "#fcd34d",
+      "trace_warm":    "#f5b88c",
+      "strike_red":    "#fca5a5"
+    },
+    "typography": {
+      "display": "'SF Pro Display', Inter, system-ui, sans-serif",
+      "mono":    "'JetBrains Mono', 'SF Mono', monospace",
+      "weights":  { "regular": 400, "semibold": 600, "bold": 700 },
+      "letter_spacing": {
+        "headline_tight": "-0.02em",
+        "label_loose":     "0.12em",
+        "caps":             "0.08em"
+      }
+    },
+    "motion_principles": [
+      "Restraint over flourish — each beat lands on a held final state, not a flying transition",
+      "Counts feel calibrated, not random — numbers tick UP visibly, not snap",
+      "Cyan/mint glow on the active element only; everything else dims to bg_secondary",
+      "Type-on labels precede their visual referent by 200-400ms (anticipation)",
+      "Easing: 'cubic-bezier(0.4, 0.0, 0.2, 1)' — Apple-keynote standard"
+    ],
+    "audio_design": {
+      "music_bed": {
+        "style": "minimal electronic — sustained pad + low pulse, like Apple/Sora reveal sequences",
+        "intensity_curve": [
+          { "t": 0,  "level": 0.55 },
+          { "t": 8,  "level": 0.62 },
+          { "t": 16, "level": 0.70 },
+          { "t": 24, "level": 0.78 },
+          { "t": 32, "level": 0.92 },
+          { "t": 36, "level": 1.00 },
+          { "t": 40, "level": 0.85 }
+        ]
+      },
+      "stings": [
+        { "id": "type_click",   "duration_ms": 60,  "use": "every label appearance" },
+        { "id": "scale_whoosh", "duration_ms": 350, "use": "every zoom-out transition" },
+        { "id": "globe_pulse",  "duration_ms": 600, "use": "Singapore reveal at t=32s" },
+        { "id": "harmonic_lock","duration_ms": 1200,"use": "'one in ten' final reveal" }
+      ]
+    }
+  },
+
+  "voice_overs": [
+    { "role": "V2", "profile": "male, mid-30s, Singapore Malay-Chinese, calm process-engineer cadence", "lines": ["A hundred."] },
+    { "role": "V3", "profile": "male, late 20s, Singapore Indian, alert AI-engineer tone",                 "lines": ["A billion."] },
+    { "role": "V4", "profile": "female, late 30s, Singapore Chinese, settled mid-career cadence",          "lines": ["A trillion."] },
+    { "role": "ALL","profile": "layered all four voices",                                                   "lines": ["One in ten — made here."] }
+  ],
+
+  "sequence": [
+    {
+      "beat_id": "S01_one_transistor",
+      "label": "Single transistor reveal",
+      "start": 0.0,
+      "duration": 4.0,
+      "background": "#0b1320",
+      "transition_in":  { "type": "cut" },
+      "transition_out": { "type": "rapid_zoom_out", "easing": "cubic-bezier(0.4,0,0.2,1)", "duration_ms": 350 },
+      "elements": [
+        {
+          "type": "svg_glyph",
+          "id": "transistor",
+          "asset": "transistor_glyph.svg",
+          "fallback_render": "stylized transistor diagram — gate, source, drain — clean line drawing",
+          "position": { "x_pct": 50, "y_pct": 50, "anchor": "center" },
+          "size": { "w_px": 220, "h_px": 220 },
+          "stroke": "#22d3ee",
+          "stroke_width_px": 2,
+          "fill": "transparent",
+          "glow": { "color": "#22d3ee", "blur_px": 12, "intensity": 0.6 },
+          "animations": [
+            { "property": "scale",   "from": 0.0, "to": 1.0, "duration_ms": 800,  "easing": "back-out", "delay_ms": 0 },
+            { "property": "opacity", "from": 0.0, "to": 1.0, "duration_ms": 400,  "easing": "ease-out", "delay_ms": 0 }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "label_1",
+          "content": "1 transistor",
+          "font": "mono",
+          "size_px": 18,
+          "color": "#22d3ee",
+          "position": { "x_pct": 50, "y_pct": 67, "anchor": "center" },
+          "letter_spacing": "0.12em",
+          "uppercase": false,
+          "animations": [
+            { "property": "type_on", "duration_ms": 600, "easing": "linear", "delay_ms": 1200 }
+          ]
+        }
+      ],
+      "audio_cues": [
+        { "id": "music_swell",  "at_ms": 0 },
+        { "id": "type_click",   "at_ms": 1200 }
+      ],
+      "video_prompt": "16:9 motion graphic on a deep navy background (#0b1320). Centered: a single transistor — rendered as a thin, glowing cyan line drawing of a basic three-terminal transistor symbol (gate / source / drain). The icon scales up from zero to full size with a subtle back-out bounce over 800ms. At 1.2 seconds, a small monospace label '1 transistor' types on letter-by-letter beneath it in the same cyan, slightly muted. The frame holds for the remaining ~2 seconds. Sustained electronic pad under. No camera movement, no parallax. Apple-keynote restraint."
+    },
+
+    {
+      "beat_id": "S02_grain_of_sand",
+      "label": "100 transistors on a grain of sand",
+      "start": 4.0,
+      "duration": 4.5,
+      "background": "#0b1320",
+      "transition_in":  { "type": "rapid_zoom_in", "easing": "cubic-bezier(0.4,0,0.2,1)", "duration_ms": 350 },
+      "transition_out": { "type": "rapid_zoom_out", "duration_ms": 350 },
+      "elements": [
+        {
+          "type": "raster_image",
+          "id": "sand_grain",
+          "asset": "macro_sand_grain.png",
+          "fallback_render": "high-magnification photo of a single grain of beach sand, lit cyan",
+          "position": { "x_pct": 50, "y_pct": 48, "anchor": "center" },
+          "size": { "w_pct": 60, "aspect": "1:1" },
+          "filters": [{ "type": "duotone", "shadow": "#0b1320", "highlight": "#22d3ee" }],
+          "animations": [
+            { "property": "scale",   "from": 0.92, "to": 1.0, "duration_ms": 800, "easing": "ease-out" },
+            { "property": "opacity", "from": 0.0,  "to": 0.85, "duration_ms": 600, "easing": "ease-out" }
+          ]
+        },
+        {
+          "type": "vector_grid",
+          "id": "transistor_lattice_100",
+          "description": "10×10 grid of small transistor outlines tiling across the sand grain surface, faintly glowing",
+          "stroke": "#22d3ee",
+          "stroke_width_px": 0.6,
+          "opacity": 0.45,
+          "position": { "x_pct": 50, "y_pct": 48, "anchor": "center" },
+          "animations": [
+            { "property": "stagger_appear", "stagger_ms": 25, "duration_each_ms": 200, "delay_ms": 800 }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "label_100",
+          "content": "100 fit on a grain of sand",
+          "font": "mono",
+          "size_px": 16,
+          "color": "#a8b2c5",
+          "position": { "x_pct": 50, "y_pct": 78, "anchor": "center" },
+          "letter_spacing": "0.10em",
+          "animations": [
+            { "property": "type_on", "duration_ms": 600, "delay_ms": 2200 }
+          ]
+        }
+      ],
+      "audio_cues": [
+        { "id": "scale_whoosh", "at_ms": 0 },
+        { "id": "type_click",   "at_ms": 2200 }
+      ],
+      "vo": [{ "role": "V2", "line": "A hundred.", "at_ms": 1500 }],
+      "video_prompt": "16:9 mograph on dark navy. A high-magnification photo of a single grain of beach sand fills the centre — desaturated to a cyan duotone, glowing softly. Over the surface, 100 tiny transistor outlines tile in a 10×10 grid — staggered in over ~2 seconds, each tiny outline appearing with a faint cyan glow. At 2.2s a small monospace label types on at the bottom: '100 fit on a grain of sand'. A male Singapore Malay-Chinese voice says quietly: 'A hundred.' Held for 4.5s total. Same restrained Apple-keynote feel."
+    },
+
+    {
+      "beat_id": "S03_billion_on_chip",
+      "label": "Billions on a single chip",
+      "start": 8.5,
+      "duration": 5.0,
+      "background": "#0b1320",
+      "transition_in":  { "type": "rapid_zoom_out", "duration_ms": 400 },
+      "transition_out": { "type": "rapid_zoom_out", "duration_ms": 400 },
+      "elements": [
+        {
+          "type": "raster_image",
+          "id": "chip_die",
+          "asset": "chip_die_macro.png",
+          "fallback_render": "macro photo of a silicon die — geometric circuit pattern, mirror-like surface, illuminated cyan",
+          "position": { "x_pct": 50, "y_pct": 50, "anchor": "center" },
+          "size": { "w_pct": 78, "aspect": "1:1" },
+          "filters": [{ "type": "duotone", "shadow": "#0b1320", "highlight": "#22d3ee" }]
+        },
+        {
+          "type": "shader_overlay",
+          "id": "transistor_fabric",
+          "description": "Procedural shimmering fabric of micro-grids covering the die — gives 'billions of transistors' density without literal counting. Subtle pulse animation, 0.3 Hz.",
+          "color": "#22d3ee",
+          "opacity": 0.55,
+          "blend_mode": "screen"
+        },
+        {
+          "type": "text",
+          "id": "label_billion",
+          "content": "Billions on a single chip",
+          "font": "mono",
+          "size_px": 16,
+          "color": "#a8b2c5",
+          "position": { "x_pct": 50, "y_pct": 84, "anchor": "center" },
+          "letter_spacing": "0.10em",
+          "animations": [
+            { "property": "type_on", "duration_ms": 700, "delay_ms": 2400 }
+          ]
+        }
+      ],
+      "audio_cues": [
+        { "id": "scale_whoosh",   "at_ms": 0 },
+        { "id": "type_click",     "at_ms": 2400 },
+        { "id": "music_intensify","at_ms": 1500 }
+      ],
+      "vo": [{ "role": "V3", "line": "A billion.", "at_ms": 1800 }],
+      "video_prompt": "16:9 mograph. Camera zooms out from the sand grain into a chip die — macro photograph, full square frame, mirror-like silicon surface with geometric circuit patterns visible. The die is duotoned cyan over deep navy. A subtle shimmering shader covers the surface — a procedural lattice of micro-grids implying billions of transistors. The lattice pulses gently at 0.3Hz. Held for 5 seconds. At 2.4s a label types on: 'Billions on a single chip'. A male Singapore Indian voice: 'A billion.' Music intensifies."
+    },
+
+    {
+      "beat_id": "S04_trillion_per_year",
+      "label": "Trillions made each year",
+      "start": 13.5,
+      "duration": 5.5,
+      "background": "#0b1320",
+      "transition_in":  { "type": "rapid_zoom_out", "duration_ms": 400 },
+      "transition_out": { "type": "rapid_zoom_out", "duration_ms": 500 },
+      "elements": [
+        {
+          "type": "scene_render",
+          "id": "fab_conveyor",
+          "description": "Wide aerial-isometric view of a fab production line — wafer cassettes moving on conveyors, multiplying. Stylized vector look (not photoreal). Cyan + warm-trace dual-tone.",
+          "position": { "x_pct": 50, "y_pct": 50, "anchor": "center" },
+          "size": { "w_pct": 95, "h_pct": 70 },
+          "animations": [
+            { "property": "conveyor_loop", "speed": "moderate", "duration_ms": 5000 }
+          ]
+        },
+        {
+          "type": "counter_animation",
+          "id": "ticking_count",
+          "format": "{n} chips · 2025",
+          "from": 800000000000,
+          "to":   1100000000000,
+          "duration_ms": 4000,
+          "delay_ms": 800,
+          "font": "mono",
+          "size_px": 18,
+          "color": "#22d3ee",
+          "position": { "x_pct": 12, "y_pct": 90, "anchor": "left" },
+          "thousands_separator": ","
+        },
+        {
+          "type": "text",
+          "id": "label_trillion",
+          "content": "Trillions made each year",
+          "font": "mono",
+          "size_px": 16,
+          "color": "#a8b2c5",
+          "position": { "x_pct": 88, "y_pct": 90, "anchor": "right" },
+          "letter_spacing": "0.10em",
+          "animations": [
+            { "property": "type_on", "duration_ms": 700, "delay_ms": 2800 }
+          ]
+        }
+      ],
+      "audio_cues": [
+        { "id": "scale_whoosh",     "at_ms": 0 },
+        { "id": "conveyor_texture", "at_ms": 500, "duration_ms": 4500 },
+        { "id": "type_click",       "at_ms": 2800 }
+      ],
+      "vo": [{ "role": "V4", "line": "A trillion.", "at_ms": 2200 }],
+      "video_prompt": "16:9 mograph. Stylized wide aerial-isometric view of a wafer-fab production line — cassettes moving on conveyors, multiplying continuously across the frame. Dual-tone treatment: cyan highlights, warm-amber midtones over the navy bg. A small ticking counter at bottom-left counts up from 800,000,000,000 to ~1,100,000,000,000 over 4 seconds (mono cyan type, comma-separated thousands). At 2.8s a small label types on at bottom-right: 'Trillions made each year'. A female Singapore Chinese voice: 'A trillion.' Music continues intensifying."
+    },
+
+    {
+      "beat_id": "S05_globe_pulse",
+      "label": "Singapore on the globe — gold pulse",
+      "start": 19.0,
+      "duration": 6.0,
+      "background": "#0b1320",
+      "transition_in":  { "type": "fade_through_white", "duration_ms": 200 },
+      "transition_out": { "type": "fade_to_brand", "duration_ms": 400 },
+      "elements": [
+        {
+          "type": "svg_globe",
+          "id": "world_globe",
+          "asset": "world_globe_minimal.svg",
+          "fallback_render": "minimal vector globe, only continent outlines, no fill, gray ink_muted",
+          "position": { "x_pct": 50, "y_pct": 50, "anchor": "center" },
+          "size": { "w_px": 720, "h_px": 720 },
+          "stroke": "#6a7080",
+          "stroke_width_px": 1,
+          "fill": "transparent",
+          "animations": [
+            { "property": "rotate_in_3d", "from_deg": 30, "to_deg": 0, "duration_ms": 1200, "easing": "cubic-bezier(0.4,0,0.2,1)" }
+          ]
+        },
+        {
+          "type": "pulse_marker",
+          "id": "sg_pulse",
+          "lat": 1.3521,
+          "lng": 103.8198,
+          "color": "#fcd34d",
+          "size_px": 12,
+          "ring_max_px": 80,
+          "animations": [
+            { "property": "expanding_ring_loop", "interval_ms": 1800, "delay_ms": 1200 }
+          ]
+        },
+        {
+          "type": "label_callout",
+          "id": "sg_label",
+          "content": "Singapore",
+          "font": "display",
+          "size_px": 13,
+          "color": "#fcd34d",
+          "position": { "x_pct": 78, "y_pct": 52, "anchor": "left" },
+          "leader_line": { "from_pulse": true, "stroke": "#fcd34d", "stroke_width_px": 1 },
+          "animations": [
+            { "property": "type_on", "duration_ms": 400, "delay_ms": 1500 }
+          ]
+        }
+      ],
+      "audio_cues": [
+        { "id": "globe_pulse",     "at_ms": 1200 },
+        { "id": "music_intensify", "at_ms": 0 }
+      ],
+      "video_prompt": "16:9 mograph. The frame transitions through a brief white flash to a minimal vector globe — only continent outlines, no fill, thin gray strokes. Globe rotates slightly into final position over 1.2s. At 1.2s, a single gold pulse marker appears on Singapore's coordinates (1.35°N, 103.82°E) with an expanding ring that loops every 1.8s. A leader line draws from the pulse to a small label — 'Singapore' — in gold display type at the right side. All other countries stay dim. Held 6s. Music intensifies."
+    },
+
+    {
+      "beat_id": "S06_one_in_ten",
+      "label": "1 in 10 chips · made here",
+      "start": 25.0,
+      "duration": 8.0,
+      "background": "#0b1320",
+      "transition_in":  { "type": "cross_dissolve", "duration_ms": 600 },
+      "transition_out": { "type": "fade_white_to_closing", "duration_ms": 600 },
+      "elements": [
+        {
+          "type": "ten_chip_grid",
+          "id": "chip_array",
+          "description": "10 chip-shaped outlines arranged in a 5×2 grid, centered. Nine are dim gray. One — top-left — pulses gold. Then a larger label appears.",
+          "position": { "x_pct": 50, "y_pct": 42, "anchor": "center" },
+          "size": { "w_pct": 70, "aspect": "5:2" },
+          "elements_inner": [
+            { "id": "chip_1", "fill": "#fcd34d", "stroke": "#fcd34d", "glow": true },
+            { "id": "chip_2", "fill": "transparent", "stroke": "#6a7080" },
+            { "id": "chip_3", "fill": "transparent", "stroke": "#6a7080" },
+            { "id": "chip_4", "fill": "transparent", "stroke": "#6a7080" },
+            { "id": "chip_5", "fill": "transparent", "stroke": "#6a7080" },
+            { "id": "chip_6", "fill": "transparent", "stroke": "#6a7080" },
+            { "id": "chip_7", "fill": "transparent", "stroke": "#6a7080" },
+            { "id": "chip_8", "fill": "transparent", "stroke": "#6a7080" },
+            { "id": "chip_9", "fill": "transparent", "stroke": "#6a7080" },
+            { "id": "chip_10","fill": "transparent", "stroke": "#6a7080" }
+          ],
+          "animations": [
+            { "property": "stagger_appear", "stagger_ms": 80, "duration_each_ms": 200 },
+            { "property": "chip_1_pulse",   "delay_ms": 1400, "duration_ms": 1400, "easing": "ease-in-out" }
+          ]
+        },
+        {
+          "type": "text_block",
+          "id": "headline",
+          "lines": [
+            { "content": "1 in 10 chips on Earth", "font": "display", "weight": 700, "size_px": 56, "color": "#f0f4f8" },
+            { "content": "made here.",              "font": "display", "weight": 700, "size_px": 56, "color": "#fcd34d" }
+          ],
+          "position": { "x_pct": 50, "y_pct": 78, "anchor": "center" },
+          "letter_spacing": "-0.02em",
+          "line_height": 1.05,
+          "animations": [
+            { "property": "fade_up_lines", "stagger_ms": 350, "duration_each_ms": 600, "delay_ms": 2400, "easing": "cubic-bezier(0.4,0,0.2,1)" }
+          ]
+        }
+      ],
+      "audio_cues": [
+        { "id": "chip_appear_taps", "at_ms": 0,    "stagger_ms": 80 },
+        { "id": "harmonic_lock",    "at_ms": 1400 },
+        { "id": "vo_layered",       "at_ms": 2400 }
+      ],
+      "vo": [
+        { "role": "ALL", "line": "One in ten — made here.", "at_ms": 2800, "delivery": "all four voices layered, settled, conviction" }
+      ],
+      "video_prompt": "16:9 mograph. 10 chip-shaped outlines arranged 5-across × 2-down, centered. They appear staggered over ~800ms, each chip outline gray. At 1.4s, the top-left chip fills with gold (#fcd34d) and pulses softly with a glow — the other 9 stay outlined-only in dim gray. Music locks to a harmonic chord. At 2.4s, a large two-line headline fades up below: '1 in 10 chips on Earth' (white, 56px display weight 700) on top, 'made here.' (gold, 56px display weight 700) on the second line — the lines stagger in 350ms apart. All four voices layered: 'One in ten — made here.' Held for the full 8 seconds. Conviction, no flourish."
+    },
+
+    {
+      "beat_id": "S07_sg_logo_hold",
+      "label": "Singapore-shape logo hold (final)",
+      "start": 33.0,
+      "duration": 7.0,
+      "background": "#0b1320",
+      "transition_in":  { "type": "fade_white", "duration_ms": 400 },
+      "transition_out": { "type": "match_cut_to_closing_montage" },
+      "elements": [
+        {
+          "type": "svg_logo",
+          "id": "sg_glow_logo",
+          "asset": "edb_sg_glow.svg",
+          "fallback_render": "stylized Singapore island silhouette glowing soft cyan, with a single gold dot at center",
+          "position": { "x_pct": 50, "y_pct": 50, "anchor": "center" },
+          "size": { "w_px": 320, "h_px": 200 },
+          "fill": "#0b1320",
+          "stroke": "#22d3ee",
+          "stroke_width_px": 2,
+          "glow": { "color": "#22d3ee", "blur_px": 24, "intensity": 0.7 },
+          "animations": [
+            { "property": "glow_breathe", "min": 0.5, "max": 1.0, "period_ms": 2400 }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "tag_made_here",
+          "content": "made here.",
+          "font": "display",
+          "weight": 600,
+          "size_px": 22,
+          "color": "#a8b2c5",
+          "position": { "x_pct": 50, "y_pct": 72, "anchor": "center" },
+          "letter_spacing": "-0.01em",
+          "animations": [
+            { "property": "fade_in", "duration_ms": 600, "delay_ms": 400 }
+          ]
+        }
+      ],
+      "audio_cues": [
+        { "id": "music_sustain",   "at_ms": 0,    "duration_ms": 7000 },
+        { "id": "harmonic_release","at_ms": 5500 }
+      ],
+      "video_prompt": "16:9 mograph. Stylized Singapore-island silhouette centered, glowing soft cyan, with a subtle breathing glow that cycles every 2.4 seconds. Beneath it, in muted gray-blue display type: 'made here.' Sustained music holds for the full 7 seconds, releasing into a harmonic on the way out. This is the bridge into the closing montage."
+    }
+  ],
+
+  "remotion_hints": {
+    "composition_id": "EDBSemiConMograph",
+    "components_per_element_type": {
+      "svg_glyph":          "<Img src={staticFile(asset)}/>",
+      "raster_image":       "<Img src={staticFile(asset)}/>",
+      "text":               "<AbsoluteFill><div style={...}>{content}</div></AbsoluteFill>",
+      "vector_grid":        "Custom <TransistorGrid count={100}/> component",
+      "shader_overlay":     "Custom <ShimmerLattice/> component (offscreen canvas)",
+      "counter_animation":  "Custom <TickingCounter from to duration/> component",
+      "svg_globe":          "<Img/> + custom <PulseMarker lat lng/> overlay",
+      "ten_chip_grid":      "Custom <ChipGrid/> component",
+      "text_block":         "Custom <FadeUpLines lines stagger/> component",
+      "svg_logo":           "<Img/> with breathing-glow CSS keyframe"
+    },
+    "easing_default": "cubic-bezier(0.4, 0.0, 0.2, 1)",
+    "interp_helper": "interpolate(frame, [start_frame, end_frame], [from, to], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })"
+  },
+
+  "seedance_hints": {
+    "model": "dreamina-seedance-2-0-260128",
+    "submission_pattern": "fire each beat as its own clip → cut-stitch with ffmpeg or Remotion (clip-import mode) — Seedance renders each beat as a 4-8s clip, downstream tool handles the timing/transitions",
+    "per_beat_resolution": "1080p / 16:9 / 4-8 seconds depending on beat duration",
+    "downstream_assembly": "Remotion clip-import OR ffmpeg concat list with crossfade transitions"
+  }
+}

@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Panduan Tim — DearAI Production · 9:16 Panels</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  :root {
+    --bg-page: #060810;
+    --bg-panel: #0a0e1a;
+    --bg-card: #11161f;
+    --bg-card-2: #161c28;
+    --border: #1c2333;
+    --border-strong: #2a3346;
+    --bone: #f5f4ef;
+    --bone-2: #d8d6cc;
+    --mute: #8896a4;
+    --dim: #5a6573;
+    --c01: #22d3ee;
+    --c02: #34d399;
+    --warm: #f59e0b;
+    --red: #f87171;
+    --purple: #a78bfa;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg-page);
+    color: var(--bone);
+    font-family: "Inter", -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  .ctrl-bar {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(6, 8, 16, 0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+  }
+  .ctrl-bar h1 { font-size: 14px; font-weight: 700; letter-spacing: 0.04em; color: var(--bone); }
+  .ctrl-bar .spacer { flex: 1; }
+  .ctrl-btn {
+    background: var(--bg-card);
+    color: var(--bone-2);
+    border: 1px solid var(--border-strong);
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: "JetBrains Mono", monospace;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .ctrl-btn:hover { background: var(--c01); color: #000; border-color: var(--c01); }
+  .ctrl-btn.primary { background: var(--c01); color: #000; border-color: var(--c01); }
+  .ctrl-btn.primary:hover { background: var(--c02); border-color: var(--c02); }
+  .lang-switch a {
+    color: var(--mute); font-size: 12px;
+    text-decoration: none; padding: 6px 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: 4px;
+    font-family: "JetBrains Mono", monospace;
+    font-weight: 600;
+  }
+  .lang-switch a.active { color: var(--c01); border-color: var(--c01); }
+  .lang-switch a:hover { color: var(--bone); border-color: var(--bone); }
+
+  .panels-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 32px;
+    padding: 32px 16px 80px;
+  }
+
+  .panel {
+    position: relative;
+    width: 1080px;
+    height: 1920px;
+    transform-origin: top center;
+    transform: scale(0.45);
+    margin-bottom: -1056px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    color: var(--bone);
+  }
+  @media (min-width: 1200px) {
+    .panel { transform: scale(0.55); margin-bottom: -864px; }
+  }
+  @media (min-width: 1600px) {
+    .panel { transform: scale(0.7); margin-bottom: -576px; }
+  }
+
+  .panel-export-btn {
+    position: absolute;
+    top: -50px; left: 50%;
+    background: var(--bg-card);
+    color: var(--c01);
+    border: 1px solid var(--c01);
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: "JetBrains Mono", monospace;
+    font-weight: 600;
+    cursor: pointer;
+    z-index: 10;
+    transform: translateX(-50%) scale(2.2);
+    transform-origin: top center;
+  }
+  .panel-export-btn:hover { background: var(--c01); color: #000; }
+
+  .pnl-frame {
+    position: absolute;
+    inset: 60px 60px 110px 60px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .pnl-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 28px;
+    flex-shrink: 0;
+  }
+  .pnl-num {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--c01);
+    letter-spacing: 0.15em;
+  }
+  .pnl-brand {
+    font-family: "Archivo Black", sans-serif;
+    font-size: 22px;
+    color: var(--bone);
+    letter-spacing: 0.05em;
+  }
+  .pnl-brand .dot { color: var(--c01); }
+  .pnl-footer {
+    position: absolute;
+    bottom: 50px; left: 60px; right: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--dim);
+    font-size: 16px;
+    font-family: "JetBrains Mono", monospace;
+  }
+  .pnl-dots {
+    display: flex; gap: 7px;
+  }
+  .pnl-dots span {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--border-strong);
+    transition: all 0.2s;
+  }
+  .pnl-dots span.active { background: var(--c01); width: 28px; border-radius: 5px; }
+
+  /* ==== Panel 1: Cover ==== */
+  .pnl-1 { background: linear-gradient(180deg, #060810 0%, #0a1220 50%, #060810 100%); }
+  .pnl-1 .hero-stack { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px; }
+  .pnl-1 .eyebrow {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 26px; color: var(--c01);
+    letter-spacing: 0.2em; font-weight: 700;
+  }
+  .pnl-1 .title {
+    font-family: "Archivo Black", sans-serif;
+    font-size: 152px; line-height: 0.92;
+    letter-spacing: -0.04em; color: var(--bone);
+    text-transform: uppercase;
+  }
+  .pnl-1 .title .accent { color: var(--c01); }
+  .pnl-1 .subtitle {
+    font-size: 38px; line-height: 1.3;
+    color: var(--mute); font-weight: 400;
+    max-width: 880px; margin-top: 20px;
+  }
+  .pnl-1 .glow {
+    position: absolute;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(34, 211, 238, 0.18), transparent 70%);
+    top: 200px; right: -200px;
+    pointer-events: none;
+  }
+
+  /* ==== Panel 2: Apa itu /command ==== */
+  .pnl-2 .big-equation {
+    flex: 1; display: flex; flex-direction: column;
+    justify-content: center; gap: 40px;
+  }
+  .pnl-2 h2 {
+    font-family: "Archivo Black", sans-serif;
+    font-size: 78px; line-height: 0.95;
+    letter-spacing: -0.03em; color: var(--bone);
+  }
+  .pnl-2 h2 .slash {
+    font-family: "JetBrains Mono", monospace;
+    color: var(--c01); font-weight: 700;
+  }
+  .pnl-2 .equation {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 20px; align-items: stretch;
+    margin-top: 20px;
+  }
+  .pnl-2 .eq-side {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 26px;
+    display: flex; flex-direction: column;
+    justify-content: center; gap: 14px;
+  }
+  .pnl-2 .eq-label {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 16px; color: var(--dim);
+    letter-spacing: 0.15em; text-transform: uppercase;
+  }
+  .pnl-2 .eq-content {
+    font-family: "Archivo Black", sans-serif;
+    font-size: 48px; line-height: 1.0; color: var(--bone);
+  }
+  .pnl-2 .eq-content.input { color: var(--c02); font-family: "JetBrains Mono", monospace; }
+  .pnl-2 .eq-arrow {
+    font-family: "Archivo Black", sans-serif;
+    font-size: 90px; color: var(--c01);
+    align-self: center;
+  }
+  .pnl-2 .punchline {
+    font-size: 44px; line-height: 1.25;
+    color: var(--bone); font-weight: 700;
+    text-align: center; margin-top: 16px;
+  }
+  .pnl-2 .punchline .acc { color: var(--c01); }
+  .pnl-2 ul {
+    list-style: none;
+    display: grid; gap: 8px;
+  }
+  .pnl-2 ul li {
+    font-size: 20px; color: var(--mute);
+    padding-left: 28px; position: relative;
+  }
+  .pnl-2 ul li::before {
+    content: "→"; position: absolute; left: 0;
+    color: var(--c01); font-weight: 700;
+  }
+
+  /* ==== Panel 3: Sebelum-sesudah ==== */
+  .pnl-3 .compare-grid { flex: 1; display: grid; grid-template-rows: auto 1fr auto; gap: 24px; }
+  .pnl-3 h2 {
+    font-family: "Archivo Black", sans-serif;
+    font-size: 92px; line-height: 0.95;
+    color: var(--bone); letter-spacing: -0.02em;
+  }
+  .pnl-3 h2 .acc { color: var(--c01); }
+  .pnl-3 .table {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px; overflow: hidden;
+  }
+  .pnl-3 .table-row {
+    display: grid; grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid var(--border);
+  }
+  .pnl-3 .table-row:last-child { border-bottom: none; }
+  .pnl-3 .table-cell {
+    padding: 24px 28px; font-size: 26px; line-height: 1.4;
+  }
+  .pnl-3 .table-row.header .table-cell {
+    background: var(--bg-card-2);
+    font-family: "JetBrains Mono", monospace;
+    font-size: 18px; color: var(--mute);
+    letter-spacing: 0.1em; text-transform: uppercase;
+    font-weight: 600;
+  }
+  .pnl-3 .table-cell.before { color: var(--red); border-right: 1px solid var(--border); }
+  .pnl-3 .table-cell.after { color: var(--c02); }
+  .pnl-3 .table-cell strong { color: inherit; font-weight: 700; }
+  .pnl-3 .conclusion {
+    font-size: 38px; line-height: 1.3;
+    color: var(--bone); text-align: center;
+    margin-top: 14px; font-weight: 700;
+  }
+  .pnl-3 .conclusion .acc { color: var(--c01); }
+
+  /* ==== Panel 4: Sistem @ ==== */
+  .pnl-4 .at-hero {
+    flex: 1; display: grid;
+    grid-template-rows: auto auto 1fr auto;
+    gap: 30px;
+  }
+  .pnl-4 .at-symbol {
+    font-family: "Archivo Black", sans-serif;
+    font-size: 280px; line-height: 0.85;
+    color: var(--c01); text-align: center;
+    text-shadow: 0 0 80px rgba(34, 211, 238, 0.3);
+  }
+  .pnl-4 h2 {
+    font-family: "Archivo Black", sans-serif;
+    font-size: 72px; line-height: 0.95;
+    color: var(--bone); text-align: center;
+    letter-spacing: -0.02em;
+  }
+  .pnl-4 .examples { display: grid; gap: 14px; }
+  .pnl-4 .ex-row {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px 28px;
+    display: grid; grid-template-columns: 200px 1fr;
+    gap: 20px; align-items: center;
+  }
+  .pnl-4 .ex-tag {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 28px; font-weight: 700; color: var(--c01);
+  }
+  .pnl-4 .ex-meaning { font-size: 24px; color: var(--bone-2); line-height: 1.3; }
+  .pnl-4 .conclusion {
+    font-size: 32px; line-height: 1.3;
+    text-align: center; color: var(--bone);
+    background: var(--bg-card-2);
+    border: 1px solid var(--c01);
+    border-radius: 14px; padding: 24px;
+    font-weight: 700;
+  }
+  .pnl-4 .conclusion .acc { color: var(--c01); }
+
+  /* ==== Panel 5 & 6: Mode cards ==== */
+  .pnl-5 h2, .pnl-6 h2, .pnl-7 h2, .pnl-8 h2, .pnl-9 h2, .pnl-10 h2, .pnl-11 h2 {
+    font-family: "Archivo Black", sans-serif;
+    font-size: 84px; line-height: 0.93;
+    color: var(--bone); letter-spacing: -0.025em;
+    margin-bottom: 10px;
+  }
+  .pnl-5 h2 .slash, .pnl-6 h2 .slash {
+    font-family: "JetBrains Mono", monospace; color: var(--c01);
+  }
+  .pnl-5 .sub, .pnl-6 .sub, .pnl-7 .sub, .pnl-8 .sub, .pnl-9 .sub, .pnl-10 .sub, .pnl-11 .sub {
+    font-size: 26px; color: var(--mute);
+    margin-bottom: 28px; line-height: 1.4;
+  }
+  .pnl-5 .modes-grid, .pnl-6 .modes-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 14px; flex: 1;
+  }
+  .mode-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px; padding: 22px 24px;
+    display: flex; flex-direction: column;
+    gap: 8px; position: relative;
+  }
+  .mode-card.default {
+    border: 2px solid var(--c01);
+    background: linear-gradient(135deg, rgba(34, 211, 238, 0.08), transparent 60%), var(--bg-card);
+  }
+  .mode-card .mode-badge {
+    position: absolute; top: 14px; right: 14px;
+    background: var(--c01); color: #000;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px; font-weight: 700;
+    padding: 3px 8px; border-radius: 4px;
+    letter-spacing: 0.1em;
+  }
+  .mode-flag {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 22px; font-weight: 700; color: var(--c01);
+  }
+  .mode-card.warm .mode-flag { color: var(--warm); }
+  .mode-card.purple .mode-flag { color: var(--purple); }
+  .mode-card.dim .mode-flag { color: var(--mute); }
+  .mode-card .mode-title {
+    font-family: "Archivo Black", sans-serif;
+    font-size: 26px; color: var(--bone); line-height: 1.0;
+  }
+  .mode-card .mode-desc {
+    font-size: 17px; color: var(--bone-2);
+    line-height: 1.4; flex: 1;
+  }
+  .mode-card .mode-tag {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 14px; color: var(--dim);
+    text-transform: uppercase; letter-spacing: 0.1em;
+  }
+
+  .pnl-5 .footnote, .pnl-6 .footnote {
+    margin-top: 18px;
+    background: var(--bg-card-2);
+    border-left: 4px solid var(--warm);
+    padding: 18px 24px; border-radius: 10px;
+    font-size: 20px; color: var(--bone-2);
+    line-height: 1.4;
+  }
+  .pnl-5 .footnote strong, .pnl-6 .footnote strong { color: var(--warm); }
+  .pnl-6 .footnote code {
+    font-family: "JetBrains Mono", monospace;
+    background: rgba(245, 158, 11, 0.12);
+    padding: 2px 6px; border-radius: 4px;
+    color: var(--warm); font-size: 18px;
+  }
+
+  /* ==== Panel 7: Bulk commands ==== */
+  .pnl-7 .bulk-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; flex: 1;
+  }
+  .bulk-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px; padding: 26px 26px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .bulk-card .bulk-cmd {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 22px; font-weight: 700; color: var(--c02);
+  }
+  .bulk-card .bulk-title {
+    font-family: "Archivo Black", sans-serif;
+    font-size: 26px; color: var(--bone); line-height: 1.0;
+  }
+  .bulk-card .bulk-desc { font-size: 18px; color: var(--bone-2); line-height: 1.4; flex: 1; }
+  .bulk-card .bulk-time {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 14px; color: var(--c01);
+    text-transform: uppercase; letter-spacing: 0.1em;
+  }
+
+  /* ==== Panel 8 & 9: Workflow ladders ==== */
+  .pnl-8 .ladder, .pnl-9 .ladder {
+    display: flex; flex-direction: column;
+    gap: 10px; flex: 1;
+  }
+  .step {
+    display: grid; grid-template-columns: 70px 1fr auto;
+    gap: 20px; align-items: center;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px 24px;
+  }
+  .step .step-num {
+    font-family: "Archivo Black", sans-serif;
+    font-size: 48px; color: var(--c01);
+    line-height: 0.85; text-align: center;
+  }
+  .step .step-body { display: flex; flex-direction: column; gap: 3px; }
+  .step .step-cmd {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 19px; color: var(--c02); font-weight: 700;
+  }
+  .step .step-desc { font-size: 19px; color: var(--bone-2); line-height: 1.3; }
+  .step .step-time {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 14px; color: var(--mute);
+    text-transform: uppercase; letter-spacing: 0.1em;
+    text-align: right; padding-left: 12px;
+  }
+  .pnl-8 .total {
+    background: linear-gradient(135deg, var(--c02), var(--c01));
+    color: #000;
+    font-family: "Archivo Black", sans-serif;
+    font-size: 32px; text-align: center;
+    padding: 22px; border-radius: 12px;
+    margin-top: 12px; letter-spacing: -0.01em;
+  }
+  .pnl-8 .red-button-tag {
+    background: var(--red); color: #000;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 16px; font-weight: 700;
+    padding: 5px 12px; border-radius: 5px;
+    display: inline-block; margin-bottom: 12px;
+    letter-spacing: 0.1em;
+  }
+
+  /* ==== Panel 10: Tips ==== */
+  .pnl-10 .tips-grid {
+    display: grid; grid-template-rows: 1fr 1fr;
+    gap: 18px; flex: 1;
+  }
+  .tip-block {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px; padding: 26px 28px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .tip-block.do { border-left: 6px solid var(--c02); }
+  .tip-block.dont { border-left: 6px solid var(--red); }
+  .tip-block .tip-head {
+    font-family: "Archivo Black", sans-serif;
+    font-size: 32px; color: var(--bone); line-height: 1.0;
+  }
+  .tip-block.do .tip-head .icon { color: var(--c02); }
+  .tip-block.dont .tip-head .icon { color: var(--red); }
+  .tip-block ul {
+    list-style: none; display: flex;
+    flex-direction: column; gap: 8px;
+  }
+  .tip-block li {
+    font-size: 20px; color: var(--bone-2); line-height: 1.4;
+    padding-left: 28px; position: relative;
+  }
+  .tip-block.do li::before { content: "✓"; position: absolute; left: 0; color: var(--c02); font-weight: 700; }
+  .tip-block.dont li::before { content: "✗"; position: absolute; left: 0; color: var(--red); font-weight: 700; }
+  .pnl-10 .final-stamp {
+    margin-top: 12px; text-align: center;
+    font-family: "Archivo Black", sans-serif;
+    font-size: 56px; color: var(--c01);
+    line-height: 1.0; letter-spacing: -0.02em;
+  }
+  .pnl-10 .final-sub {
+    text-align: center; font-size: 22px;
+    color: var(--mute); margin-top: 8px;
+  }
+
+  /* ==== Panel 11: Provider Routing ==== */
+  .pnl-11 .routing-table {
+    flex: 1; display: flex; flex-direction: column;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px; overflow: hidden;
+    margin-bottom: 18px;
+  }
+  .pnl-11 .route-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    padding: 24px 32px;
+    border-bottom: 1px solid var(--border);
+    flex: 1;
+  }
+  .pnl-11 .route-row:last-child { border-bottom: none; }
+  .pnl-11 .route-row.header {
+    flex: 0; padding: 16px 32px;
+    background: var(--bg-card-2);
+    font-family: "JetBrains Mono", monospace;
+    font-size: 16px; color: var(--mute);
+    letter-spacing: 0.12em; text-transform: uppercase;
+    font-weight: 600;
+  }
+  .pnl-11 .route-asset {
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .pnl-11 .route-asset .asset-name {
+    font-family: "Archivo Black", sans-serif;
+    font-size: 26px; color: var(--bone); line-height: 1.0;
+  }
+  .pnl-11 .route-asset .asset-sub {
+    font-size: 16px; color: var(--mute);
+  }
+  .pnl-11 .route-provider {
+    display: flex; align-items: center; gap: 14px;
+  }
+  .pnl-11 .provider-chip {
+    padding: 8px 14px; border-radius: 8px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 18px; font-weight: 700;
+    border: 1px solid currentColor;
+  }
+  .pnl-11 .provider-chip.higgs { color: var(--c01); background: rgba(34, 211, 238, 0.1); }
+  .pnl-11 .provider-chip.reve { color: var(--purple); background: rgba(167, 139, 250, 0.1); }
+  .pnl-11 .provider-chip.byteplus { color: var(--c02); background: rgba(52, 211, 153, 0.1); }
+  .pnl-11 .provider-model {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 17px; color: var(--bone-2);
+  }
+  .pnl-11 .why-card {
+    background: var(--bg-card-2);
+    border-left: 4px solid var(--c01);
+    padding: 18px 24px; border-radius: 10px;
+  }
+  .pnl-11 .why-card h4 {
+    font-family: "Archivo Black", sans-serif;
+    font-size: 22px; color: var(--c01);
+    margin-bottom: 8px; letter-spacing: 0.02em;
+  }
+  .pnl-11 .why-card p {
+    font-size: 18px; color: var(--bone-2); line-height: 1.5;
+  }
+  .pnl-11 .why-card strong { color: var(--bone); }
+</style>
+</head>
+<body>
+
+<div class="ctrl-bar">
+  <h1>📱 Panduan Tim · 9:16 Panels</h1>
+  <span style="font-size:12px;color:var(--mute);">Klik tombol di atas tiap panel untuk export PNG 1080×1920</span>
+  <span class="spacer"></span>
+  <span class="lang-switch">
+    <a href="panduan_tim_panels.html" class="active">🇮🇩 ID</a>
+    <a href="panduan_tim_panels_EN.html">🇬🇧 EN</a>
+  </span>
+  <button class="ctrl-btn primary" onclick="exportAll()">⬇ Download Semua (11 PNG)</button>
+</div>
+
+<div class="panels-wrap">
+
+<!-- ============= PANEL 1: COVER ============= -->
+<div class="panel pnl-1" id="panel-1">
+  <button class="panel-export-btn" onclick="exportPanel(1)">⬇ Panel 1 PNG</button>
+  <div class="glow"></div>
+  <div class="pnl-frame">
+    <div class="pnl-header">
+      <span class="pnl-num">01 / 11</span>
+      <span class="pnl-brand">DEAR<span class="dot">.</span>AI</span>
+    </div>
+    <div class="hero-stack">
+      <span class="eyebrow">PANDUAN TIM PRODUKSI</span>
+      <h1 class="title">CLAUDE<br/>CODE<br/><span class="accent">SLASH</span><br/>COMMANDS</h1>
+      <p class="subtitle">Cara cepat pakai / command untuk produksi episode microdrama. Tanpa coding. Bahasa Indonesia / English bebas.</p>
+    </div>
+  </div>
+  <div class="pnl-footer">
+    <span>v1.1 · 2026-05-09</span>
+    <div class="pnl-dots" data-current="1"></div>
+  </div>
+</div>
+
+<!-- ============= PANEL 2: APA ITU /COMMAND ============= -->
+<div class="panel pnl-2" id="panel-2">
+  <button class="panel-export-btn" onclick="exportPanel(2)">⬇ Panel 2 PNG</button>
+  <div class="pnl-frame">
+    <div class="pnl-header">
+      <span class="pnl-num">02 / 11</span>
+      <span class="pnl-brand">APA ITU <span class="dot">/</span>?</span>
+    </div>
+    <div class="big-equation">
+      <h2><span class="slash">/</span>command<br/>= TOMBOL<br/>SHORTCUT.</h2>
+      <div class="equation">
+        <div class="eq-side">
+          <span class="eq-label">KAMU KETIK</span>
+          <span class="eq-content input">/vidgen<br/>set 1 V1</span>
+        </div>
+        <div class="eq-arrow">→</div>
+        <div class="eq-side">
+          <span class="eq-label">CLAUDE LAKUKAN</span>
+          <ul>
+            <li>Buka sheet</li>
+            <li>Baca prompt</li>
+            <li>Resolve @asset</li>
+            <li>Susun 600 kata</li>
+            <li>Submit BytePlus</li>
+            <li>Polling 30s</li>
+            <li>Download MP4</li>
+            <li>Upload Drive</li>
+            <li>Tulis URL</li>
+            <li>Update log</li>
+          </ul>
+        </div>
+      </div>
+      <p class="punchline">Kalian ketik <span class="acc">4 kata</span>.<br/>Claude lakuin <span class="acc">10 langkah</span>.</p>
+    </div>
+  </div>
+  <div class="pnl-footer">
+    <span></span>
+    <div class="pnl-dots" data-current="2"></div>
+  </div>
+</div>
+
+<!-- ============= PANEL 3: SEBELUM-SESUDAH ============= -->
+<div class="panel pnl-3" id="panel-3">
+  <button class="panel-export-btn" onclick="exportPanel(3)">⬇ Panel 3 PNG</button>
+  <div class="pnl-frame">
+    <div class="pnl-header">
+      <span class="pnl-num">03 / 11</span>
+      <span class="pnl-brand">KENAPA?</span>
+    </div>
+    <div class="compare-grid">
+      <h2>SEBELUM <span class="acc">vs</span><br/>SESUDAH /</h2>
+      <div class="table">
+        <div class="table-row header">
+          <div class="table-cell">❌ TANPA /</div>
+          <div class="table-cell">✓ DENGAN /</div>
+        </div>
+        <div class="table-row">
+          <div class="table-cell before">Copy-paste prompt 600 kata tiap kali</div>
+          <div class="table-cell after"><strong>Ketik 4 kata.</strong> Selesai.</div>
+        </div>
+        <div class="table-row">
+          <div class="table-cell before">Salah ketik kode BytePlus → moderation reject</div>
+          <div class="table-cell after"><strong>@tara</strong> resolve otomatis</div>
+        </div>
+        <div class="table-row">
+          <div class="table-cell before">Tiap orang di tim hasilnya beda</div>
+          <div class="table-cell after"><strong>Konsisten.</strong> Alur sama untuk semua</div>
+        </div>
+        <div class="table-row">
+          <div class="table-cell before">Lupa attach storyboard ref</div>
+          <div class="table-cell after"><strong>Auto-attach.</strong> Gak bisa lupa</div>
+        </div>
+      </div>
+      <p class="conclusion"><span class="acc">Konsistensi</span> + <span class="acc">Kecepatan</span><br/>= 10× lebih cepat dari manual</p>
+    </div>
+  </div>
+  <div class="pnl-footer">
+    <span></span>
+    <div class="pnl-dots" data-current="3"></div>
+  </div>
+</div>
+
+<!-- ============= PANEL 4: SISTEM @ ============= -->
+<div class="panel pnl-4" id="panel-4">
+  <button class="panel-export-btn" onclick="exportPanel(4)">⬇ Panel 4 PNG</button>
+  <div class="pnl-frame">
+    <div class="pnl-header">
+      <span class="pnl-num">04 / 11</span>
+      <span class="pnl-brand">SISTEM @</span>
+    </div>
+    <div class="at-hero">
+      <div class="at-symbol">@</div>
+      <h2>SATU TAG.<br/>SEMUA ASSETS.</h2>
+      <div class="examples">
+        <div class="ex-row">
+          <span class="ex-tag">@tara</span>
+          <span class="ex-meaning">→ TARA ANJANI · gambar + video face + voice clip</span>
+        </div>
+        <div class="ex-row">
+          <span class="ex-tag">@kitchen</span>
+          <span class="ex-meaning">→ INT. Hanbyeol Bistro Kitchen (lokasi)</span>
+        </div>
+        <div class="ex-row">
+          <span class="ex-tag">@bibimbap</span>
+          <span class="ex-meaning">→ Bibimbap bowl (prop)</span>
+        </div>
+        <div class="ex-row">
+          <span class="ex-tag">@minjun</span>
+          <span class="ex-meaning">→ PARK MIN-JUN · gambar + video + voice</span>
+        </div>
+      </div>
+      <div class="conclusion">
+        Update Asset Library <span class="acc">SEKALI</span>.<br/>Dipakai di mana-mana.<br/>Gak hafal kode <span class="acc">sx786</span> atau <span class="acc">ckwpd</span>.
+      </div>
+    </div>
+  </div>
+  <div class="pnl-footer">
+    <span></span>
+    <div class="pnl-dots" data-current="4"></div>
+  </div>
+</div>
+
+<!-- ============= PANEL 5: /imggen 4 MODES ============= -->
+<div class="panel pnl-5" id="panel-5">
+  <button class="panel-export-btn" onclick="exportPanel(5)">⬇ Panel 5 PNG</button>
+  <div class="pnl-frame">
+    <div class="pnl-header">
+      <span class="pnl-num">05 / 11</span>
+      <span class="pnl-brand">STORYBOARD</span>
+    </div>
+    <h2><span class="slash">/</span>imggen<br/>4 MODE</h2>
+    <p class="sub">Default = stick figure tanpa wajah. Untuk coverage validation, BUKAN deliverable.</p>
+    <div class="modes-grid">
+      <div class="mode-card default">
+        <span class="mode-badge">DEFAULT</span>
+        <span class="mode-flag">--stick</span>
+        <span class="mode-title">STICK FIGURES</span>
+        <span class="mode-desc">Featureless. No face. No wardrobe. Black pen on white. Untuk validasi blocking + camera + staging.</span>
+        <span class="mode-tag">Sajangnim aesthetic</span>
+      </div>
+      <div class="mode-card warm">
+        <span class="mode-flag">--pencil</span>
+        <span class="mode-title">PENCIL SKETCH</span>
+        <span class="mode-desc">Director-pad sketch. Features readable tapi loose. Untuk review yang butuh fidelity sedikit lebih tinggi.</span>
+        <span class="mode-tag">Mid-fidelity</span>
+      </div>
+      <div class="mode-card purple">
+        <span class="mode-flag">--photoreal</span>
+        <span class="mode-title">PHOTOREAL</span>
+        <span class="mode-desc">Full photoreal stills (Arri Alexa 35, Kodak 250D). MAHAL. Pakai HANYA untuk hero deliverable.</span>
+        <span class="mode-tag">Hero shots only</span>
+      </div>
+      <div class="mode-card dim">
+        <span class="mode-flag">--sheet</span>
+        <span class="mode-title">SHEET LEGACY</span>
+        <span class="mode-desc">Pakai apapun yang ada di B1:B4 sheet globals. Cuma kalau tahu persis kenapa.</span>
+        <span class="mode-tag">Advanced only</span>
+      </div>
+    </div>
+    <div class="footnote">
+      <strong>⚠ Aturan emas:</strong> Stakeholder masih debat likeness di stage storyboard? Bukan ship photoreal — lock cast bible dulu sebelum storyboards.
+    </div>
+  </div>
+  <div class="pnl-footer">
+    <span></span>
+    <div class="pnl-dots" data-current="5"></div>
+  </div>
+</div>
+
+<!-- ============= PANEL 6: /vidgen 4 MODES ============= -->
+<div class="panel pnl-6" id="panel-6">
+  <button class="panel-export-btn" onclick="exportPanel(6)">⬇ Panel 6 PNG</button>
+  <div class="pnl-frame">
+    <div class="pnl-header">
+      <span class="pnl-num">06 / 11</span>
+      <span class="pnl-brand">VIDEO</span>
+    </div>
+    <h2><span class="slash">/</span>vidgen<br/>4 MODE</h2>
+    <p class="sub">Default = 480p, Seedance 2.0 via BytePlus. Pakai @ untuk override auto-detect.</p>
+    <div class="modes-grid">
+      <div class="mode-card default">
+        <span class="mode-badge">PALING SERING</span>
+        <span class="mode-flag">LOCKED</span>
+        <span class="mode-title">SET 1 V1</span>
+        <span class="mode-desc">/vidgen set 1 V1<br/><br/>Pakai shotlist apa adanya. Auto-detect chars + locs + props dari body.</span>
+        <span class="mode-tag">Production default</span>
+      </div>
+      <div class="mode-card warm">
+        <span class="mode-flag">HYBRID</span>
+        <span class="mode-title">@OVERRIDE</span>
+        <span class="mode-desc">/vidgen set 1 V1 @tara @galih @alley<br/><br/>Body shotlist tapi @-mention WIN. Auto-detect di-skip.</span>
+        <span class="mode-tag">User explicit</span>
+      </div>
+      <div class="mode-card purple">
+        <span class="mode-flag">FREEFORM</span>
+        <span class="mode-title">DARI NOL</span>
+        <span class="mode-desc">/vidgen @tara plating bibimbap di @kitchen, 480p 8s<br/><br/>Body + refs bebas. Untuk test scene baru.</span>
+        <span class="mode-tag">Quick experiment</span>
+      </div>
+      <div class="mode-card dim">
+        <span class="mode-flag">RAW</span>
+        <span class="mode-title">PASTE-EDIT</span>
+        <span class="mode-desc">Click "copy full prompt" di gallery → paste di Claude → edit bebas → "fire as-is"<br/><br/>Maximum control.</span>
+        <span class="mode-tag">Power user</span>
+      </div>
+    </div>
+    <div class="footnote">
+      <strong>💡 Flag override:</strong> <code>--mentions @tara @minjun</code> · <code>--resolution 720p|1080p</code> · <code>--duration 4-15</code> · <code>--aspect 16:9</code> · <code>--confirm</code>. Local copy auto-saved ke <code>~/Desktop/&lt;Project&gt; Generated Videos/</code>
+    </div>
+  </div>
+  <div class="pnl-footer">
+    <span></span>
+    <div class="pnl-dots" data-current="6"></div>
+  </div>
+</div>
+
+<!-- ============= PANEL 7: BULK COMMANDS ============= -->
+<div class="panel pnl-7" id="panel-7">
+  <button class="panel-export-btn" onclick="exportPanel(7)">⬇ Panel 7 PNG</button>
+  <div class="pnl-frame">
+    <div class="pnl-header">
+      <span class="pnl-num">07 / 11</span>
+      <span class="pnl-brand">BULK MODE</span>
+    </div>
+    <h2>BULK<br/>COMMANDS</h2>
+    <p class="sub">Sekali fire, semua set / semua bible jadi. Idempotent — re-run skip yang udah Done.</p>
+    <div class="bulk-grid">
+      <div class="bulk-card">
+        <span class="bulk-cmd">/imggen-all-storyboards</span>
+        <span class="bulk-title">SEMUA STORYBOARD</span>
+        <span class="bulk-desc">Fire stick-figure storyboards untuk semua Pending sets. ~25 menit untuk 14-set episode.</span>
+        <span class="bulk-time">~25 min · $1.10</span>
+      </div>
+      <div class="bulk-card">
+        <span class="bulk-cmd">/imggen-all-assets</span>
+        <span class="bulk-title">SEMUA BIBLE</span>
+        <span class="bulk-desc">Generate ref images untuk CHARACTERS + LOCATIONS + PROPS + COSTUME + EFFECTS. Routing per bible.</span>
+        <span class="bulk-time">~30 min · varies</span>
+      </div>
+      <div class="bulk-card">
+        <span class="bulk-cmd">/byteplus-upload-all</span>
+        <span class="bulk-title">UPLOAD KE BYTEPLUS</span>
+        <span class="bulk-desc">Upload semua bible refs ke BytePlus. Auto-skip row yang udah Uploaded.</span>
+        <span class="bulk-time">~10 min</span>
+      </div>
+      <div class="bulk-card">
+        <span class="bulk-cmd">/vidgen-all-sets</span>
+        <span class="bulk-title">SEMUA VIDEO</span>
+        <span class="bulk-desc">Loop SP Pending rows, fire 1 video per set sequentially. Resume-friendly.</span>
+        <span class="bulk-time">~45 min · $17 per ep</span>
+      </div>
+    </div>
+  </div>
+  <div class="pnl-footer">
+    <span></span>
+    <div class="pnl-dots" data-current="7"></div>
+  </div>
+</div>
+
+<!-- ============= PANEL 8: EPISODE PIPELINE ============= -->
+<div class="panel pnl-8" id="panel-8">
+  <button class="panel-export-btn" onclick="exportPanel(8)">⬇ Panel 8 PNG</button>
+  <div class="pnl-frame">
+    <div class="pnl-header">
+      <span class="pnl-num">08 / 11</span>
+      <span class="pnl-brand">PIPELINE</span>
+    </div>
+    <span class="red-button-tag">🔴 TOMBOL MERAH BESAR</span>
+    <h2><span class="slash">/</span>episode-<br/>pipeline</h2>
+    <p class="sub">Script → Episode jadi. Sekali fire, ~2 jam. Otomatis semua step.</p>
+    <div class="ladder">
+      <div class="step">
+        <span class="step-num">1</span>
+        <div class="step-body">
+          <span class="step-cmd">/shotlist-gen</span>
+          <span class="step-desc">Atomize script jadi shotlist + 5 bibles (text only)</span>
+        </div>
+        <span class="step-time">~5 min</span>
+      </div>
+      <div class="step">
+        <span class="step-num">2</span>
+        <div class="step-body">
+          <span class="step-cmd">/imggen-all-assets</span>
+          <span class="step-desc">Generate ref images semua bible</span>
+        </div>
+        <span class="step-time">~30 min</span>
+      </div>
+      <div class="step">
+        <span class="step-num">3</span>
+        <div class="step-body">
+          <span class="step-cmd">/byteplus-upload-all</span>
+          <span class="step-desc">Upload bible refs ke BytePlus</span>
+        </div>
+        <span class="step-time">~10 min</span>
+      </div>
+      <div class="step">
+        <span class="step-num">4</span>
+        <div class="step-body">
+          <span class="step-cmd">/imggen-all-storyboards</span>
+          <span class="step-desc">Stick-figure storyboards semua set</span>
+        </div>
+        <span class="step-time">~25 min</span>
+      </div>
+      <div class="step">
+        <span class="step-num">5</span>
+        <div class="step-body">
+          <span class="step-cmd">/vidgen-all-sets</span>
+          <span class="step-desc">Seedance 2 video per set, 480p</span>
+        </div>
+        <span class="step-time">~45 min</span>
+      </div>
+      <div class="step">
+        <span class="step-num">6</span>
+        <div class="step-body">
+          <span class="step-cmd">/episode-assemble</span>
+          <span class="step-desc">Stitch jadi MP4 final via Remotion</span>
+        </div>
+        <span class="step-time">~5 min</span>
+      </div>
+    </div>
+    <div class="total">⚡ TOTAL ~2 JAM · 1 EPISODE FULL JADI</div>
+  </div>
+  <div class="pnl-footer">
+    <span></span>
+    <div class="pnl-dots" data-current="8"></div>
+  </div>
+</div>
+
+<!-- ============= PANEL 9: WORKFLOW MANUAL ============= -->
+<div class="panel pnl-9" id="panel-9">
+  <button class="panel-export-btn" onclick="exportPanel(9)">⬇ Panel 9 PNG</button>
+  <div class="pnl-frame">
+    <div class="pnl-header">
+      <span class="pnl-num">09 / 11</span>
+      <span class="pnl-brand">MANUAL</span>
+    </div>
+    <h2>STEP-BY-STEP<br/>WORKFLOW</h2>
+    <p class="sub">Pakai ini untuk hero episode. Review tiap step, kontrol penuh, ~4-5 jam total termasuk approval.</p>
+    <div class="ladder">
+      <div class="step">
+        <span class="step-num">1</span>
+        <div class="step-body">
+          <span class="step-cmd">/shotlist-gen --script ...</span>
+          <span class="step-desc">→ Producer review shotlist + bibles, edit kalau perlu</span>
+        </div>
+        <span class="step-time">~10 min</span>
+      </div>
+      <div class="step">
+        <span class="step-num">2</span>
+        <div class="step-body">
+          <span class="step-cmd">/imggen-all-assets</span>
+          <span class="step-desc">→ Art director approve cast + lokasi</span>
+        </div>
+        <span class="step-time">~30 min</span>
+      </div>
+      <div class="step">
+        <span class="step-num">3</span>
+        <div class="step-body">
+          <span class="step-cmd">/byteplus-upload-all</span>
+          <span class="step-desc">Upload approved refs</span>
+        </div>
+        <span class="step-time">~10 min</span>
+      </div>
+      <div class="step">
+        <span class="step-num">4</span>
+        <div class="step-body">
+          <span class="step-cmd">/imggen-all-storyboards</span>
+          <span class="step-desc">→ Director pilih iter 1 atau iter 2 per set</span>
+        </div>
+        <span class="step-time">~25 min</span>
+      </div>
+      <div class="step">
+        <span class="step-num">5</span>
+        <div class="step-body">
+          <span class="step-cmd">/vidgen-all-sets</span>
+          <span class="step-desc">→ Tim review videos, fire ulang yang gagal</span>
+        </div>
+        <span class="step-time">~45 min</span>
+      </div>
+      <div class="step">
+        <span class="step-num">6</span>
+        <div class="step-body">
+          <span class="step-cmd">/episode-assemble</span>
+          <span class="step-desc">Final cut via Remotion</span>
+        </div>
+        <span class="step-time">~5 min</span>
+      </div>
+    </div>
+  </div>
+  <div class="pnl-footer">
+    <span></span>
+    <div class="pnl-dots" data-current="9"></div>
+  </div>
+</div>
+
+<!-- ============= PANEL 10: TIPS EMAS ============= -->
+<div class="panel pnl-10" id="panel-10">
+  <button class="panel-export-btn" onclick="exportPanel(10)">⬇ Panel 10 PNG</button>
+  <div class="pnl-frame">
+    <div class="pnl-header">
+      <span class="pnl-num">10 / 11</span>
+      <span class="pnl-brand">TIPS EMAS</span>
+    </div>
+    <h2>ATURAN<br/>EMAS.</h2>
+    <p class="sub">Hapal 8 ini, tim kalian gak bakal salah pakai / command.</p>
+    <div class="tips-grid">
+      <div class="tip-block do">
+        <span class="tip-head"><span class="icon">✓</span> SEBAIKNYA</span>
+        <ul>
+          <li>Mulai dari Asset Library — pastikan @-mention semua resolve dulu</li>
+          <li>Pakai 480p default untuk testing — 1080p mahal, simpan untuk hero</li>
+          <li>Test 1 set dulu sebelum fire-all — /vidgen set 1 V1 sebelum /vidgen-all-sets</li>
+          <li>Update Asset Library, jangan hardcode kode di prompt</li>
+        </ul>
+      </div>
+      <div class="tip-block dont">
+        <span class="tip-head"><span class="icon">✗</span> JANGAN</span>
+        <ul>
+          <li>Delete BytePlus asset tanpa update Asset Library — vidgen error</li>
+          <li>Fire 1080p tanpa --confirm — mahal 2.6×, harus preview prompt dulu</li>
+          <li>Re-fire job gagal tanpa cek alasan — biasanya ada alasan jelas</li>
+          <li>Share kunci .env di chat / Discord / Slack — itu privacy leak</li>
+        </ul>
+      </div>
+    </div>
+    <div class="final-stamp">KALAU RAGU,<br/>TANYA.</div>
+    <div class="final-sub">#dev-help · #production · DearAI Discord</div>
+  </div>
+  <div class="pnl-footer">
+    <span></span>
+    <div class="pnl-dots" data-current="10"></div>
+  </div>
+</div>
+
+<!-- ============= PANEL 11: PROVIDER ROUTING ============= -->
+<div class="panel pnl-11" id="panel-11">
+  <button class="panel-export-btn" onclick="exportPanel(11)">⬇ Panel 11 PNG</button>
+  <div class="pnl-frame">
+    <div class="pnl-header">
+      <span class="pnl-num">11 / 11</span>
+      <span class="pnl-brand">ROUTING</span>
+    </div>
+    <h2>PROVIDER<br/>ROUTING.</h2>
+    <p class="sub">Tiap asset type ke provider beda — locked di skripnya, kalian gak perlu pilih manual.</p>
+    <div class="routing-table">
+      <div class="route-row header">
+        <div>ASSET TYPE</div>
+        <div>PROVIDER · MODEL</div>
+      </div>
+      <div class="route-row">
+        <div class="route-asset">
+          <span class="asset-name">STORYBOARD</span>
+          <span class="asset-sub">Stick figure / pencil / photoreal panels</span>
+        </div>
+        <div class="route-provider">
+          <span class="provider-chip higgs">HIGGSFIELD</span>
+          <span class="provider-model">gpt_image_2</span>
+        </div>
+      </div>
+      <div class="route-row">
+        <div class="route-asset">
+          <span class="asset-name">CHARACTER REFS</span>
+          <span class="asset-sub">Studio-clean cast bible portraits</span>
+        </div>
+        <div class="route-provider">
+          <span class="provider-chip higgs">HIGGSFIELD</span>
+          <span class="provider-model">gpt_image_2</span>
+        </div>
+      </div>
+      <div class="route-row">
+        <div class="route-asset">
+          <span class="asset-name">COSTUME · PROPS · EFFECTS</span>
+          <span class="asset-sub">Per-row bible reference shots</span>
+        </div>
+        <div class="route-provider">
+          <span class="provider-chip higgs">HIGGSFIELD</span>
+          <span class="provider-model">nano_banana_2</span>
+        </div>
+      </div>
+      <div class="route-row">
+        <div class="route-asset">
+          <span class="asset-name">LOCATION REFS</span>
+          <span class="asset-sub">Wide environment shots, geography anchors</span>
+        </div>
+        <div class="route-provider">
+          <span class="provider-chip reve">REVE</span>
+          <span class="provider-model">text-to-image (direct)</span>
+        </div>
+      </div>
+      <div class="route-row">
+        <div class="route-asset">
+          <span class="asset-name">VIDGEN LIVE-ACTION</span>
+          <span class="asset-sub">Final video cuts, 9:16 / 16:9</span>
+        </div>
+        <div class="route-provider">
+          <span class="provider-chip byteplus">BYTEPLUS</span>
+          <span class="provider-model">Seedance 2.0</span>
+        </div>
+      </div>
+    </div>
+    <div class="why-card">
+      <h4>KENAPA SPLIT BEGINI?</h4>
+      <p><strong>Higgsfield</strong> = subscription paid, $0 marginal — pakai default semua karakter/prop/effect/storyboard. <strong>Reve</strong> = lebih bagus untuk wide environment shot, jadi lokasi tetap di sana. <strong>BytePlus</strong> = Seedance 2 punya HK wallet $1M, video gen hanya di sini.</p>
+    </div>
+  </div>
+  <div class="pnl-footer">
+    <span></span>
+    <div class="pnl-dots" data-current="11"></div>
+  </div>
+</div>
+
+</div>
+
+<script>
+const TOTAL_PANELS = 11;
+
+function renderDots() {
+  document.querySelectorAll('.pnl-dots[data-current]').forEach(el => {
+    const cur = parseInt(el.getAttribute('data-current'), 10);
+    let html = '';
+    for (let i = 1; i <= TOTAL_PANELS; i++) {
+      html += `<span class="${i === cur ? 'active' : ''}"></span>`;
+    }
+    el.innerHTML = html;
+  });
+}
+renderDots();
+
+async function exportPanel(n) {
+  const panel = document.getElementById('panel-' + n);
+  const btn = panel.querySelector('.panel-export-btn');
+  const origText = btn.textContent;
+  btn.textContent = '⌛ Rendering...';
+
+  const origTransform = panel.style.transform;
+  const origMargin = panel.style.marginBottom;
+  panel.style.transform = 'none';
+  panel.style.marginBottom = '0';
+  btn.style.display = 'none';
+
+  try {
+    const canvas = await html2canvas(panel, {
+      width: 1080,
+      height: 1920,
+      scale: 2,
+      backgroundColor: null,
+      logging: false,
+      useCORS: true,
+    });
+    const link = document.createElement('a');
+    link.download = `panduan-tim-panel-${String(n).padStart(2,'0')}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    btn.textContent = '✓ Downloaded';
+    setTimeout(() => { btn.textContent = origText; }, 1500);
+  } catch (e) {
+    btn.textContent = '✗ Error';
+    console.error(e);
+    setTimeout(() => { btn.textContent = origText; }, 2000);
+  } finally {
+    panel.style.transform = origTransform;
+    panel.style.marginBottom = origMargin;
+    btn.style.display = '';
+  }
+}
+
+async function exportAll() {
+  for (let i = 1; i <= TOTAL_PANELS; i++) {
+    await exportPanel(i);
+    await new Promise(r => setTimeout(r, 500));
+  }
+}
+</script>
+
+</body>
+</html>

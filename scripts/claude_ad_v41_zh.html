@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+<meta charset="UTF-8">
+<title>我差点放弃了自己的生意 — Claude 广告剧本 v4.1</title>
+<style>
+  @page {
+    size: A4;
+    margin: 18mm 22mm 18mm 22mm;
+  }
+  body {
+    font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Source Han Sans SC", sans-serif;
+    color: #1a1a1a;
+    line-height: 1.5;
+    font-size: 10.5pt;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  h1.title {
+    font-size: 22pt;
+    margin: 0 0 4pt 0;
+    text-align: center;
+    font-weight: 700;
+  }
+  h1.title .en {
+    display: block;
+    font-size: 12pt;
+    font-weight: 400;
+    color: #555;
+    margin-top: 4pt;
+  }
+  .meta {
+    text-align: center;
+    font-size: 10pt;
+    color: #555;
+    margin-bottom: 14pt;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 10pt;
+  }
+  .changelog {
+    background: #fffbeb;
+    border-left: 3px solid #f59e0b;
+    padding: 10pt 14pt;
+    margin: 14pt 0;
+    font-size: 9.5pt;
+    color: #555;
+  }
+  .changelog h4 {
+    margin: 0 0 4pt 0;
+    font-size: 10pt;
+    color: #92400e;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+  .changelog ul { margin: 4pt 0 0 16pt; padding: 0; }
+  .changelog li { margin-bottom: 2pt; }
+
+  /* SCREENPLAY ELEMENTS */
+  .slug {
+    text-transform: uppercase;
+    font-weight: 700;
+    font-size: 11pt;
+    margin: 22pt 0 8pt 0;
+    letter-spacing: 0.4px;
+    page-break-after: avoid;
+  }
+  .slug .en {
+    color: #888;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    margin-left: 8pt;
+    font-style: italic;
+    font-size: 10pt;
+  }
+  .action {
+    margin: 8pt 0;
+    text-align: left;
+  }
+  .action .en {
+    color: #777;
+    font-style: italic;
+    font-size: 9.5pt;
+    display: block;
+    margin-top: 1pt;
+  }
+  .dialogue {
+    margin: 10pt auto 10pt auto;
+    width: 78%;
+    page-break-inside: avoid;
+  }
+  .character {
+    text-align: center;
+    text-transform: uppercase;
+    font-weight: 700;
+    font-size: 10.5pt;
+    letter-spacing: 0.6px;
+    margin-bottom: 2pt;
+  }
+  .character .en {
+    color: #888;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    margin-left: 6pt;
+    font-style: italic;
+    font-size: 9.5pt;
+  }
+  .paren {
+    text-align: center;
+    font-style: italic;
+    font-size: 9.5pt;
+    color: #666;
+    margin: 1pt 0 2pt 0;
+  }
+  .paren .en {
+    color: #888;
+    font-style: italic;
+    margin-left: 4pt;
+    font-size: 9pt;
+  }
+  .line {
+    text-align: center;
+    margin: 0;
+    padding: 0 8pt;
+  }
+  .line .en {
+    color: #666;
+    font-style: italic;
+    font-size: 9.5pt;
+    display: block;
+    margin-top: 1pt;
+  }
+  .direction {
+    text-align: center;
+    font-style: italic;
+    color: #888;
+    font-size: 9.5pt;
+    margin: 8pt auto;
+    padding: 4pt 12pt;
+    border-left: 2px solid #ccc;
+    border-right: 2px solid #ccc;
+    width: 70%;
+  }
+  .direction .en {
+    color: #aaa;
+    display: block;
+    margin-top: 1pt;
+  }
+  .beat-header {
+    text-align: center;
+    margin: 22pt 0 14pt 0;
+    padding: 6pt 0;
+    border-top: 1.5px solid #333;
+    border-bottom: 1.5px solid #333;
+    font-size: 11pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    page-break-before: avoid;
+    page-break-after: avoid;
+  }
+  .beat-header .en {
+    display: block;
+    color: #888;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 10pt;
+    font-style: italic;
+    margin-top: 3pt;
+  }
+  .beat-header .time {
+    color: #555;
+    font-weight: 400;
+    font-size: 10pt;
+    margin-left: 10pt;
+  }
+  hr.end {
+    border: none;
+    border-top: 1.5px solid #333;
+    margin: 28pt 0 10pt 0;
+  }
+  .end-title {
+    text-align: center;
+    color: #666;
+    font-size: 10pt;
+    letter-spacing: 2px;
+  }
+</style>
+</head>
+<body>
+
+<h1 class="title">我差点放弃了自己的生意
+  <span class="en">("Why I Almost Quit My Own Business")</span>
+</h1>
+<div class="meta">
+  Claude (Anthropic) 品牌微剧 · v4.1 ·
+  时长 ~2:30 (Runtime) ·
+  格式 9:16 竖屏 (Format) ·
+  背景 新加坡 (Locale)<br>
+  编剧格式 · 中文主体,英文括注 (Screenplay format · Chinese-primary with English in parentheses)
+</div>
+
+<div class="changelog">
+  <h4>v4.1 · 修改记录 (changes from v4.0)</h4>
+  <ul>
+    <li>Beat 1: cut Grace's "Eight months in" + Carmen's "And?" → tightens the cold open</li>
+    <li>Beat 2: cut Carmen's "And CNY's Sunday" + Grace's echo → mum-call thread stays, CNY weight moves to Beat 3 via grandma's birthday Sunday</li>
+    <li>Beat 3 + Beat 4 merged into a single RECKONING beat — phone-buzz + deadline stack now happens at home studio with Daniel (not at the café with Carmen)</li>
+    <li>Beat 4 (was 5): MENTOR ARRIVAL now on MRT train — Grace takes Carmen's call mid-commute</li>
+    <li>Beat 5 (was 6): PRODUCT CONFESSION now includes the parallel-agents pitch — Claude not as one assistant but as many running simultaneously while you sleep / work</li>
+    <li>Beat 5.5 (was 6.5): TEACHING LAYER — Grace hesitates ("I can't prompt. I can't code."), Raymus reframed as <em>"Raymus from Dear.AI"</em></li>
+  </ul>
+</div>
+
+<!-- ========================== BEAT 1 — HOOK ========================== -->
+<div class="beat-header">第 1 拍 · HOOK <span class="time">0:00 – 0:10</span>
+  <span class="en">Beat 1 — Hook</span>
+</div>
+
+<p class="slug">内景 · 咖啡馆 · TIONG BAHRU · 早晨
+  <span class="en">(INT. CAFÉ — TIONG BAHRU — MORNING)</span>
+</p>
+
+<p class="action">GRACE 和 CARMEN。咖啡。一台笔电。一张疲惫的脸。
+  <span class="en">(Grace and Carmen. Coffees. A laptop. A tired face.)</span>
+</p>
+
+<div class="direction">【无音乐】<span class="en">[NO MUSIC]</span></div>
+
+<div class="dialogue">
+  <p class="character">CARMEN</p>
+  <p class="line">你看起来糟透了。
+    <span class="en">(You look like shit.)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">GRACE</p>
+  <p class="line">我是设计师。是销售。自己当会计。自己做营销。自己处理行政。还经常忘了洗衣服。
+    <span class="en">(I'm a designer. I'm a salesperson. My own accountant. My own marketing. My own admin. I forget to do laundry.)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">CARMEN</p>
+  <p class="line">请个人吧。
+    <span class="en">(Hire someone.)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">GRACE</p>
+  <p class="line">哪来的钱。
+    <span class="en">(With what money.)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">CARMEN</p>
+  <p class="line">你七个人都累了。
+    <span class="en">(All seven of you are tired.)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">GRACE</p>
+  <p class="line">我七个人都累了。
+    <span class="en">(All seven of me are tired.)</span>
+  </p>
+</div>
+
+<!-- ========================== BEAT 2 — CONTEXT REVEAL ========================== -->
+<div class="beat-header">第 2 拍 · CONTEXT REVEAL <span class="time">0:10 – 0:16</span>
+  <span class="en">Beat 2 — Context Reveal</span>
+</div>
+
+<p class="slug">同上 · 接续
+  <span class="en">(SAME — CONTINUOUS)</span>
+</p>
+
+<div class="dialogue">
+  <p class="character">CARMEN</p>
+  <p class="line">你妈还在打?
+    <span class="en">(Mum still calling?)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">GRACE</p>
+  <p class="line">每个礼拜。
+    <span class="en">(Every week.)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">CARMEN</p>
+  <p class="line">问什么?
+    <span class="en">(Asking?)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">GRACE</p>
+  <p class="line">什么时候要回去找正经工作。
+    <span class="en">(When I'm going back to a real job.)</span>
+  </p>
+</div>
+
+<!-- ========================== BEAT 3 — WOUND & RECKONING (merged) ========================== -->
+<div class="beat-header">第 3 拍 · WOUND &amp; RECKONING <span class="time">0:16 – 0:48</span>
+  <span class="en">Beat 3 — Wound &amp; Reckoning (merged)</span>
+</div>
+
+<p class="slug">内景 · GRACE 的家庭工作室 · 夜
+  <span class="en">(INT. GRACE'S HOME STUDIO — NIGHT)</span>
+</p>
+
+<p class="action">GRACE 在书桌前,笔电开着,平板压在一叠纸上。DANIEL 站在门口,手里两杯茶。
+  <span class="en">(Grace at her desk, laptop open, iPad on a stack of paper. Daniel in the doorway with two mugs of tea.)</span>
+</p>
+
+<div class="dialogue">
+  <p class="character">DANIEL</p>
+  <p class="line">又晚?
+    <span class="en">(Late one?)</span>
+  </p>
+</div>
+
+<p class="action">手机震动。GRACE 瞥一眼。表情变了。
+  <span class="en">(Phone buzzes. Grace glances. Face changes.)</span>
+</p>
+
+<div class="dialogue">
+  <p class="character">客户(画外音) <span class="en">CLIENT (V.O.)</span></p>
+  <p class="paren">(邮件语调) <span class="en">(email tone)</span></p>
+  <p class="line">"Henley 简报附上。六十页。星期五交。"
+    <span class="en">("Henley brief — sixty pages. Friday EOD.")</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">GRACE</p>
+  <p class="paren">(读出来) <span class="en">(reading)</span></p>
+  <p class="line">星期五。
+    <span class="en">(Friday.)</span>
+  </p>
+</div>
+
+<div class="direction">【音乐】低音钢琴一声进。压住。
+  <span class="en">[MUSIC: low piano note enters. Holds.]</span>
+</div>
+
+<p class="action">DANIEL 把茶放在桌上。坐下。没有催。等着她说。
+  <span class="en">(Daniel sets the tea on her desk. Sits. Doesn't push. Just waits.)</span>
+</p>
+
+<div class="dialogue">
+  <p class="character">DANIEL</p>
+  <p class="line">那 Garrison?
+    <span class="en">(And Garrison?)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">GRACE</p>
+  <p class="line">礼拜二要 pitch。
+    <span class="en">(Pitch Tuesday.)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">DANIEL</p>
+  <p class="line">报税?
+    <span class="en">(GST?)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">GRACE</p>
+  <p class="line">礼拜三。
+    <span class="en">(Wednesday.)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">DANIEL</p>
+  <p class="line">你的 newsletter?
+    <span class="en">(Newsletter?)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">GRACE</p>
+  <p class="line">晚了三个礼拜。
+    <span class="en">(Three weeks overdue.)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">DANIEL</p>
+  <p class="line">阿嬷礼拜天。
+    <span class="en">(And grandma's Sunday.)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">GRACE</p>
+  <p class="paren">(轻声) <span class="en">(quiet)</span></p>
+  <p class="line">我知道。
+    <span class="en">(I know.)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">GRACE</p>
+  <p class="paren">(望向窗外) <span class="en">(looking out the window)</span></p>
+  <p class="line">我离开大公司是想自己做。每一件都是一份全职工作。我只有一个人。
+    <span class="en">(I left the big agency to do my own thing. Every one of those is a full-time job. There's one of me.)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">DANIEL</p>
+  <p class="line">那个从大公司离开的人 —— 她没在扛七份工作。
+    <span class="en">(The version of you that quit the big agency — she didn't carry seven jobs.)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">GRACE</p>
+  <p class="line">我只有一个人。
+    <span class="en">(There's only one of me.)</span>
+  </p>
+</div>
+
+<div class="direction">【音乐】钢琴持续,不升起。
+  <span class="en">[MUSIC: piano sustains, no swell]</span>
+</div>
+
+<!-- ========================== BEAT 4 — MENTOR ARRIVAL (on train) ========================== -->
+<div class="beat-header">第 4 拍 · MENTOR ARRIVAL <span class="time">0:48 – 0:58</span>
+  <span class="en">Beat 4 — Mentor Arrival</span>
+</div>
+
+<p class="slug">内景 · 地铁 (MRT) · 早晨通勤 · 日
+  <span class="en">(INT. MRT TRAIN — MORNING COMMUTE — DAY)</span>
+</p>
+
+<p class="action">GRACE 站在车厢里,一手抓着扶杆,一手把手机贴在耳边。窗外的城市在动。其他通勤者在她周围,各自看着自己的手机。
+  <span class="en">(Grace stands in the carriage, one hand on the pole, the other pressing her phone to her ear. The city moves past the window. Other commuters around her, each on their own phone.)</span>
+</p>
+
+<div class="dialogue">
+  <p class="character">CARMEN(电话里) <span class="en">CARMEN (V.O. on phone)</span></p>
+  <p class="line">你可以全部做完。还有礼拜天。
+    <span class="en">(You can do all of it. AND have Sunday.)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">GRACE</p>
+  <p class="paren">(低声,车厢里) <span class="en">(low voice, in the carriage)</span></p>
+  <p class="line">怎么做。
+    <span class="en">(How.)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">CARMEN(电话里) <span class="en">CARMEN (V.O.)</span></p>
+  <p class="line">你不会喜欢这答案。
+    <span class="en">(You're not gonna like it.)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">GRACE</p>
+  <p class="line">你说。
+    <span class="en">(Try me.)</span>
+  </p>
+</div>
+
+<!-- ========================== BEAT 5 — PRODUCT CONFESSION (with agents) ========================== -->
+<div class="beat-header">第 5 拍 · PRODUCT CONFESSION <span class="time">0:58 – 1:38</span>
+  <span class="en">Beat 5 — Product Confession (with parallel agents)</span>
+</div>
+
+<p class="slug">内景 · 咖啡馆 · 同一天稍晚
+  <span class="en">(INT. CAFÉ — LATER THAT DAY)</span>
+</p>
+
+<p class="action">CARMEN 把笔电转向 GRACE。屏幕上是 Claude 的界面。
+  <span class="en">(Carmen turns her laptop toward Grace. Claude's interface on the screen.)</span>
+</p>
+
+<div class="direction">【无音乐】<span class="en">[NO MUSIC]</span></div>
+
+<div class="dialogue">
+  <p class="character">CARMEN</p>
+  <p class="line">我用 Claude。三种用法。
+    <span class="en">(I tried Claude. Three things.)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">GRACE</p>
+  <p class="paren">(怀疑) <span class="en">(skeptical)</span></p>
+  <p class="line">那个 AI。
+    <span class="en">(The AI.)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">CARMEN</p>
+  <p class="line">Sea Group 那个案子。初稿十二分钟。我重写了一半。是真的初稿,不是空白页。
+    <span class="en">(Sea Group deck. First draft in twelve minutes. Rewrote half. Real draft, not a blank page.)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">CARMEN</p>
+  <p class="line">Hoyo 那个新品牌 —— 完全不知道从哪里下手。要它给我五个切入点。二十分钟。他们选了其中一个。
+    <span class="en">(Hoyo brief — new brand, no idea where to start. Asked it for five concept angles. Twenty minutes. They picked one.)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">CARMEN</p>
+  <p class="line">Newsletter。Cold pitch 邮件。LinkedIn。一个礼拜二十分钟,全部搞定。
+    <span class="en">(Newsletter. Cold pitch emails. LinkedIn. Twenty minutes a week, all of it.)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">GRACE</p>
+  <p class="line">全部。
+    <span class="en">(All of it.)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">CARMEN</p>
+  <p class="paren">(往前坐了一点) <span class="en">(leaning in)</span></p>
+  <p class="line">这才是关键 —— 它不是一个助理。是好几个 —— 同时在跑。
+    <span class="en">(But here's the part — it's not one assistant. It's many. All running at the same time.)</span>
+  </p>
+</div>
+
+<p class="action">CARMEN 在屏幕上点开三个并排的对话窗口。三个 agent 各自在打字。
+  <span class="en">(Carmen opens three parallel chat windows on screen. Three agents each typing.)</span>
+</p>
+
+<div class="dialogue">
+  <p class="character">CARMEN</p>
+  <p class="line">昨晚我睡觉的时候,这三个在跑。一个在写 Hoyo 的定位。一个在帮我研究 Sea Group 的竞品。一个在写我的 newsletter 草稿。
+    <span class="en">(Last night while I slept, these three were running. One drafting Hoyo's positioning. One pulling competitive research for Sea Group. One drafting my newsletter.)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">CARMEN</p>
+  <p class="line">早上醒来 —— 三份初稿在桌面上。我就改。
+    <span class="en">(Woke up — three drafts on my desktop. I just edited.)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">GRACE</p>
+  <p class="paren">(看着屏幕) <span class="en">(watching the screen)</span></p>
+  <p class="line">同时?
+    <span class="en">(At the same time?)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">CARMEN</p>
+  <p class="line">现在我们在喝咖啡。一个 agent 还在跑 —— 帮我整理礼拜四的客户简报。
+    <span class="en">(We're drinking coffee right now. One's still running — sorting Thursday's client brief for me.)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">CARMEN</p>
+  <p class="paren">(停顿) <span class="en">(beat)</span></p>
+  <p class="line">全部。我用它思考。
+    <span class="en">(All of it. I thought with it.)</span>
+  </p>
+</div>
+
+<!-- ========================== BEAT 5.5 — TEACHING LAYER (Dear.AI) ========================== -->
+<div class="beat-header">第 5.5 拍 · THE TEACHING LAYER <span class="time">1:38 – 1:52</span>
+  <span class="en">Beat 5.5 — The Teaching Layer</span>
+</div>
+
+<p class="slug">同上 · 接续
+  <span class="en">(SAME — CONTINUOUS)</span>
+</p>
+
+<p class="action">GRACE 看着屏幕。停顿。然后把视线移开。
+  <span class="en">(Grace stares at the screen. A pause. Then she looks away.)</span>
+</p>
+
+<div class="dialogue">
+  <p class="character">GRACE</p>
+  <p class="paren">(犹豫) <span class="en">(hesitating)</span></p>
+  <p class="line">Carmen —— 我不会写 prompt。我也不会 code。我是设计师。
+    <span class="en">(Carmen — I can't prompt. I can't code. I'm a designer.)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">CARMEN</p>
+  <p class="line">我以前也不会。
+    <span class="en">(Neither could I.)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">CARMEN</p>
+  <p class="paren">(停顿) <span class="en">(beat)</span></p>
+  <p class="line">后来找了个 coach。Raymus,Dear.AI 那边的。他那个礼拜六陪我坐了一个下午。之后我才上手。
+    <span class="en">(Later I got a coach. Raymus — he runs Dear.AI. He sat with me one Saturday. After that I could fly.)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">GRACE</p>
+  <p class="paren">(轻声) <span class="en">(quiet)</span></p>
+  <p class="line">你愿意做我的 coach 吗?
+    <span class="en">(Will you be my coach?)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">CARMEN</p>
+  <p class="paren">(笑) <span class="en">(smiling)</span></p>
+  <p class="line">礼拜天。两小时。
+    <span class="en">(Sunday. Two hours.)</span>
+  </p>
+</div>
+
+<!-- ========================== BEAT 6 — TRANSFORMATION ========================== -->
+<div class="beat-header">第 6 拍 · TRANSFORMATION <span class="time">1:52 – 2:02</span>
+  <span class="en">Beat 6 — Transformation</span>
+</div>
+
+<p class="slug">内景 · CARMEN 的公寓 · 礼拜天下午
+  <span class="en">(INT. CARMEN'S APARTMENT — SUNDAY AFTERNOON)</span>
+</p>
+
+<p class="action">两台笔电并排。CARMEN 指着屏幕,GRACE 点头,记笔记。
+  <span class="en">(Two laptops side by side. Carmen pointing at the screen, Grace nodding, taking notes.)</span>
+</p>
+
+<p class="action">切到:GRACE 的工作室 —— 当晚。她在平板上画草图,更快、更平静。三个 Claude 对话窗口同时在跑。
+  <span class="en">(Cut to: Grace's studio that night — sketching on her tablet, faster, calmer. Three Claude chat windows running at the same time.)</span>
+</p>
+
+<p class="action">钟表叠化:9:47 PM → 10:13 PM。
+  <span class="en">(Clock dissolve: 9:47 PM → 10:13 PM.)</span>
+</p>
+
+<div class="direction">【音乐升起】轻柔、充满希望、克制。
+  <span class="en">[MUSIC SWELLS — soft, hopeful, restrained]</span>
+</div>
+
+<div class="dialogue">
+  <p class="character">GRACE(画外音) <span class="en">GRACE (V.O.)</span></p>
+  <p class="paren">(轻声) <span class="en">(quiet)</span></p>
+  <p class="line">26 分钟。
+    <span class="en">(Twenty-six minutes.)</span>
+  </p>
+</div>
+
+<!-- ========================== BEAT 7 — PAYOFF ========================== -->
+<div class="beat-header">第 7 拍 · PAYOFF / BOOKEND <span class="time">2:02 – 2:18</span>
+  <span class="en">Beat 7 — Payoff / Bookend</span>
+</div>
+
+<p class="slug">内景 · GRACE 的家庭工作室 · 礼拜六早晨
+  <span class="en">(INT. GRACE'S HOME STUDIO — SATURDAY MORNING)</span>
+</p>
+
+<p class="action">光。GRACE 在书桌前,速写本翻开,咖啡。DANIEL 走进来。
+  <span class="en">(Light. Grace at her desk, sketchbook open, coffee. Daniel walks in.)</span>
+</p>
+
+<div class="dialogue">
+  <p class="character">DANIEL</p>
+  <p class="line">Henley 签了?
+    <span class="en">(Henley signed?)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">GRACE</p>
+  <p class="line">昨天。
+    <span class="en">(Yesterday.)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">DANIEL</p>
+  <p class="line">Garrison?
+    <span class="en">(Garrison?)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">GRACE</p>
+  <p class="line">拿下了。
+    <span class="en">(Won.)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">DANIEL</p>
+  <p class="line">报税?
+    <span class="en">(GST?)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">GRACE</p>
+  <p class="line">交了。
+    <span class="en">(Filed.)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">DANIEL</p>
+  <p class="line">阿嬷?
+    <span class="en">(Grandma?)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">GRACE</p>
+  <p class="line">赶上她生日了。
+    <span class="en">(Made her birthday.)</span>
+  </p>
+</div>
+
+<div class="dialogue">
+  <p class="character">DANIEL</p>
+  <p class="paren">(停顿) <span class="en">(beat)</span></p>
+  <p class="line">你这个礼拜是几个人?
+    <span class="en">(How many people were you this week?)</span>
+  </p>
+</div>
+
+<div class="direction">【音乐】完全升起 —— 持续刚好的长度。
+  <span class="en">[MUSIC: full swell — held just long enough]</span>
+</div>
+
+<div class="dialogue">
+  <p class="character">GRACE</p>
+  <p class="paren">(轻声,真心) <span class="en">(quiet, true)</span></p>
+  <p class="line">就一个。
+    <span class="en">(Just one.)</span>
+  </p>
+</div>
+
+<!-- ========================== BEAT 8 — CTA / FUTURE OF WORK ========================== -->
+<div class="beat-header">第 8 拍 · CTA · 工作的未来 <span class="time">2:18 – 2:30</span>
+  <span class="en">Beat 8 — CTA / The Future of Work</span>
+</div>
+
+<p class="slug">内景 · GRACE 的工作室 · 金色傍晚 · 日
+  <span class="en">(INT. GRACE'S STUDIO — GOLDEN HOUR — DAY)</span>
+</p>
+
+<p class="action">广角:GRACE 的工作室在金色傍晚。温暖的窗光。植物。整个空间在呼吸。
+  <span class="en">(Wide of Grace's studio at golden hour. Warm window light. Plants. The space breathes.)</span>
+</p>
+
+<p class="action">合成镜头 —— 同一画框里五个 GRACE。Grace 1 在书桌前 iPad 上画图。Grace 2 站在窗边打销售电话,笑着,有手势。Grace 3 在厨房料理台上用笔电写 newsletter。Grace 4 在看一张表格,手里端着咖啡。Grace 5 在地板上和 DANIEL 的狗在一起,只是呼吸。她们彼此不察觉对方的存在。她们只是,各自存在。
+  <span class="en">(Composite shot — five Graces in the same frame. Grace 1 sketching on iPad at the desk. Grace 2 on a sales call by the window, smiling, gesturing. Grace 3 at the kitchen counter writing her newsletter on her laptop. Grace 4 reviewing a spreadsheet, calm, coffee in hand. Grace 5 on the floor with Daniel's dog, just breathing. They don't notice each other. They just are.)</span>
+</p>
+
+<div class="direction">【音乐】柔和钢琴在底下继续。
+  <span class="en">[MUSIC: soft piano continues underneath]</span>
+</div>
+
+<div class="dialogue">
+  <p class="character">GRACE(画外音) <span class="en">GRACE (V.O.)</span></p>
+  <p class="line">以前啊 —— 在新加坡想自己干 —— 要养七个人。
+    <span class="en">(Used to be — if you wanted to run your own thing in Singapore, you needed a team of seven.)</span>
+  </p>
+</div>
+
+<p class="action">镜头缓缓推向书桌前那个 GRACE —— 做设计的那一个。她抬眼瞄一下其他四个,神情几乎是觉得有点好笑。其他四个一个接一个温和地淡出,直到只剩她一个。
+  <span class="en">(Slow push toward the Grace at the desk — the designer one. She looks up at the others briefly, almost amused. The others fade gently, one by one, until only she remains.)</span>
+</p>
+
+<div class="dialogue">
+  <p class="character">GRACE(画外音) <span class="en">GRACE (V.O.)</span></p>
+  <p class="line">现在啊 —— 一台手提电脑就够了。
+    <span class="en">(Now the team fits on a laptop.)</span>
+  </p>
+</div>
+
+<p class="action">CU 特写:GRACE 搭在键盘上的两只手。没有在打字。就放在那。一个小小的、私密的笑。
+  <span class="en">(CU on Grace's hands resting on her keyboard. Not typing — just there. A small, private smile.)</span>
+</p>
+
+<div class="dialogue">
+  <p class="character">GRACE(画外音) <span class="en">GRACE (V.O.)</span></p>
+  <p class="line">这里的未来 —— 感觉轻了一点。不是对那些大公司 —— 他们本来就没事。
+    <span class="en">(The future of work here feels lighter. Not for the big guys — they were already fine.)</span>
+  </p>
+</div>
+
+<p class="action">镜头拉回到工作室全景。空了。只剩 GRACE、光、和那些植物。
+  <span class="en">(Pull back to the wide studio shot. Empty now. Just Grace, the light, the plants.)</span>
+</p>
+
+<div class="dialogue">
+  <p class="character">GRACE(画外音) <span class="en">GRACE (V.O.)</span></p>
+  <p class="line">是对我们这些 —— 以前一个人要当七个人用的小家伙。我们终于可以 —— 做回一个人。
+    <span class="en">(For the rest of us. The ones who used to have to be seven people. We finally get to be one.)</span>
+  </p>
+</div>
+
+<p class="action">标题卡淡入:
+  <span class="en">(Title card fades in:)</span>
+</p>
+
+<div style="text-align: center; margin: 18pt 0; font-size: 14pt; font-weight: 700;">
+  给一个人在打拼的你<br>
+  <span style="font-weight: 400; color: #555; font-size: 11pt; font-style: italic;">(For the ones building alone.)</span><br><br>
+  <span style="font-size: 16pt;">Claude</span>
+</div>
+
+<div class="direction">【音乐】在最后一句台词后拉回静默。
+  <span class="en">[MUSIC pulls to silence on the last beat]</span>
+</div>
+
+<p class="action" style="text-align: center;">淡出至黑。
+  <span class="en">(FADE OUT.)</span>
+</p>
+
+<hr class="end">
+<p class="end-title">— 完 — <span style="font-style: italic; color: #888;">(END)</span></p>
+
+</body>
+</html>

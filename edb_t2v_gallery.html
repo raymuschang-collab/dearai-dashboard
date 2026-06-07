@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>EDB · T2V Vidgen Gallery</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@500;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #07090c;
+    --bg-card: #11161d;
+    --bg-card-2: #161c25;
+    --border: #1f2630;
+    --border-strong: #2a3442;
+    --text: #e6ebf2;
+    --text-mute: #8896a4;
+    --text-dim: #5a6573;
+    --c01: #22d3ee;
+    --c02: #34d399;
+    --accent-warm: #f59e0b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration: none; }
+  code, .mono { font-family: "SF Mono", Menlo, Monaco, Consolas, monospace; font-size: 13px; }
+
+  /* Hero */
+  .hero {
+    padding: 64px 56px 48px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #0c1118 0%, #07090c 100%);
+  }
+  .hero h1 {
+    font-size: 38px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 14px;
+  }
+  .hero .gradient-c01 { color: var(--c01); }
+  .hero .gradient-c02 { color: var(--c02); }
+  .hero p {
+    color: var(--text-mute);
+    max-width: 820px;
+    margin-bottom: 8px;
+  }
+  .hero-meta {
+    display: flex;
+    gap: 24px;
+    margin-top: 20px;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .hero-meta strong { color: var(--text); }
+
+  /* Sticky TOC */
+  .toc {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: rgba(7, 9, 12, 0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 56px;
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .toc-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+    margin-right: 4px;
+  }
+  .toc a {
+    font-size: 13px;
+    color: var(--text-mute);
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    transition: all 0.15s;
+  }
+  .toc a:hover { color: var(--text); border-color: var(--border-strong); background: var(--bg-card); }
+  .toc a.c01:hover { color: var(--c01); border-color: var(--c01); }
+  .toc a.c02:hover { color: var(--c02); border-color: var(--c02); }
+
+  /* Concept sections */
+  .concept-section { padding: 48px 56px; }
+  .concept-header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+  .concept-header h2 {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .concept-header .badge {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+  .badge-c01 { background: rgba(34, 211, 238, 0.12); color: var(--c01); border: 1px solid rgba(34, 211, 238, 0.25); }
+  .badge-c02 { background: rgba(52, 211, 153, 0.12); color: var(--c02); border: 1px solid rgba(52, 211, 153, 0.25); }
+  .concept-tagline {
+    color: var(--text-mute);
+    font-size: 14px;
+    margin-bottom: 32px;
+    max-width: 760px;
+  }
+
+  /* Set card */
+  .set-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 28px 28px;
+    margin-bottom: 24px;
+    scroll-margin-top: 80px;
+  }
+  .set-card-header {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+  }
+  .set-card-header h3 {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.005em;
+  }
+  .set-meta {
+    color: var(--text-dim);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .set-summary {
+    color: var(--text-mute);
+    font-size: 14px;
+    margin-bottom: 18px;
+    line-height: 1.6;
+  }
+  .set-summary .key { color: var(--accent-warm); font-weight: 600; }
+
+  /* Video grid */
+  .video-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+  .video-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .video-cell-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+    font-weight: 600;
+  }
+  .video-cell video {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #000;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    display: block;
+  }
+  .video-filename {
+    font-family: "SF Mono", Menlo, monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    word-break: break-all;
+  }
+
+  /* Footer */
+  .footer {
+    padding: 32px 56px 48px;
+    border-top: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 12px;
+  }
+
+  @media (max-width: 768px) {
+    .hero, .concept-section, .toc, .footer { padding-left: 24px; padding-right: 24px; }
+    .video-row { grid-template-columns: 1fr; }
+    .hero h1 { font-size: 28px; }
+  }
+
+  /* ============================================================
+     TEXT MOGRA OVERLAY — preview of intended AE post-pass typography
+     ============================================================ */
+  .video-wrap {
+    position: relative;
+    container-type: inline-size;
+    border-radius: 8px;
+    overflow: hidden;
+    line-height: 0;
+  }
+  .video-wrap video {
+    border-radius: 0;
+    border: none;
+    margin: 0;
+  }
+  .mogra-badge {
+    position: absolute;
+    top: 12px; left: 12px;
+    z-index: 5;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: #f5f4ef;
+    background: rgba(7, 9, 12, 0.65);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(245, 244, 239, 0.18);
+    padding: 4px 8px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+  .text-mogra {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    font-family: "Archivo Black", Impact, sans-serif;
+    line-height: 1;
+    z-index: 4;
+  }
+
+  /* ----- Common animatable element initial states ----- */
+  .text-mogra .mw,
+  .text-mogra .eyebrow,
+  .text-mogra .word,
+  .text-mogra .endcap {
+    opacity: 0;
+    transform: translateY(1.2cqw);
+    display: inline-block;
+  }
+  .text-mogra .accent-rule,
+  .text-mogra .strike,
+  .text-mogra .pulse-line {
+    transform: scaleX(0);
+    transform-origin: left center;
+    display: block;
+  }
+  .text-mogra .pulse-blip {
+    opacity: 0;
+  }
+
+  /* ----- C01 kinetic-caption (lower-left) ----- */
+  .mogra-c01 {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 4cqw 5cqw 5cqw 5cqw;
+  }
+  .mogra-c01 .eyebrow {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 1.1cqw;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    color: var(--c01);
+    text-transform: uppercase;
+    margin-bottom: 0.9cqw;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6cqw;
+  }
+  .mogra-c01 .eyebrow::before {
+    content: '';
+    width: 0.7cqw; height: 0.7cqw;
+    background: var(--c01);
+    border-radius: 50%;
+    box-shadow: 0 0 0.6cqw rgba(34,211,238,0.55);
+  }
+  .mogra-c01 .accent-rule {
+    height: 0.25cqw;
+    width: 5cqw;
+    background: var(--c01);
+    margin-bottom: 1cqw;
+    box-shadow: 0 0 0.6cqw rgba(34,211,238,0.5);
+  }
+  .mogra-c01 .headline {
+    font-size: 5.6cqw;
+    letter-spacing: -0.04em;
+    line-height: 0.92;
+    color: white;
+    text-shadow: 0 0.2cqw 1.2cqw rgba(0,0,0,0.55);
+  }
+  .mogra-c01 .headline .mw {
+    margin-right: 0.35em;
+  }
+  .mogra-c01 .endcap {
+    margin-top: 0.7cqw;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.95cqw;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    color: rgba(245,244,239,0.7);
+    text-transform: uppercase;
+  }
+
+  /* Pulse line decoration for set 6 (pacemaker) */
+  .mogra-c01 .pulse-row {
+    display: flex; align-items: center; gap: 0.8cqw;
+    margin-bottom: 1.3cqw;
+  }
+  .mogra-c01 .pulse-line {
+    height: 0.2cqw;
+    width: 18cqw;
+    background: var(--c01);
+    box-shadow: 0 0 0.8cqw rgba(34,211,238,0.55);
+  }
+  .mogra-c01 .pulse-blip {
+    width: 0.7cqw; height: 0.7cqw;
+    background: #E63946;
+    border-radius: 50%;
+    box-shadow: 0 0 0.7cqw rgba(230,57,70,0.7);
+  }
+
+  /* Bubble-callout for set 9 (hearing aid) */
+  .mogra-c01 .bubble {
+    align-self: flex-start;
+    background: rgba(7,9,12,0.55);
+    backdrop-filter: blur(3px);
+    border: 1px solid rgba(245,244,239,0.22);
+    padding: 0.7cqw 1.4cqw;
+    border-radius: 0.6cqw;
+    margin-bottom: 1.2cqw;
+    font-family: "Archivo", sans-serif;
+    font-weight: 700;
+    font-size: 2.4cqw;
+    color: #f5f4ef;
+    letter-spacing: -0.01em;
+    opacity: 0;
+    transform: translateY(1.2cqw) scale(0.96);
+    transform-origin: left bottom;
+  }
+
+  /* ----- C02 strikethrough block ----- */
+  .mogra-c02 {
+    display: flex;
+    align-items: center;
+  }
+  .mogra-c02-right { justify-content: flex-end; padding-right: 5cqw; }
+  .mogra-c02-left { justify-content: flex-start; padding-left: 5cqw; }
+  .mogra-c02 .stack {
+    display: flex; flex-direction: column;
+    gap: 0.4cqw;
+  }
+  .mogra-c02-right .stack { align-items: flex-end; text-align: right; }
+  .mogra-c02-left .stack { align-items: flex-start; text-align: left; }
+
+  .mogra-c02 .label {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.95cqw;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    color: #E63946;
+    text-transform: uppercase;
+    margin-bottom: 0.5cqw;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4cqw;
+    opacity: 0;
+  }
+  .mogra-c02 .label::before {
+    content: '✕';
+    font-family: "Archivo Black";
+    color: #E63946;
+    font-size: 1.1cqw;
+  }
+  .mogra-c02 .word {
+    font-size: 5.2cqw;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    line-height: 0.95;
+    color: white;
+    text-shadow: 0 0.2cqw 1cqw rgba(0,0,0,0.55);
+    position: relative;
+    white-space: nowrap;
+    padding: 0 0.2cqw;
+  }
+  .mogra-c02 .word .strike {
+    position: absolute;
+    top: 50%;
+    left: -2%; right: -2%;
+    height: 0.4cqw;
+    background: #E63946;
+    box-shadow: 0 0 0.6cqw rgba(230,57,70,0.65);
+    transform-origin: left center;
+  }
+  .mogra-c02-right .word .strike { transform-origin: right center; }
+  .mogra-c02 .endcap {
+    margin-top: 0.7cqw;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.9cqw;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    color: rgba(245,244,239,0.6);
+    text-transform: uppercase;
+  }
+
+  /* ============================================================
+     Animations (triggered when video starts playing)
+     ============================================================ */
+  @keyframes mogra-word-in {
+    0% { opacity: 0; transform: translateY(1.2cqw); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes mogra-bubble-in {
+    0% { opacity: 0; transform: translateY(1.2cqw) scale(0.96); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes mogra-line-draw {
+    0% { transform: scaleX(0); }
+    100% { transform: scaleX(1); }
+  }
+  @keyframes mogra-blip {
+    0% { opacity: 0; transform: scale(0.6); }
+    50% { opacity: 1; transform: scale(1.2); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  .video-wrap.is-playing .text-mogra .mw,
+  .video-wrap.is-playing .text-mogra .eyebrow,
+  .video-wrap.is-playing .text-mogra .word,
+  .video-wrap.is-playing .text-mogra .endcap,
+  .video-wrap.is-playing .text-mogra .label {
+    animation: mogra-word-in 0.45s var(--d, 0s) cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+  }
+  .video-wrap.is-playing .text-mogra .bubble {
+    animation: mogra-bubble-in 0.5s var(--d, 0s) cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+  }
+  .video-wrap.is-playing .text-mogra .accent-rule,
+  .video-wrap.is-playing .text-mogra .strike,
+  .video-wrap.is-playing .text-mogra .pulse-line {
+    animation: mogra-line-draw 0.55s var(--d, 0s) cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+  }
+  .video-wrap.is-playing .text-mogra .pulse-blip {
+    animation: mogra-blip 0.4s var(--d, 0s) ease-out forwards;
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <h1>EDB <span class="gradient-c01">Concept 01</span> + <span class="gradient-c02">Concept 02</span> · T2V Test Cuts</h1>
+  <p>First-pass Seedance 2 generations for both concepts. T2V workflow (no character or location refs), 480p · 16:9 · 10s · diegetic + cinematic music. Two iterations per shot — model variance gives meaningfully different cuts each fire.</p>
+  <p style="margin-top:8px;">All 12 clips below are local files; click play to watch with audio. These are pitch-deck quality plates — final delivery would re-fire at 1080p with the asset library wired up + AE typography pass over the C02 talking-head shots.</p>
+  <div class="hero-meta">
+    <span><strong>12</strong> clips · <strong>6</strong> prompts × <strong>2</strong> iters</span>
+    <span><strong>~120s</strong> wall time end-to-end</span>
+    <span>Resolution <strong>480p</strong> · Aspect <strong>16:9</strong> · Duration <strong>10s</strong></span>
+  </div>
+</header>
+
+<nav class="toc">
+  <span class="toc-label">Jump:</span>
+  <a href="#c01" class="c01">C01 · Tiny Tech, Big Lives</a>
+  <a href="#c01-set04" class="c01">Set 4 phone</a>
+  <a href="#c01-set06" class="c01">Set 6 pacemaker</a>
+  <a href="#c01-set09" class="c01">Set 9 hearing aid</a>
+  <a href="#c02" class="c02">C02 · The Semi-Con</a>
+  <a href="#c02-cleanroom" class="c02">Cleanroom</a>
+  <a href="#c02-wafer" class="c02">Wafer fab</a>
+  <a href="#c02-ai" class="c02">AI engineer</a>
+</nav>
+
+<!-- ========== CONCEPT 01 ========== -->
+<section class="concept-section" id="c01">
+  <div class="concept-header">
+    <h2>Concept 01 — Tiny Tech, Big Lives</h2>
+    <span class="badge badge-c01">match-cut sets</span>
+  </div>
+  <p class="concept-tagline">Engineer holds the chip → match-cut to the chip inside the device → callback to the device user. Three of the four match-cut sets fired (phone · pacemaker · hearing aid). Drama genre.</p>
+
+  <div class="set-card" id="c01-set04">
+    <div class="set-card-header">
+      <h3>Set 4 — Phone match-cut</h3>
+      <span class="set-meta">Shots 16-20 · E1 · drama</span>
+    </div>
+    <p class="set-summary">SG Chinese woman engineer at IC test bench (CU, soft pride) — <span class="key">"Mine starts in this room."</span> — match cut: chip in her gloved hand → chip behind a smartphone bezel as a mum holds it (warm desk-light → cool phone-screen blue) → callback CU of her 8yo daughter scrolling the phone in HDB morning light.</p>
+    <div class="video-row">
+      <div class="video-cell">
+        <span class="video-cell-label">Iter A · with intended text mogra</span>
+        <div class="video-wrap">
+          <span class="mogra-badge">Text mogra preview · AE post-pass</span>
+          <video controls loop preload="metadata" src="edb_t2v_outputs/C01_set04_phone_A.mp4"></video>
+          <div class="text-mogra mogra-c01">
+            <span class="eyebrow" style="--d: 1.2s">Engineer · IC test · WP6</span>
+            <span class="accent-rule" style="--d: 1.55s"></span>
+            <div class="headline">
+              <span class="mw" style="--d: 1.95s">MINE</span><span class="mw" style="--d: 2.10s">STARTS</span><span class="mw" style="--d: 2.55s">IN</span><span class="mw" style="--d: 2.70s">THIS</span><span class="mw" style="--d: 2.95s">ROOM.</span>
+            </div>
+            <span class="endcap" style="--d: 4.3s">— SG Chinese woman, 28, EDB story arc 01</span>
+          </div>
+        </div>
+        <span class="video-filename">edb_t2v_outputs/C01_set04_phone_A.mp4</span>
+      </div>
+      <div class="video-cell">
+        <span class="video-cell-label">Iter B</span>
+        <video controls loop preload="metadata" src="edb_t2v_outputs/C01_set04_phone_B.mp4"></video>
+        <span class="video-filename">edb_t2v_outputs/C01_set04_phone_B.mp4</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="set-card" id="c01-set06">
+    <div class="set-card-header">
+      <h3>Set 6 — Pacemaker match-cut</h3>
+      <span class="set-meta">Shots 26-30 · E2 · drama</span>
+    </div>
+    <p class="set-summary">300mm silicon wafer top-down on inspection chuck (silver mirror, rainbow diffraction) — match cut: wafer's silver disc → polished titanium pacemaker case in grandfather's chest cavity (cool ring-light → warm 3200K bedside lamp). <span class="key">Audio match: pacemaker beep lands on the cut frame.</span> Callback: grandfather's weathered hand resting on his own chest, settled.</p>
+    <div class="video-row">
+      <div class="video-cell">
+        <span class="video-cell-label">Iter A · with intended text mogra</span>
+        <div class="video-wrap">
+          <span class="mogra-badge">Text mogra preview · AE post-pass</span>
+          <video controls loop preload="metadata" src="edb_t2v_outputs/C01_set06_pacemaker_A.mp4"></video>
+          <div class="text-mogra mogra-c01">
+            <span class="eyebrow" style="--d: 1.2s">Pacemaker · Medtronic Gen-IV</span>
+            <div class="pulse-row">
+              <span class="pulse-line" style="--d: 1.6s"></span>
+              <span class="pulse-blip" style="--d: 2.4s"></span>
+            </div>
+            <div class="headline">
+              <span class="mw" style="--d: 2.85s">FROM</span><span class="mw" style="--d: 3.00s">ONE</span><span class="mw" style="--d: 3.20s">LAB</span>
+              <br/>
+              <span class="mw" style="--d: 3.55s">TO</span><span class="mw" style="--d: 3.70s">ONE</span><span class="mw" style="--d: 3.95s">HEART.</span>
+            </div>
+            <span class="endcap" style="--d: 5.2s">— audio match: pacemaker beep on cut</span>
+          </div>
+        </div>
+        <span class="video-filename">edb_t2v_outputs/C01_set06_pacemaker_A.mp4</span>
+      </div>
+      <div class="video-cell">
+        <span class="video-cell-label">Iter B</span>
+        <video controls loop preload="metadata" src="edb_t2v_outputs/C01_set06_pacemaker_B.mp4"></video>
+        <span class="video-filename">edb_t2v_outputs/C01_set06_pacemaker_B.mp4</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="set-card" id="c01-set09">
+    <div class="set-card-header">
+      <h3>Set 9 — Hearing aid match-cut</h3>
+      <span class="set-meta">Shots 41-45 · E4 · drama</span>
+    </div>
+    <p class="set-summary">Defect-prediction monitor: red dot pulses on a navy wafer heatmap, smoothly morphs into an ear-shape silhouette — match cut: red ear-shape → real toddler's ear with a hearing aid clipped on (monitor-glow red → warm 3500K window daylight). <span class="key">Audio match: off-camera Singaporean mum's "Aiden?" lands on the cut.</span> Wordless WS callback: mum kneeling, toddler taking his first uncertain step toward her.</p>
+    <div class="video-row">
+      <div class="video-cell">
+        <span class="video-cell-label">Iter A · with intended text mogra</span>
+        <div class="video-wrap">
+          <span class="mogra-badge">Text mogra preview · AE post-pass</span>
+          <video controls loop preload="metadata" src="edb_t2v_outputs/C01_set09_hearingaid_A.mp4"></video>
+          <div class="text-mogra mogra-c01">
+            <span class="eyebrow" style="--d: 1.2s">Pediatric hearing aid · 6mo+</span>
+            <span class="bubble" style="--d: 2.0s">"Aiden?"</span>
+            <div class="headline">
+              <span class="mw" style="--d: 3.6s">FIRST</span><span class="mw" style="--d: 3.75s">SOUND.</span>
+              <br/>
+              <span class="mw" style="--d: 4.05s">FIRST</span><span class="mw" style="--d: 4.20s">STEP.</span>
+            </div>
+            <span class="endcap" style="--d: 5.4s">— audio match: mum's voice on cut frame</span>
+          </div>
+        </div>
+        <span class="video-filename">edb_t2v_outputs/C01_set09_hearingaid_A.mp4</span>
+      </div>
+      <div class="video-cell">
+        <span class="video-cell-label">Iter B</span>
+        <video controls loop preload="metadata" src="edb_t2v_outputs/C01_set09_hearingaid_B.mp4"></video>
+        <span class="video-filename">edb_t2v_outputs/C01_set09_hearingaid_B.mp4</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== CONCEPT 02 ========== -->
+<section class="concept-section" id="c02">
+  <div class="concept-header">
+    <h2>Concept 02 — The Semi-Con</h2>
+    <span class="badge badge-c02">rebuttal sets</span>
+  </div>
+  <p class="concept-tagline">Three "wrong answer" rebuttal scenes — direct address talking head cuts to the same person at the actual location. Talent framed off-center on every talking-head shot so the AE post-pass can drop the heavy condensed strikethrough type into the empty half. Epic genre.</p>
+
+  <div class="set-card" id="c02-cleanroom">
+    <div class="set-card-header">
+      <h3>Cleanroom — "It's loud and dirty" 🚫</h3>
+      <span class="set-meta">Wrong #1 · talent left, type RIGHT · epic</span>
+    </div>
+    <p class="set-summary">WS empty cleanroom corridor (matte white, polished epoxy floor, blue HEPA glow) — talking head MCU SG Chinese woman late 20s, framed left half — <span class="key">"It's the cleanest, quietest room you'll ever stand in."</span> — same talent in white bunny suit + safety goggles loading a FOUP onto a SECS-II load port. Strikethrough <strong>IT'S / LOUD / AND / DIRTY</strong> goes into the right half in post.</p>
+    <div class="video-row">
+      <div class="video-cell">
+        <span class="video-cell-label">Iter A · with intended text mogra</span>
+        <div class="video-wrap">
+          <span class="mogra-badge">Text mogra preview · AE post-pass</span>
+          <video controls loop preload="metadata" src="edb_t2v_outputs/C02_cleanroom_A.mp4"></video>
+          <div class="text-mogra mogra-c02 mogra-c02-right">
+            <div class="stack">
+              <span class="label" style="--d: 1.2s">Wrong #1 / Rebuttal</span>
+              <span class="word" style="--d: 1.8s">IT'S<span class="strike" style="--d: 2.30s"></span></span>
+              <span class="word" style="--d: 2.0s">LOUD<span class="strike" style="--d: 2.55s"></span></span>
+              <span class="word" style="--d: 2.2s">AND<span class="strike" style="--d: 2.80s"></span></span>
+              <span class="word" style="--d: 2.4s">DIRTY<span class="strike" style="--d: 3.05s"></span></span>
+              <span class="endcap" style="--d: 3.9s">— actual: cleanest, quietest room you'll stand in</span>
+            </div>
+          </div>
+        </div>
+        <span class="video-filename">edb_t2v_outputs/C02_cleanroom_A.mp4</span>
+      </div>
+      <div class="video-cell">
+        <span class="video-cell-label">Iter B</span>
+        <video controls loop preload="metadata" src="edb_t2v_outputs/C02_cleanroom_B.mp4"></video>
+        <span class="video-filename">edb_t2v_outputs/C02_cleanroom_B.mp4</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="set-card" id="c02-wafer">
+    <div class="set-card-header">
+      <h3>Wafer fab — "It's repetitive" 🚫</h3>
+      <span class="set-meta">Wrong #2 · talent right, type LEFT · epic</span>
+    </div>
+    <p class="set-summary">WS lithography bay with two ASML steppers under signature yellow 590nm sodium-vapor safety light + cyan stepper LEDs — talking head MCU SG Malay-Chinese man mid-30s, framed right half — <span class="key">"Every wafer is a 600-step puzzle. None of it is the same."</span> — same talent in yellow cleanroom suit at a stepper HMI touchscreen, cyan/magenta UI on his face. Strikethrough <strong>IT'S / REPETITIVE</strong> goes into the left half in post.</p>
+    <div class="video-row">
+      <div class="video-cell">
+        <span class="video-cell-label">Iter A · with intended text mogra</span>
+        <div class="video-wrap">
+          <span class="mogra-badge">Text mogra preview · AE post-pass</span>
+          <video controls loop preload="metadata" src="edb_t2v_outputs/C02_wafer_A.mp4"></video>
+          <div class="text-mogra mogra-c02 mogra-c02-left">
+            <div class="stack">
+              <span class="label" style="--d: 1.2s">Wrong #2 / Rebuttal</span>
+              <span class="word" style="--d: 1.8s">IT'S<span class="strike" style="--d: 2.30s"></span></span>
+              <span class="word" style="--d: 2.05s">REPETITIVE<span class="strike" style="--d: 2.65s"></span></span>
+              <span class="endcap" style="--d: 3.5s">— actual: every wafer is a 600-step puzzle</span>
+            </div>
+          </div>
+        </div>
+        <span class="video-filename">edb_t2v_outputs/C02_wafer_A.mp4</span>
+      </div>
+      <div class="video-cell">
+        <span class="video-cell-label">Iter B</span>
+        <video controls loop preload="metadata" src="edb_t2v_outputs/C02_wafer_B.mp4"></video>
+        <span class="video-filename">edb_t2v_outputs/C02_wafer_B.mp4</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="set-card" id="c02-ai">
+    <div class="set-card-header">
+      <h3>AI engineer — "There's no career path" 🚫</h3>
+      <span class="set-meta">Wrong #3 · talent left, type RIGHT · epic</span>
+    </div>
+    <p class="set-summary">WS dark engineering room at 2am, 12-monitor wall of yield heatmaps, single empty Aeron — talking head CU SG Indian man late 20s, hoodie, framed left half (cyan rim light from camera-right) — <span class="key">"I'm 27. I write the algorithms that decide which wafers get scrapped."</span> — same talent at the multi-monitor workstation, face lit only by monitor wash. Strikethrough <strong>THERE'S / NO / CAREER / PATH</strong> goes into the right half in post.</p>
+    <div class="video-row">
+      <div class="video-cell">
+        <span class="video-cell-label">Iter A · with intended text mogra</span>
+        <div class="video-wrap">
+          <span class="mogra-badge">Text mogra preview · AE post-pass</span>
+          <video controls loop preload="metadata" src="edb_t2v_outputs/C02_ai_A.mp4"></video>
+          <div class="text-mogra mogra-c02 mogra-c02-right">
+            <div class="stack">
+              <span class="label" style="--d: 1.2s">Wrong #3 / Rebuttal</span>
+              <span class="word" style="--d: 1.8s">THERE'S<span class="strike" style="--d: 2.30s"></span></span>
+              <span class="word" style="--d: 2.0s">NO<span class="strike" style="--d: 2.55s"></span></span>
+              <span class="word" style="--d: 2.2s">CAREER<span class="strike" style="--d: 2.80s"></span></span>
+              <span class="word" style="--d: 2.4s">PATH<span class="strike" style="--d: 3.05s"></span></span>
+              <span class="endcap" style="--d: 3.9s">— actual: he writes the algorithms that scrap wafers</span>
+            </div>
+          </div>
+        </div>
+        <span class="video-filename">edb_t2v_outputs/C02_ai_A.mp4</span>
+      </div>
+      <div class="video-cell">
+        <span class="video-cell-label">Iter B</span>
+        <video controls loop preload="metadata" src="edb_t2v_outputs/C02_ai_B.mp4"></video>
+        <span class="video-filename">edb_t2v_outputs/C02_ai_B.mp4</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <p>Generated 2026-05-09 · Seedance 2.0 via Higgsfield MCP · T2V (no refs) · 480p · 16:9 · 10s</p>
+  <p style="margin-top:6px;">Source prompts: edb_c01_t2v_prompts.md (C01) · edb_c02_t2v_prompts.md (C02). Mograph reveal sequence: edb_c02_mograph.json.</p>
+</footer>
+
+<script>
+  /* Trigger text-mogra animations when video plays.
+     Re-trigger on each loop by detecting backwards currentTime jumps. */
+  document.querySelectorAll('.video-wrap').forEach(wrap => {
+    const v = wrap.querySelector('video');
+    if (!v) return;
+    let lastTime = 0;
+    const restart = () => {
+      wrap.classList.remove('is-playing');
+      // Force reflow so the animation can be re-triggered
+      void wrap.offsetWidth;
+      if (!v.paused) wrap.classList.add('is-playing');
+    };
+    v.addEventListener('play', () => wrap.classList.add('is-playing'));
+    v.addEventListener('pause', () => wrap.classList.remove('is-playing'));
+    v.addEventListener('seeked', () => { if (v.currentTime < 0.4) restart(); });
+    v.addEventListener('timeupdate', () => {
+      if (v.currentTime + 0.4 < lastTime) restart();
+      lastTime = v.currentTime;
+    });
+  });
+</script>
+</body>
+</html>
