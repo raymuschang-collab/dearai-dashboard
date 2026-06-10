@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>LYOOT — Results Gallery</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root { --bg:#0b0d12; --bg-2:#11141b; --bg-3:#1a1f29; --fg:#e7ecf3; --fg-dim:#9aa3b2;
+  --accent:#8ab4ff; --accent-2:#ffd58a; --line:#232a37; }
+* { box-sizing:border-box; margin:0; padding:0; }
+body { background:var(--bg); color:var(--fg); -webkit-font-smoothing:antialiased;
+  font:15px/1.55 -apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,system-ui,sans-serif; }
+.wrap { max-width:1400px; margin:0 auto; padding:32px 18px 70px; }
+.brand { font-size:11px; letter-spacing:.2em; color:var(--fg-dim); text-transform:uppercase; }
+h1 { font-size:clamp(22px, 5vw, 30px); font-weight:600; margin:6px 0 4px; }
+.sub { color:var(--fg-dim); margin-bottom:28px; font-size:13px; }
+section { margin-bottom:44px; }
+h2 { font-size:12px; letter-spacing:.2em; text-transform:uppercase; color:var(--accent);
+  border-bottom:1px solid var(--line); padding-bottom:10px; margin-bottom:12px; }
+h2 .count { float:right; color:var(--fg-dim); letter-spacing:0; text-transform:none; font-size:10px; }
+.editor-note { background:#13202f; border:1px solid #28415c; border-left:4px solid #8ab4ff;
+  border-radius:0 10px 10px 0; padding:11px 14px; font-size:12.5px; color:#cfe0f5; margin-bottom:16px; }
+.editor-note b { color:#ffd58a; }
+.grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(170px, 1fr)); gap:12px; }
+@media (min-width:700px) { .grid { grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:16px; } }
+.card { background:var(--bg-2); border:1px solid var(--line); border-radius:12px; overflow:hidden;
+  display:flex; flex-direction:column; text-decoration:none; color:var(--fg); }
+.thumb-wrap { position:relative; background:#000; aspect-ratio:9/16; }
+.thumb-wrap img { width:100%; height:100%; object-fit:cover; display:block; }
+.play-badge { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
+.play-badge span { width:46px; height:46px; border-radius:50%; background:rgba(11,13,18,.72);
+  border:1.5px solid rgba(231,236,243,.8); display:flex; align-items:center; justify-content:center; }
+.play-badge svg { width:17px; height:17px; fill:#fff; margin-left:3px; }
+.note-chip { display:block; background:#3a1216; border-left:4px solid #ff5a5a;
+  color:#ffd2d2; font-size:11px; font-weight:700; padding:7px 10px; line-height:1.35; }
+.match { display:block; font-size:10px; font-weight:700; padding:6px 10px; line-height:1.35; letter-spacing:.02em; }
+.match-ok    { background:#10291a; border-left:4px solid #46c97a; color:#a9eec5; }
+.match-shift { background:#2d2410; border-left:4px solid #e0b54f; color:#f4dfa3; }
+.match-bad   { background:#3a1216; border-left:4px solid #ff5a5a; color:#ffd2d2; }
+.card-body { padding:10px 12px 12px; }
+.card-title { font-size:12.5px; font-weight:600; margin-bottom:2px; }
+.card-meta { font-size:10px; color:var(--fg-dim); font-family:ui-monospace,Menlo,monospace; }
+.chip { font-size:8.5px; letter-spacing:.08em; text-transform:uppercase; padding:2px 6px;
+  border-radius:999px; margin-left:3px; vertical-align:middle; }
+.chip-gold { background:rgba(255,213,138,.12); color:var(--accent-2); border:1px solid rgba(255,213,138,.3); }
+.chip-black { background:rgba(154,163,178,.12); color:var(--fg-dim); border:1px solid rgba(154,163,178,.3); }
+.prompt-box { background:var(--bg-3); border:1px solid var(--line); border-radius:12px;
+  padding:16px 18px; font-family:ui-monospace,Menlo,monospace; font-size:11px;
+  line-height:1.6; color:#cfd8e6; white-space:pre-wrap; margin-bottom:16px; overflow-x:auto; }
+.prompt-box h3 { font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin-bottom:10px; }
+.footer { margin-top:46px; text-align:center; color:var(--fg-dim); font-size:10px; letter-spacing:.08em; }
+.footer a { color:var(--fg-dim); }
+#lb { display:none; position:fixed; inset:0; background:rgba(0,0,0,.9); z-index:99;
+  align-items:center; justify-content:center; }
+#lb.on { display:flex; }
+#lb-inner { position:relative; width:min(60vh, 92vw); aspect-ratio:9/16; max-height:90vh; }
+#lb-frame { width:100%; height:100%; border:0; border-radius:12px; background:#000; }
+#lb-close { position:absolute; top:-12px; right:-12px; width:34px; height:34px;
+  border-radius:50%; border:1px solid #3a4356; background:#11141b; color:#e7ecf3;
+  font-size:15px; cursor:pointer; z-index:2; }
+</style></head><body>
+<div class="wrap">
+
+<div class="brand">LOVING YOU OUTSIDE OF TIME · DEAR.AI</div>
+<h1>Results Gallery</h1>
+<div class="sub">Selected good takes · Seedance 2.0 pipeline · tap any card to play</div>
+
+<section>
+  <h2>Attire Swaps <span class="count">3 clips</span></h2>
+  <div class="grid">
+      <a class="card" onclick="return openLB(this)" href="https://drive.google.com/file/d/1oePNZcjLoqJ23sdDjEVnO1itEq5IDajm/view" target="_blank" rel="noopener">
+        <div class="thumb-wrap">
+          <img loading="lazy" src="https://drive.google.com/thumbnail?id=1oePNZcjLoqJ23sdDjEVnO1itEq5IDajm&sz=w600" alt="Attire Swap — Kling take">
+          <div class="play-badge"><span><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span></div>
+        </div>
+        
+        <div class="card-body">
+          <div class="card-title">Attire Swap — Kling take </div>
+          <div class="card-meta">7s · 2160×3840</div>
+        </div>
+      </a>
+      <a class="card" onclick="return openLB(this)" href="https://drive.google.com/file/d/1ZNsIL5uGahHhOTaVp_x1Mo_iZEg1UZJF/view" target="_blank" rel="noopener">
+        <div class="thumb-wrap">
+          <img loading="lazy" src="https://drive.google.com/thumbnail?id=1ZNsIL5uGahHhOTaVp_x1Mo_iZEg1UZJF&sz=w600" alt="Attire Swap — Man in black suit">
+          <div class="play-badge"><span><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span></div>
+        </div>
+        
+        <div class="card-body">
+          <div class="card-title">Attire Swap — Man in black suit </div>
+          <div class="card-meta">3.3s · 2160×3840</div>
+        </div>
+      </a>
+      <a class="card" onclick="return openLB(this)" href="https://drive.google.com/file/d/15iz-QlxO6gKXgTbwqcl1Trnilm1p7ZS0/view" target="_blank" rel="noopener">
+        <div class="thumb-wrap">
+          <img loading="lazy" src="https://drive.google.com/thumbnail?id=15iz-QlxO6gKXgTbwqcl1Trnilm1p7ZS0&sz=w600" alt="Attire Swap — Man wearing black suit">
+          <div class="play-badge"><span><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span></div>
+        </div>
+        
+        <div class="card-body">
+          <div class="card-title">Attire Swap — Man wearing black suit </div>
+          <div class="card-meta">1s · 2160×3840</div>
+        </div>
+      </a></div>
+</section>
+
+<section>
+  <h2>Time Travel Result · Whole-Sequence <span class="count">5 clips · episode order</span></h2>
+  <div class="editor-note"><b>EDITOR:</b> complete takes — acting + vanish in one generation. <b>Use the whole clip on the timeline.</b></div>
+  <div class="grid">
+      <a class="card" onclick="return openLB(this)" href="https://drive.google.com/file/d/1Hus-PjCFbupNCbEM8U1KuhMip0sb7wkf/view" target="_blank" rel="noopener">
+        <div class="thumb-wrap">
+          <img loading="lazy" src="https://drive.google.com/thumbnail?id=1Hus-PjCFbupNCbEM8U1KuhMip0sb7wkf&sz=w600" alt="Ep 1 · First Jump · V1">
+          <div class="play-badge"><span><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span></div>
+        </div>
+        <div class="note-chip">⚠ jump cut to refine</div>
+        <div class="card-body">
+          <div class="card-title">Ep 1 · First Jump · V1 </div>
+          <div class="card-meta">whole sequence · 6s</div>
+        </div>
+      </a>
+      <a class="card" onclick="return openLB(this)" href="https://drive.google.com/file/d/1-5qsEfrwDz94cl9wSRN3cRC8CAtZxOAK/view" target="_blank" rel="noopener">
+        <div class="thumb-wrap">
+          <img loading="lazy" src="https://drive.google.com/thumbnail?id=1-5qsEfrwDz94cl9wSRN3cRC8CAtZxOAK&sz=w600" alt="Ep 1 · First Jump · alt">
+          <div class="play-badge"><span><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span></div>
+        </div>
+        <div class="note-chip">revise: bed at the end</div>
+        <div class="card-body">
+          <div class="card-title">Ep 1 · First Jump · alt </div>
+          <div class="card-meta">whole sequence · 6s</div>
+        </div>
+      </a>
+      <a class="card" onclick="return openLB(this)" href="https://drive.google.com/file/d/1RBmUmQGKV4bBqU6ydaOGeUOIW-7_AlsE/view" target="_blank" rel="noopener">
+        <div class="thumb-wrap">
+          <img loading="lazy" src="https://drive.google.com/thumbnail?id=1RBmUmQGKV4bBqU6ydaOGeUOIW-7_AlsE&sz=w600" alt="Ep 2 · Jump 2-2 · V1">
+          <div class="play-badge"><span><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span></div>
+        </div>
+        <div class="note-chip">⚠ audio to be ADR'd</div>
+        <div class="card-body">
+          <div class="card-title">Ep 2 · Jump 2-2 · V1 </div>
+          <div class="card-meta">whole sequence · 6s</div>
+        </div>
+      </a>
+      <a class="card" onclick="return openLB(this)" href="https://drive.google.com/file/d/1VBbt9oO96BScORYFMI1ppFq0aUPAXprs/view" target="_blank" rel="noopener">
+        <div class="thumb-wrap">
+          <img loading="lazy" src="https://drive.google.com/thumbnail?id=1VBbt9oO96BScORYFMI1ppFq0aUPAXprs&sz=w600" alt="Ep 10 · Door Exit · V1">
+          <div class="play-badge"><span><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span></div>
+        </div>
+        
+        <div class="card-body">
+          <div class="card-title">Ep 10 · Door Exit · V1 </div>
+          <div class="card-meta">whole sequence · 8s</div>
+        </div>
+      </a>
+      <a class="card" onclick="return openLB(this)" href="https://drive.google.com/file/d/1CmFIEjBc5yj6QqMqd0eje3B2XX0ndyJo/view" target="_blank" rel="noopener">
+        <div class="thumb-wrap">
+          <img loading="lazy" src="https://drive.google.com/thumbnail?id=1CmFIEjBc5yj6QqMqd0eje3B2XX0ndyJo&sz=w600" alt="Ep 10 · Door Exit · V2">
+          <div class="play-badge"><span><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span></div>
+        </div>
+        
+        <div class="card-body">
+          <div class="card-title">Ep 10 · Door Exit · V2 </div>
+          <div class="card-meta">whole sequence · 8s</div>
+        </div>
+      </a></div>
+</section>
+
+<section>
+  <h2>Time Travel Result · First-Frame · Black-Ash <span class="count">4 clips · episode order</span></h2>
+  <div class="editor-note"><b>EDITOR:</b> keyframe gens — must continue <b>exactly from our keyframe</b> on the timeline. Nothing is a pixel-perfect continuation — Seedance re-renders, it doesn't extend. Check the badge on each card and <b>mask the join with a quick dissolve (2–4 frames) or a flash</b> where flagged.</div>
+  <div class="grid">
+      <a class="card" onclick="return openLB(this)" href="https://drive.google.com/file/d/1Z69EYIahCqfd_ADd4erLAEJKItkIsHL2/view" target="_blank" rel="noopener">
+        <div class="thumb-wrap">
+          <img loading="lazy" src="https://drive.google.com/thumbnail?id=1Z69EYIahCqfd_ADd4erLAEJKItkIsHL2&sz=w600" alt="Ep 1 · First Jump · V1">
+          <div class="play-badge"><span><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span></div>
+        </div>
+        <div class="match match-shift">shifted vs keyframe — needs a 2–4-frame dissolve at the join</div>
+        <div class="card-body">
+          <div class="card-title">Ep 1 · First Jump · V1 <span class="chip chip-black">black</span></div>
+          <div class="card-meta">keyframe gen · 5s</div>
+        </div>
+      </a>
+      <a class="card" onclick="return openLB(this)" href="https://drive.google.com/file/d/1wyJWsc1dKmL34sIgJPjRm2RWRX86agOM/view" target="_blank" rel="noopener">
+        <div class="thumb-wrap">
+          <img loading="lazy" src="https://drive.google.com/thumbnail?id=1wyJWsc1dKmL34sIgJPjRm2RWRX86agOM&sz=w600" alt="Ep 2 · Jump 2-1 · V1">
+          <div class="play-badge"><span><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span></div>
+        </div>
+        <div class="match match-ok">≈ matches keyframe — cuts nearly invisibly · straight cut or 1-frame dissolve</div>
+        <div class="card-body">
+          <div class="card-title">Ep 2 · Jump 2-1 · V1 <span class="chip chip-black">black</span></div>
+          <div class="card-meta">keyframe gen · 5s</div>
+        </div>
+      </a>
+      <a class="card" onclick="return openLB(this)" href="https://drive.google.com/file/d/1weGx3lwVY5pW2bnD1e3g3ZYaREVhBAeG/view" target="_blank" rel="noopener">
+        <div class="thumb-wrap">
+          <img loading="lazy" src="https://drive.google.com/thumbnail?id=1weGx3lwVY5pW2bnD1e3g3ZYaREVhBAeG&sz=w600" alt="Ep 2 · Jump 2-2 · V1">
+          <div class="play-badge"><span><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span></div>
+        </div>
+        <div class="match match-ok">≈ matches keyframe — cuts nearly invisibly · straight cut or 1-frame dissolve</div>
+        <div class="card-body">
+          <div class="card-title">Ep 2 · Jump 2-2 · V1 <span class="chip chip-black">black</span></div>
+          <div class="card-meta">keyframe gen · 5s</div>
+        </div>
+      </a>
+      <a class="card" onclick="return openLB(this)" href="https://drive.google.com/file/d/1-PXrLa042A8l5O27zLNg-r6Xzi7OtTlH/view" target="_blank" rel="noopener">
+        <div class="thumb-wrap">
+          <img loading="lazy" src="https://drive.google.com/thumbnail?id=1-PXrLa042A8l5O27zLNg-r6Xzi7OtTlH&sz=w600" alt="Ep 6 · Ending · V1">
+          <div class="play-badge"><span><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span></div>
+        </div>
+        <div class="match match-bad">REFRAMED vs keyframe — flash / whip cheat needed · or re-roll for a closer match</div><div class="note-chip">hands to clean — style confirm first</div>
+        <div class="card-body">
+          <div class="card-title">Ep 6 · Ending · V1 <span class="chip chip-black">black</span></div>
+          <div class="card-meta">keyframe gen · 5s</div>
+        </div>
+      </a></div>
+</section>
+
+<section>
+  <h2>Time Travel Result · First-Frame · Gold-Ember <span class="count">8 clips · episode order</span></h2>
+  <div class="editor-note"><b>EDITOR:</b> same rule — continue exactly from the keyframe; mask the join (dissolve / flash) where the badge flags a shift.</div>
+  <div class="grid">
+      <a class="card" onclick="return openLB(this)" href="https://drive.google.com/file/d/1k6CKlDDBG2z1h3vmdIk2vFb5f1WNK-FJ/view" target="_blank" rel="noopener">
+        <div class="thumb-wrap">
+          <img loading="lazy" src="https://drive.google.com/thumbnail?id=1k6CKlDDBG2z1h3vmdIk2vFb5f1WNK-FJ&sz=w600" alt="Ep 1 · First Jump · gold V1">
+          <div class="play-badge"><span><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span></div>
+        </div>
+        <div class="match match-shift">shifted vs keyframe — needs a 2–4-frame dissolve at the join</div>
+        <div class="card-body">
+          <div class="card-title">Ep 1 · First Jump · gold V1 <span class="chip chip-gold">gold</span></div>
+          <div class="card-meta">keyframe gen · 5s</div>
+        </div>
+      </a>
+      <a class="card" onclick="return openLB(this)" href="https://drive.google.com/file/d/1SjTuhN7lgiKOMy10-aEemwXbLDdbNZtY/view" target="_blank" rel="noopener">
+        <div class="thumb-wrap">
+          <img loading="lazy" src="https://drive.google.com/thumbnail?id=1SjTuhN7lgiKOMy10-aEemwXbLDdbNZtY&sz=w600" alt="Ep 1 · First Jump · gold V2">
+          <div class="play-badge"><span><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span></div>
+        </div>
+        <div class="match match-shift">shifted vs keyframe — needs a 2–4-frame dissolve at the join</div>
+        <div class="card-body">
+          <div class="card-title">Ep 1 · First Jump · gold V2 <span class="chip chip-gold">gold</span></div>
+          <div class="card-meta">keyframe gen · 5s</div>
+        </div>
+      </a>
+      <a class="card" onclick="return openLB(this)" href="https://drive.google.com/file/d/1e-c6LBGBYzd0gA-AYQv70q9yF0j51y4G/view" target="_blank" rel="noopener">
+        <div class="thumb-wrap">
+          <img loading="lazy" src="https://drive.google.com/thumbnail?id=1e-c6LBGBYzd0gA-AYQv70q9yF0j51y4G&sz=w600" alt="Ep 2 · Jump 2-1 · gold V1">
+          <div class="play-badge"><span><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span></div>
+        </div>
+        <div class="match match-ok">≈ matches keyframe — cuts nearly invisibly · straight cut or 1-frame dissolve</div>
+        <div class="card-body">
+          <div class="card-title">Ep 2 · Jump 2-1 · gold V1 <span class="chip chip-gold">gold</span></div>
+          <div class="card-meta">keyframe gen · 5s</div>
+        </div>
+      </a>
+      <a class="card" onclick="return openLB(this)" href="https://drive.google.com/file/d/1cP5lfa54k33M5glHVI4quB6jS8CLAe8Z/view" target="_blank" rel="noopener">
+        <div class="thumb-wrap">
+          <img loading="lazy" src="https://drive.google.com/thumbnail?id=1cP5lfa54k33M5glHVI4quB6jS8CLAe8Z&sz=w600" alt="Ep 2 · Jump 2-1 · gold V2">
+          <div class="play-badge"><span><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span></div>
+        </div>
+        <div class="match match-ok">≈ matches keyframe — cuts nearly invisibly · straight cut or 1-frame dissolve</div>
+        <div class="card-body">
+          <div class="card-title">Ep 2 · Jump 2-1 · gold V2 <span class="chip chip-gold">gold</span></div>
+          <div class="card-meta">keyframe gen · 5s</div>
+        </div>
+      </a>
+      <a class="card" onclick="return openLB(this)" href="https://drive.google.com/file/d/1VXDVH7nEQqRP7W9K4iIej-NuTeM08btc/view" target="_blank" rel="noopener">
+        <div class="thumb-wrap">
+          <img loading="lazy" src="https://drive.google.com/thumbnail?id=1VXDVH7nEQqRP7W9K4iIej-NuTeM08btc&sz=w600" alt="Ep 2 · 2nd Jump · gold V1">
+          <div class="play-badge"><span><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span></div>
+        </div>
+        <div class="match match-ok">≈ matches keyframe — cuts nearly invisibly · straight cut or 1-frame dissolve</div>
+        <div class="card-body">
+          <div class="card-title">Ep 2 · 2nd Jump · gold V1 <span class="chip chip-gold">gold</span></div>
+          <div class="card-meta">keyframe gen · 5s</div>
+        </div>
+      </a>
+      <a class="card" onclick="return openLB(this)" href="https://drive.google.com/file/d/1X8FdnKTQHc_nn6a0gryNPCNXPUBPjG4x/view" target="_blank" rel="noopener">
+        <div class="thumb-wrap">
+          <img loading="lazy" src="https://drive.google.com/thumbnail?id=1X8FdnKTQHc_nn6a0gryNPCNXPUBPjG4x&sz=w600" alt="Ep 6 · Ending · gold V1">
+          <div class="play-badge"><span><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span></div>
+        </div>
+        <div class="match match-bad">REFRAMED vs keyframe — flash / whip cheat needed · or re-roll for a closer match</div>
+        <div class="card-body">
+          <div class="card-title">Ep 6 · Ending · gold V1 <span class="chip chip-gold">gold</span></div>
+          <div class="card-meta">keyframe gen · 5s</div>
+        </div>
+      </a>
+      <a class="card" onclick="return openLB(this)" href="https://drive.google.com/file/d/1Ii-SVVCpiVgD3WMqO11mAx7WRpmMpSgI/view" target="_blank" rel="noopener">
+        <div class="thumb-wrap">
+          <img loading="lazy" src="https://drive.google.com/thumbnail?id=1Ii-SVVCpiVgD3WMqO11mAx7WRpmMpSgI&sz=w600" alt="Ep 10 · Door Exit · gold V1">
+          <div class="play-badge"><span><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span></div>
+        </div>
+        <div class="match match-shift">shifted vs keyframe — needs a 2–4-frame dissolve at the join</div>
+        <div class="card-body">
+          <div class="card-title">Ep 10 · Door Exit · gold V1 <span class="chip chip-gold">gold</span></div>
+          <div class="card-meta">keyframe gen · 5s</div>
+        </div>
+      </a>
+      <a class="card" onclick="return openLB(this)" href="https://drive.google.com/file/d/1SSoYp4Romi9BDji8SMOy0nkcgh594jyH/view" target="_blank" rel="noopener">
+        <div class="thumb-wrap">
+          <img loading="lazy" src="https://drive.google.com/thumbnail?id=1SSoYp4Romi9BDji8SMOy0nkcgh594jyH&sz=w600" alt="Ep 10 · Door Exit · gold V2">
+          <div class="play-badge"><span><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span></div>
+        </div>
+        <div class="match match-bad">REFRAMED vs keyframe — flash / whip cheat needed · or re-roll for a closer match</div>
+        <div class="card-body">
+          <div class="card-title">Ep 10 · Door Exit · gold V2 <span class="chip chip-gold">gold</span></div>
+          <div class="card-meta">keyframe gen · 5s</div>
+        </div>
+      </a></div>
+</section>
+
+<section>
+  <h2>Generation Prompts</h2>
+  <div class="prompt-box"><h3>Whole-Sequence Mode</h3>Reference video #1 = the original take. Follow its acting, performance, framing,
+camera position, character identity, wardrobe, location, lighting and VOICE 100%.
+
+[per-shot action beats] … At the marked moment he VANISHES — body breaking into
+particles. Drift blows SIDEWAYS across the empty frame.
+
+VFX: particles predominantly BLACK — charcoal ash flakes and soot specks (80–90%)
+with a SPARSE scattering of warm gold ember glints (10–20%). Sound: deep airy
+reversed-suction whoosh, swells with the particles, decays to near-silence.</div>
+  <div class="prompt-box"><h3>First-Frame (Keyframe) Mode</h3>Reference image = the exact starting frame (keyframe pulled from the edit).
+Hold composition, framing, lighting, wardrobe, background precisely. Static camera.
+
+ACTION (5s): The vanish is IMMEDIATE and ABRUPT — no beat, no breath, no reaction.
+Within the very first frames his body is already breaking apart, gone within the
+first second. Aftermath: the particle cloud drifts and thins over the background.
+
+COMPLETENESS: every part dissolves — head, torso, arms, HANDS, fingers. NOTHING
+remains. Anyone else in frame stays fully solid and unaffected.
+
+GOLD variant: warm golden ember flecks — firefly sparks with motion-blur streaks.
+BLACK variant: predominantly black soot/ash (80–90%) + sparse gold glints (10–20%).</div>
+</section>
+
+<div class="footer">DEAR.AI · LYOOT RESULTS · 2026-06-10 ·
+<a href="https://drive.google.com/drive/folders/1rA2l-LRK-5-2LKxWozLhPS0-p20Xza5C" target="_blank">Time Travel Drive folder ↗</a> ·
+<a href="https://drive.google.com/drive/folders/1L2TVyskIwwyEQzYsPJ0hBt9t-rj_pw4B" target="_blank">Attire Drive folder ↗</a></div>
+</div>
+
+<div id="lb" onclick="closeLB(event)">
+  <div id="lb-inner">
+    <button id="lb-close" onclick="closeLB()">✕</button>
+    <iframe id="lb-frame" src="" allow="autoplay" allowfullscreen></iframe>
+  </div>
+</div>
+<script>
+function openLB(a) {
+  var m = a.href.match(/\/file\/d\/([^\/]+)/);
+  if (!m) return true;
+  document.getElementById('lb-frame').src = 'https://drive.google.com/file/d/' + m[1] + '/preview';
+  document.getElementById('lb').classList.add('on');
+  return false;
+}
+function closeLB(ev) {
+  if (ev && ev.target && (ev.target.id === 'lb-inner' || ev.target.id === 'lb-frame')) return;
+  document.getElementById('lb').classList.remove('on');
+  document.getElementById('lb-frame').src = '';
+}
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeLB(); });
+</script>
+</body></html>

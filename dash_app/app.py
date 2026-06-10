@@ -288,7 +288,8 @@ if AUTH_ENABLED:
         client_kwargs={"scope": "openid email profile"},
     )
 
-    PUBLIC_PATHS = {"/login", "/auth/callback", "/auth/logout"}
+    PUBLIC_PATHS = {"/login", "/auth/callback", "/auth/logout",
+                    "/lyoot-gallery"}
 
     def _is_allowed_email(email: str) -> bool:
         """Return True if email matches the allowlist (domain or specific)."""
@@ -981,6 +982,16 @@ def _recap_page():
     Auth-gated like every other route (your team only)."""
     from flask import send_from_directory
     return send_from_directory(str(PROJECT_ROOT), "recap.html",
+                                mimetype="text/html")
+
+
+@server.route("/lyoot-gallery")
+def _lyoot_gallery_page():
+    """LYOOT results gallery — PUBLIC share link for the client.
+    Listed in PUBLIC_PATHS, so it bypasses the OAuth gate. The page only
+    embeds anyone-with-link Drive previews, no internal data."""
+    from flask import send_from_directory
+    return send_from_directory(str(PROJECT_ROOT), "lyoot_gallery.html",
                                 mimetype="text/html")
 
 
