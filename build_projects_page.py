@@ -19,6 +19,8 @@ from __future__ import annotations
 import html as _html
 from datetime import datetime, timezone
 
+from global_presets import GLOBAL_PRESETS, DEFAULT_PRESET_ID
+
 
 # Status → CSS class mapping. Same vocabulary as `_create_master_projects_sheet.py`.
 _STATUS_CLASS = {
@@ -81,11 +83,32 @@ def _project_card(p: dict) -> str:
         if notes else ""
     )
 
-    # Cover slot — image if cover exists, else "+" placeholder. Clicking the
-    # cover OR the "+" overlay opens a hidden file input (per-card) which
-    # POSTs to /api/project-cover/<slug>. Wrapping <a class="cover-link"> uses
-    # `data-cover-slug` so the JS can find the matching file input.
-    if cover_url:
+    # Asset Library roll-up (filled by _project_media in app.py)
+    hero = p.get("hero_video") or None
+    n_char = int(p.get("n_characters", 0) or 0)
+    n_loc = int(p.get("n_locations", 0) or 0)
+
+    # Cover slot — three states, in priority order:
+    #   1. hero ref video present → hover-play tile (poster = cover.jpg if set,
+    #      else the clip's own Drive thumbnail). The playable video is a
+    #      CHARACTER or LOCATION reference clip only — never a generated story
+    #      clip (see _project_media). Click still opens the change-cover picker.
+    #   2. cover image only → static image + "Change cover" hover overlay.
+    #   3. nothing → "+ Add cover" placeholder.
+    # All three keep `data-cover-slug` so the cover-upload JS still works.
+    if hero:
+        poster = cover_url or hero.get("poster", "")
+        vsrc = f"/api/asset-video/{_html.escape(hero['file_id'])}"
+        kind = _html.escape((hero.get("kind") or "ref"))
+        cover_html = f'''
+        <div class="card-cover vtile" data-cover-slug="{_html.escape(slug)}"
+             data-vsrc="{vsrc}">
+          <img class="vtile-poster" src="{_html.escape(poster)}" alt="" loading="lazy">
+          <span class="vtile-play">▶</span>
+          <span class="vtile-kind">{kind} ref</span>
+          <div class="cover-overlay">Change cover</div>
+        </div>'''
+    elif cover_url:
         cover_html = f'''
         <div class="card-cover" data-cover-slug="{_html.escape(slug)}">
           <img src="{_html.escape(cover_url)}" alt="" loading="lazy">
@@ -97,6 +120,14 @@ def _project_card(p: dict) -> str:
           <div class="cover-plus">+</div>
           <div class="cover-add-text">Add cover</div>
         </div>'''
+
+    # Stat roll-up line: episodes · characters · locations
+    stat_bits = [f'<span><b>{ep_count}</b> ep{"s" if ep_count != 1 else ""}</span>']
+    if n_char:
+        stat_bits.append(f'<span><b>{n_char}</b> char</span>')
+    if n_loc:
+        stat_bits.append(f'<span><b>{n_loc}</b> loc</span>')
+    stats_line = f'<div class="card-stats">{"".join(stat_bits)}</div>'
 
     # Hidden file input — outside the <a> wrapper so clicks don't propagate
     # to the gallery link. JS clicks it programmatically when cover is clicked.
@@ -117,12 +148,10 @@ def _project_card(p: dict) -> str:
             <span class="status-badge {status_cls}">{_html.escape(status)}</span>
           </div>
           <h3 class="card-title">{_html.escape(title)}</h3>
+          {stats_line}
           <div class="card-meta">
-            <span class="card-eps">{ep_count} episode{"s" if ep_count != 1 else ""}</span>
-            <span class="card-sep">·</span>
             <span class="card-owner">{_html.escape(owner)}</span>
-          </div>
-          <div class="card-meta">
+            <span class="card-sep">·</span>
             <span class="card-created">created {_html.escape(created)}</span>
           </div>
           {notes_line}
@@ -169,6 +198,21 @@ def render_projects_page(projects: list[dict], user_email: str = "") -> str:
         f'<a class="refresh" href="/auth/logout">Log out</a>'
         if user_email else ""
     )
+
+    # Global-style preset cards for the New Project modal (from global_presets.py).
+    _gp_cards = []
+    for gp in GLOBAL_PRESETS:
+        sel = " selected" if gp["id"] == DEFAULT_PRESET_ID else ""
+        _gp_cards.append(
+            f'<div class="global-card{sel}" data-radio-group="global" '
+            f'data-value="{_html.escape(gp["id"])}" '
+            f'title="{_html.escape(gp["camera"])}">'
+            f'<div class="gc-name">{_html.escape(gp["name"])}</div>'
+            f'<div class="gc-tag">{_html.escape(gp["tagline"])}</div>'
+            f'<div class="gc-ref">{_html.escape(gp["ref"])}</div>'
+            f'</div>'
+        )
+    global_cards_html = "".join(_gp_cards)
 
     return f'''<!DOCTYPE html>
 <html lang="en">
@@ -328,10 +372,44 @@ def render_projects_page(projects: list[dict], user_email: str = "") -> str:
     background: rgba(0, 0, 0, 0.7); color: white;
     font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
   }}
+  /* Hover-play preview — a CHARACTER or LOCATION reference clip (never a
+     generated story clip) fades in over the poster on hover. Mechanism ported
+     from the COVEN series dashboard: poster-only until hover, same-origin
+     <video> injected via /api/asset-video, torn down on leave. */
+  .card-cover.vtile .vtile-video {{
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; opacity: 0; transition: opacity 0.25s ease;
+    z-index: 2; background: #000;
+  }}
+  .card-cover.vtile.playing .vtile-video {{ opacity: 1; }}
+  .card-cover .vtile-play {{
+    position: absolute; left: 10px; bottom: 10px; z-index: 3;
+    width: 26px; height: 26px; border-radius: 999px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.55); color: #fff; font-size: 10px;
+    backdrop-filter: blur(4px); transition: opacity 0.2s ease;
+    pointer-events: none;
+  }}
+  .card-cover.vtile.playing .vtile-play {{ opacity: 0; }}
+  .card-cover .vtile-kind {{
+    position: absolute; right: 8px; top: 8px; z-index: 3;
+    font-size: 8px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: #fff;
+    background: rgba(0,0,0,0.5); padding: 3px 7px; border-radius: 999px;
+    backdrop-filter: blur(4px); pointer-events: none;
+  }}
+
   .card-row1 {{ display: flex; gap: 6px; align-items: center; }}
   .card-title {{
     margin: 0; font-size: 16px; font-weight: 600; line-height: 1.3;
   }}
+  /* Stat roll-up line — episodes / characters / locations from the Asset Library */
+  .card-stats {{
+    display: flex; flex-wrap: wrap; gap: 4px 12px;
+    font-size: 11px; color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+  }}
+  .card-stats b {{ color: var(--ink); font-weight: 600; }}
   .card-meta {{ font-size: 12px; color: var(--muted); }}
   .card-meta .card-sep {{ margin: 0 6px; opacity: 0.5; }}
   .card-notes {{
@@ -478,6 +556,24 @@ def render_projects_page(projects: list[dict], user_email: str = "") -> str:
   }}
   .radio-card .rc-title {{ font-weight: 600; color: var(--ink); }}
   .radio-card .rc-sub {{ font-size: 11px; color: var(--muted); margin-top: 2px; }}
+
+  /* Global film-look presets — compact 2-col grid of selectable cards */
+  .global-grid {{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }}
+  .global-card {{
+    border: 1px solid var(--line); border-radius: 8px;
+    padding: 9px 11px; cursor: pointer;
+    background: var(--card-bg); transition: all 0.12s;
+  }}
+  .global-card:hover {{ border-color: var(--muted); }}
+  .global-card.selected {{
+    border-color: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--accent);
+    background: var(--soft-bg);
+  }}
+  .global-card .gc-name {{ font-weight: 600; font-size: 13px; color: var(--ink); }}
+  .global-card .gc-tag {{ font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.3; }}
+  .global-card .gc-ref {{ font-size: 10px; color: var(--accent); margin-top: 3px; font-style: italic; }}
+  @media (max-width: 560px) {{ .global-grid {{ grid-template-columns: 1fr; }} }}
 
   /* Depth choice — bigger cards with cost/time */
   .depth-grid {{ display: flex; flex-direction: column; gap: 8px; }}
@@ -679,6 +775,56 @@ def render_projects_page(projects: list[dict], user_email: str = "") -> str:
     }});
   }})();
 
+  // Hover-play the CHARACTER / LOCATION reference clip over each card poster.
+  // Ported from the COVEN series dashboard (mechanism A): poster-only until
+  // hover, a same-origin muted <video> is injected (Drive can't be hotlinked
+  // cross-origin), played with a resilient retry, and fully torn down on leave
+  // so no off-screen clips keep buffering. Click is left to the cover-upload
+  // handler above (change cover) / the card link.
+  (function() {{
+    function makeVideo(src) {{
+      const v = document.createElement('video');
+      v.className = 'vtile-video';
+      v.muted = true; v.loop = true; v.autoplay = true;
+      v.playsInline = true; v.setAttribute('playsinline', '');
+      v.preload = 'auto'; v.src = src;
+      return v;
+    }}
+    function resilientPlay(v) {{
+      // The first play() can transiently reject (AbortError race); re-fire on
+      // canplay/loadeddata and on two timed retries.
+      const go = () => {{ const p = v.play(); if (p && p.catch) p.catch(() => {{}}); }};
+      go();
+      v.addEventListener('canplay', go, {{once: true}});
+      v.addEventListener('loadeddata', go, {{once: true}});
+      setTimeout(go, 120); setTimeout(go, 400);
+    }}
+    function enter(slot) {{
+      if (slot.dataset.playing || !slot.dataset.vsrc) return;
+      slot.dataset.playing = '1';
+      const v = makeVideo(slot.dataset.vsrc);
+      slot.appendChild(v);
+      slot.classList.add('playing');
+      resilientPlay(v);
+    }}
+    function leave(slot) {{
+      const v = slot.querySelector('.vtile-video');
+      if (v) {{ try {{ v.pause(); }} catch (e) {{}} v.removeAttribute('src'); v.load(); v.remove(); }}
+      slot.classList.remove('playing');
+      delete slot.dataset.playing;
+    }}
+    // pointerover/out BUBBLE (unlike mouseenter), so one delegated pair covers
+    // every card, including ones added after load.
+    document.addEventListener('pointerover', (e) => {{
+      const slot = e.target.closest && e.target.closest('.card-cover.vtile');
+      if (slot && !slot.contains(e.relatedTarget)) enter(slot);
+    }});
+    document.addEventListener('pointerout', (e) => {{
+      const slot = e.target.closest && e.target.closest('.card-cover.vtile');
+      if (slot && !slot.contains(e.relatedTarget)) leave(slot);
+    }});
+  }})();
+
   // ===== New Project modal =====
   let _scriptFile = null;
   function openNewProjectModal() {{
@@ -773,6 +919,9 @@ def render_projects_page(projects: list[dict], user_email: str = "") -> str:
       document.querySelectorAll('[data-radio-group="depth"]').forEach(c => {{
         c.addEventListener('click', () => selectRadio('depth', c.dataset.value));
       }});
+      document.querySelectorAll('[data-radio-group="global"]').forEach(c => {{
+        c.addEventListener('click', () => selectRadio('global', c.dataset.value));
+      }});
 
       // Submit handler
       document.getElementById('np-submit').addEventListener('click', async () => {{
@@ -780,6 +929,7 @@ def render_projects_page(projects: list[dict], user_email: str = "") -> str:
         const type = document.getElementById('np-type').value;
         const locale = document.getElementById('np-locale').value;
         const depth = document.getElementById('np-depth').value;
+        const globalPreset = document.getElementById('np-global').value;
         const parentShow = document.getElementById('np-parent').value.trim();
         const notes = document.getElementById('np-notes').value.trim();
 
@@ -795,6 +945,7 @@ def render_projects_page(projects: list[dict], user_email: str = "") -> str:
         fd.append('type', type);
         fd.append('locale', locale);
         fd.append('depth', depth);
+        fd.append('global_preset', globalPreset);
         if (parentShow) fd.append('parent_show', parentShow);
         if (notes) fd.append('notes', notes);
 
@@ -912,6 +1063,15 @@ def render_projects_page(projects: list[dict], user_email: str = "") -> str:
         </div>
       </div>
 
+      <!-- Global film look (preset) -->
+      <div class="modal-field">
+        <label>Global film look <span class="hint">— the cinematic style prepended to every shot</span></label>
+        <div class="global-grid">
+          {global_cards_html}
+        </div>
+        <input type="hidden" id="np-global" value="{DEFAULT_PRESET_ID}">
+      </div>
+
       <!-- Depth choice -->
       <div class="modal-field">
         <label>How far to take it</label>
@@ -923,17 +1083,17 @@ def render_projects_page(projects: list[dict], user_email: str = "") -> str:
             </div>
             <div class="dc-cost">~5 min<br>$0</div>
           </div>
-          <div class="depth-card" data-radio-group="depth" data-value="storyboards">
-            <div class="dc-left">
-              <div class="dc-title">🟡 + Storyboards</div>
-              <div class="dc-sub">Also auto-generate stick-figure storyboards for every set.</div>
-            </div>
-            <div class="dc-cost">~30 min<br>~$2</div>
-          </div>
           <div class="depth-card" data-radio-group="depth" data-value="bibles">
             <div class="dc-left">
-              <div class="dc-title">🔴 + Bible refs</div>
-              <div class="dc-sub">Full pre-production: shotlist + storyboards + character/location/prop ref images.</div>
+              <div class="dc-title">🟡 + Asset refs</div>
+              <div class="dc-sub">Also generate character / location / prop reference images.</div>
+            </div>
+            <div class="dc-cost">~30 min<br>~$3</div>
+          </div>
+          <div class="depth-card" data-radio-group="depth" data-value="masters">
+            <div class="dc-left">
+              <div class="dc-title">🔴 + Master shots</div>
+              <div class="dc-sub">Full pre-production: shotlist + asset refs + 1–2 rendered master shots per scene.</div>
             </div>
             <div class="dc-cost">~60 min<br>~$5</div>
           </div>

@@ -1,36 +1,84 @@
-/* Production Dashboard theme — mirrors pharaoh_king_gallery_PRODUCTION_v2.html
-   Paper-white floating cards on cool gray. Color reserved for data viz. */
+/* Production Dashboard theme — unified with the COVEN / WHF / "Good Light"
+   gallery look. Crimson #c11647 accent on #fafafa, Inter everywhere, full
+   light/dark mode via html[data-theme]. Tokens are identical to
+   build_gallery.py / build_series_dashboard.py / build_projects_page.py so all
+   surfaces feel like one product. */
 
 :root {
-  --paper:        #ededed;
-  --paper-deep:   #e3e3e3;
-  --card:         #ffffff;
-  --card-elev:    #fdfdfd;
-  --card-border:  rgba(0, 0, 0, 0.05);
-  --ink:          #0a0a0a;
-  --ink-soft:     #5a5a5a;
-  --ink-mute:     #a0a0a0;
-  --charcoal:     #1a1a1a;
-  --terracotta:   #ff3b6b;
-  --terracotta-l: #ff6b8a;
-  --gold:         #ff8c42;
-  --green:        #d3eddd;
-  --green-deep:   #3ad9c2;
-  --shadow:       rgba(0, 0, 0, 0.06);
-  --shadow-lift:  rgba(0, 0, 0, 0.10);
+  --bg:            #fafafa;
+  --ink:           #1a1a1a;
+  --ink-soft:      #4a4a4a;
+  --muted:         #888888;
+  --line:          #e5e5e5;
+  --accent:        #c11647;   /* crimson — the signature color */
+  --accent-ink:    #ffffff;
+  --chip-bg:       #f0f0f0;
+  --card-bg:       #ffffff;
+  --card-elev:     #ffffff;
+  --code-bg:       #f5f5f5;
+  --soft-bg:       #f8f8f8;
+  --hero-bg:       #ffffff;
+  --table-row-hover: #fafafa;
+  --green:         #2e8c4f;   /* success / generate actions */
+  --green-soft:    #e8f5e9;
+  --green-ink:     #2e7d32;
+  --warn-soft:     #fff3e0;
+  --warn-ink:      #e65100;
+  --fail-soft:     #fde8ec;
+  --fail-ink:      #c11647;
+  --prompt-global-bg: #f0f4f8;
+  --prompt-loc-bg: #fef7ed;
+  --prompt-loc-text: #7a3a08;
+  --shadow:        rgba(0, 0, 0, 0.05);
+  --shadow-lift:   rgba(0, 0, 0, 0.10);
 }
+
+/* Dark-mode override — toggled by setting data-theme="dark" on <html>.
+   Mirrors the gallery dark palette exactly. */
+html[data-theme="dark"] {
+  --bg:            #0f1115;
+  --ink:           #e8e8ea;
+  --ink-soft:      #b9bcc6;
+  --muted:         #8a8d96;
+  --line:          #2a2d36;
+  --accent:        #ff5577;   /* lightened crimson so it pops on dark */
+  --accent-ink:    #0f1115;
+  --chip-bg:       #2a2d36;
+  --card-bg:       #181b22;
+  --card-elev:     #1d2028;
+  --code-bg:       #14171d;
+  --soft-bg:       #14171d;
+  --hero-bg:       #14171d;
+  --table-row-hover: #1d2028;
+  --green:         #57b87a;
+  --green-soft:    #1f3a23;
+  --green-ink:     #7fc788;
+  --warn-soft:     #3d2a13;
+  --warn-ink:      #ffb868;
+  --fail-soft:     #3a1822;
+  --fail-ink:      #ff7a90;
+  --prompt-global-bg: #1a2230;
+  --prompt-loc-bg: #2a1f12;
+  --prompt-loc-text: #e8b27d;
+  --shadow:        rgba(0, 0, 0, 0.30);
+  --shadow-lift:   rgba(0, 0, 0, 0.45);
+}
+html[data-theme="dark"] body { color-scheme: dark; }
+/* Keep storyboard whites from burning on dark */
+html[data-theme="dark"] img { filter: brightness(0.94); }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 body {
   font-family: "Inter", system-ui, -apple-system, sans-serif;
-  background: var(--paper);
+  background: var(--bg);
   color: var(--ink);
   min-height: 100vh;
   line-height: 1.55;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
-#dash_app, #_dash-app-content { background: var(--paper); }
+#dash_app, #_dash-app-content { background: var(--bg); }
 .wrap { max-width: 1480px; margin: 0 auto; padding: 0 28px 80px; }
 
 /* Sticky top bar — hero + episode picker + tabs all stay pinned while scrolling */
@@ -38,10 +86,10 @@ body {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: var(--paper);
+  background: var(--bg);
   padding: 16px 0 12px;
   margin-bottom: 14px;
-  box-shadow: 0 12px 16px -16px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 12px 16px -16px var(--shadow-lift);
 }
 
 .episode-row {
@@ -51,57 +99,76 @@ body {
 }
 .episode-row > div { margin: 0; }
 
-/* Bulk-action row — sits just BELOW the tab panel. Forest-green pill buttons. */
+/* Dark-mode toggle — round icon button, pinned top-right of the viewport.
+   Injected via app.index_string (outside the Dash tree) so it needs no callback. */
+#dark-toggle {
+  position: fixed;
+  top: 14px; right: 18px;
+  z-index: 1200;
+  width: 34px; height: 34px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--card-bg);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 15px; line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+#dark-toggle:hover { border-color: var(--accent); transform: translateY(-1px); }
+
+/* Bulk-action row — sits just BELOW the tab panel. Green "generate" pills. */
 .bulk-row {
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
   margin: 10px 0 0;
   padding-top: 8px;
 }
 .bulk-btn {
-  background: #2f6b3d;          /* forest green */
-  color: #ffffff;
+  background: var(--green);
+  color: var(--accent-ink);   /* flips dark when --green lightens in dark mode */
   border: 0;
   border-radius: 999px;          /* pill */
   padding: 5px 14px;
   font-family: "Inter", system-ui, sans-serif;
-  font-size: 11px; font-weight: 500;
+  font-size: 11px; font-weight: 600;
   letter-spacing: 0.3px;
   text-transform: uppercase;
   cursor: pointer;
   transition: all 0.15s ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 2px var(--shadow);
 }
-.bulk-btn:hover { background: #25542f; transform: translateY(-1px); }
+.bulk-btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
 .bulk-btn:active { transform: translateY(0); }
 .bulk-status {
   font-size: 11px;
-  color: var(--ink-mute);
+  color: var(--muted);
   letter-spacing: 0.2px;
   margin-left: 8px;
 }
 
 /* Hero header — tight spacing so the tabs sit close to the headline */
 .hero {
+  position: relative;
   text-align: left;
   padding: 8px 4px 10px;
-  border-bottom: 1px solid rgba(0,0,0,0.05);
+  border-bottom: 1px solid var(--line);
   margin-bottom: 12px;
 }
 .hero .show {
-  font-size: 11px; letter-spacing: 0.6px;
+  font-size: 11px; letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: var(--ink-mute);
-  font-weight: 500;
+  color: var(--muted);
+  font-weight: 600;
   margin-bottom: 4px;
 }
 .hero h1 {
-  font-size: 26px; font-weight: 600;
+  font-size: 26px; font-weight: 700;
   letter-spacing: -0.4px; margin: 0;
   color: var(--ink);
 }
 .hero .stats {
   display: flex; flex-wrap: wrap; gap: 22px;
-  font-size: 12px; color: var(--ink-mute);
+  font-size: 12px; color: var(--muted);
 }
 .hero .stats span b { color: var(--ink); font-weight: 600; }
 
@@ -132,11 +199,12 @@ body {
   justify-content: center;
   margin: 0 auto 0 !important;
   padding: 5px;
-  background: var(--card);
+  background: var(--card-bg);
+  border: 1px solid var(--line);
   border-radius: 14px;
   width: 100%;
   max-width: 1100px;
-  box-shadow: 0 1px 3px var(--shadow), 0 4px 16px var(--shadow);
+  box-shadow: 0 1px 3px var(--shadow);
   overflow-x: auto;
 }
 .tab--single {
@@ -153,11 +221,11 @@ body {
   flex: 1 1 auto;
   min-width: max-content;
 }
-.tab--single:hover { color: var(--ink) !important; background: rgba(0,0,0,0.03) !important; }
+.tab--single:hover { color: var(--ink) !important; background: var(--chip-bg) !important; }
 .tab--selected {
-  background: var(--charcoal) !important;
-  color: #ffffff !important;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.18);
+  background: var(--accent) !important;
+  color: var(--accent-ink) !important;
+  box-shadow: 0 1px 2px var(--shadow-lift);
 }
 
 /* Hero title doubles as episode picker (a <details> + <summary>). */
@@ -176,18 +244,19 @@ body {
   border-bottom: 2px dashed transparent;
   transition: border-color 0.15s ease;
 }
-.hero-title-details > summary:hover h1 { border-bottom-color: var(--ink-mute); }
+.hero-title-details > summary:hover h1 { border-bottom-color: var(--muted); }
 .hero-caret {
-  font-size: 14px; color: var(--ink-mute);
+  font-size: 14px; color: var(--muted);
   transition: transform 0.15s ease, color 0.15s ease;
 }
-.hero-title-details[open] .hero-caret { transform: rotate(180deg); color: var(--ink); }
-.hero-title-details > summary:hover .hero-caret { color: var(--ink); }
+.hero-title-details[open] .hero-caret { transform: rotate(180deg); color: var(--accent); }
+.hero-title-details > summary:hover .hero-caret { color: var(--accent); }
 
 .episode-menu {
   position: absolute;
   top: calc(100% + 6px); left: 0;
-  background: var(--card);
+  background: var(--card-bg);
+  border: 1px solid var(--line);
   border-radius: 12px;
   padding: 6px;
   box-shadow: 0 6px 24px var(--shadow-lift), 0 1px 3px var(--shadow);
@@ -207,34 +276,35 @@ body {
   cursor: pointer;
   transition: all 0.12s ease;
 }
-.episode-menu-item:hover { background: var(--paper); color: var(--ink); }
+.episode-menu-item:hover { background: var(--chip-bg); color: var(--ink); }
 
-/* Cards */
+/* Cards — flat: 1px border, subtle hover lift (matches the gallery look) */
 .card {
-  background: var(--card);
-  border: 0;
+  background: var(--card-bg);
+  border: 1px solid var(--line);
   border-radius: 14px;
   padding: 20px 22px;
-  box-shadow: 0 1px 3px var(--shadow), 0 6px 20px var(--shadow);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 1px 2px var(--shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   margin-bottom: 16px;
 }
 .card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 2px 6px var(--shadow), 0 10px 28px var(--shadow-lift);
+  box-shadow: 0 10px 28px var(--shadow-lift);
+  border-color: var(--line);
 }
 .card h3 {
-  font-family: "Bebas Neue", "Helvetica Neue", sans-serif;
-  font-size: 17px; font-weight: 600;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 16px; font-weight: 600;
   margin: 0 0 10px; color: var(--ink);
-  letter-spacing: 0.5px;
+  letter-spacing: -0.2px;
 }
 .card .meta {
   display: flex; flex-wrap: wrap; gap: 6px;
   font-size: 11px; margin: 6px 0 10px;
 }
 .card .meta .chip {
-  background: rgba(255, 174, 94, 0.13);
+  background: var(--chip-bg);
   color: var(--ink-soft);
   padding: 2px 8px; border-radius: 4px;
   letter-spacing: 0.3px;
@@ -260,29 +330,31 @@ body {
 
 /* Stat card */
 .stat-card {
-  background: var(--card);
+  background: var(--card-bg);
+  border: 1px solid var(--line);
   border-radius: 14px;
   padding: 18px 22px;
-  box-shadow: 0 1px 3px var(--shadow), 0 6px 20px var(--shadow);
+  box-shadow: 0 1px 2px var(--shadow);
 }
 .stat-card .label {
   font-size: 10px; letter-spacing: 0.6px;
-  text-transform: uppercase; color: var(--ink-mute);
-  font-weight: 500; margin-bottom: 6px;
+  text-transform: uppercase; color: var(--muted);
+  font-weight: 600; margin-bottom: 6px;
 }
 .stat-card .value {
   font-family: "JetBrains Mono", "Inter", monospace;
   font-size: 26px; font-weight: 600;
   color: var(--ink); letter-spacing: -0.3px;
 }
-.stat-card .sub { font-size: 11px; color: var(--ink-mute); margin-top: 4px; }
+.stat-card .sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
 
-/* Buttons — both real <button.cta> and <a.cta> get the same look */
+/* Buttons — both real <button.cta> and <a.cta> get the same look.
+   Primary action = crimson (works on both light + dark backgrounds). */
 button.cta, a.cta, .Select-control, .dash-spreadsheet-container {
   font-family: "Inter", system-ui, sans-serif;
 }
 button.cta, a.cta {
-  background: var(--charcoal); color: #ffffff !important;
+  background: var(--accent); color: var(--accent-ink) !important;
   border: 0; border-radius: 10px;
   padding: 9px 18px;
   font-size: 12px; font-weight: 600;
@@ -294,57 +366,66 @@ button.cta, a.cta {
   text-align: center;
   line-height: 1.4;
 }
-button.cta:hover, a.cta:hover { background: #000; transform: translateY(-1px); color: #fff !important; }
-button.cta:disabled, a.cta:disabled { background: var(--ink-mute); cursor: not-allowed; transform: none; }
-button.cta.danger, a.cta.danger { background: var(--terracotta); }
-button.cta.danger:hover, a.cta.danger:hover { background: #e02a55; }
+button.cta:hover, a.cta:hover { filter: brightness(1.08); transform: translateY(-1px); color: var(--accent-ink) !important; }
+button.cta:disabled, a.cta:disabled { background: var(--muted); cursor: not-allowed; transform: none; filter: none; }
+button.cta.danger, a.cta.danger { background: var(--fail-ink); }
+button.cta.danger:hover, a.cta.danger:hover { filter: brightness(1.08); }
+/* Secondary / refresh button — quiet outline, not crimson */
+button.cta.refresh-btn, a.cta.refresh-btn {
+  background: var(--card-bg);
+  color: var(--ink) !important;
+  border: 1px solid var(--line);
+  text-transform: none;
+  letter-spacing: 0;
+}
+button.cta.refresh-btn:hover, a.cta.refresh-btn:hover {
+  border-color: var(--accent); color: var(--accent) !important; filter: none;
+}
 /* Full-width variant for `<a class="cta cta-link">` used inline in flex columns */
 a.cta-link { display: block; width: 100%; box-sizing: border-box; }
 
-/* Inner lifted card — white rounded container with subtle shadow.
-   Used to wrap prompts and videos inside the larger storyboard card. */
+/* Inner lifted card — rounded container used to wrap prompts and videos
+   inside the larger storyboard card. */
 .inner-card {
-  background: var(--card);
+  background: var(--card-bg);
+  border: 1px solid var(--line);
   border-radius: 12px;
   padding: 16px 18px;
-  box-shadow: 0 1px 2px var(--shadow), 0 4px 14px var(--shadow);
-  transition: box-shadow 0.18s ease;
+  box-shadow: 0 1px 2px var(--shadow);
+  transition: box-shadow 0.18s ease, border-color 0.18s ease;
 }
 .inner-card:hover {
-  box-shadow: 0 2px 4px var(--shadow), 0 8px 22px var(--shadow-lift);
+  box-shadow: 0 8px 22px var(--shadow-lift);
 }
 
-/* Prompt card holds the body + a small EN/Bahasa toggle in the top-right corner.
-   Top of the card carries a VIDEO PROMPT label + LOCATION line; the storyboard
-   global preamble (camera, music, drawing style, panel instruction, language,
-   accents) is locked and never shown here. */
+/* Prompt card holds the body + a small EN/Bahasa toggle in the top-right corner. */
 .prompt-card { position: relative; padding-top: 36px; }
 .prompt-section-label {
   font-size: 9px; letter-spacing: 0.7px;
   text-transform: uppercase; font-weight: 600;
-  color: var(--ink-mute);
+  color: var(--muted);
   margin-bottom: 8px;
 }
 .loc-line {
   display: flex; align-items: baseline; gap: 8px;
   margin: 0 0 12px;
   padding-bottom: 10px;
-  border-bottom: 1px dashed var(--card-border);
+  border-bottom: 1px dashed var(--line);
 }
 .loc-label {
   font-size: 9px; letter-spacing: 0.6px;
   text-transform: uppercase; font-weight: 600;
-  color: var(--ink-mute);
+  color: var(--muted);
 }
 .loc-value {
   font-size: 12px; font-weight: 500;
-  color: var(--terracotta);
+  color: var(--accent);
   letter-spacing: -0.1px;
 }
 .global-block {
   margin: 0 0 10px;
   padding-bottom: 10px;
-  border-bottom: 1px dashed var(--card-border);
+  border-bottom: 1px dashed var(--line);
 }
 .global-text {
   font-size: 11px; color: var(--ink-soft);
@@ -356,7 +437,7 @@ a.cta-link { display: block; width: 100%; box-sizing: border-box; }
 .lang-toggle-btn {
   position: absolute;
   top: 10px; right: 10px;
-  background: var(--paper-deep);
+  background: var(--chip-bg);
   color: var(--ink-soft);
   border: 0;
   border-radius: 6px;
@@ -368,9 +449,9 @@ a.cta-link { display: block; width: 100%; box-sizing: border-box; }
   cursor: pointer;
   transition: all 0.12s ease;
 }
-.lang-toggle-btn:hover { background: var(--charcoal); color: #fff; }
+.lang-toggle-btn:hover { background: var(--accent); color: #fff; }
 .lang-toggle-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.lang-toggle-btn:disabled:hover { background: var(--paper-deep); color: var(--ink-soft); }
+.lang-toggle-btn:disabled:hover { background: var(--chip-bg); color: var(--ink-soft); }
 
 /* Form rows */
 .form-row {
@@ -380,33 +461,51 @@ a.cta-link { display: block; width: 100%; box-sizing: border-box; }
 .form-row label {
   display: block; font-size: 11px;
   letter-spacing: 0.4px; text-transform: uppercase;
-  color: var(--ink-mute); font-weight: 500;
+  color: var(--muted); font-weight: 500;
   margin-bottom: 4px;
 }
 .form-row input, .form-row .Select {
   font-family: "Inter", sans-serif;
   font-size: 13px;
-  border: 1px solid var(--card-border);
+  border: 1px solid var(--line);
   border-radius: 8px;
   padding: 8px 12px;
-  background: var(--card);
+  background: var(--card-bg);
   color: var(--ink);
 }
-.form-row input:focus { outline: 2px solid var(--charcoal); outline-offset: 1px; }
+.form-row input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* Tables */
 .dash-table-container, .dash-spreadsheet-container { font-family: "Inter", sans-serif !important; }
 .dash-spreadsheet td, .dash-spreadsheet th {
   font-size: 12px !important;
-  border-color: var(--card-border) !important;
+  border-color: var(--line) !important;
+}
+/* NOTE: no !important here — the DataTables apply per-cell status colors via
+   inline style_data_conditional (Asset Library status column, Expense row
+   stripes). An !important external rule would beat those inline styles and wipe
+   the status coloring, so we let the inline conditional styles win and only
+   provide a theme-aware default for cells that have no conditional color. */
+.dash-spreadsheet td {
+  background: var(--card-bg);
+  color: var(--ink);
 }
 .dash-spreadsheet th {
   font-weight: 600 !important;
   color: var(--ink-soft) !important;
-  background: var(--paper-deep) !important;
+  background: var(--soft-bg) !important;
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }
+
+/* Dash dcc.Dropdown (react-select) — make it theme-aware in dark mode */
+.Select-control, .Select-menu-outer, .Select--single > .Select-control .Select-value {
+  background: var(--card-bg) !important;
+  color: var(--ink) !important;
+  border-color: var(--line) !important;
+}
+.Select-value-label, .Select-placeholder, .VirtualizedSelectOption { color: var(--ink) !important; }
+.VirtualizedSelectFocusedOption { background: var(--chip-bg) !important; }
 
 /* Status pills */
 .pill {
@@ -415,23 +514,24 @@ a.cta-link { display: block; width: 100%; box-sizing: border-box; }
   font-size: 11px; font-weight: 600;
   letter-spacing: 0.3px;
 }
-.pill.done   { background: var(--green); color: #1a6b56; }
-.pill.pending { background: rgba(255, 140, 66, 0.18); color: #b54e0e; }
-.pill.failed  { background: rgba(255, 59, 107, 0.15); color: #c11647; }
-.pill.active  { background: var(--green); color: #1a6b56; }
+.pill.done    { background: var(--green-soft); color: var(--green-ink); }
+.pill.pending { background: var(--warn-soft); color: var(--warn-ink); }
+.pill.failed  { background: var(--fail-soft); color: var(--fail-ink); }
+.pill.active  { background: var(--green-soft); color: var(--green-ink); }
 
-/* Code/log block */
+/* Code/log block — terminal aesthetic, kept dark in both themes */
 .log-block {
-  background: var(--charcoal); color: #d8d8d8;
+  background: #14171d; color: #d8d8d8;
   font-family: "JetBrains Mono", monospace;
   font-size: 12px; line-height: 1.5;
   padding: 14px 18px; border-radius: 10px;
   white-space: pre-wrap; max-height: 360px; overflow: auto;
+  border: 1px solid var(--line);
 }
 
 /* Scrollbar polish */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 
 
@@ -491,5 +591,5 @@ a.cta-link { display: block; width: 100%; box-sizing: border-box; }
 .zoomable { transition: transform 0.12s ease, box-shadow 0.12s ease; }
 .zoomable:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(0,0,0,0.10);
+  box-shadow: 0 4px 14px var(--shadow-lift);
 }

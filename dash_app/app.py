@@ -26,6 +26,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -788,6 +789,75 @@ def _detect_cover(drive_folder_id: str) -> str:
         return ""
 
 
+_MEDIA_TTL = 600.0  # cache per-bible Asset Library roll-up for 10 min
+_media_cache: dict = {}
+_media_cache_lock = threading.Lock()
+
+
+def _project_media(bible_sheet_id: str) -> dict:
+    """Read the bible's Asset Library and pull what the /projects card needs:
+      - hero_video: the first CHARACTERS (else LOCATIONS) *video* ref as
+        {file_id, poster, kind, name} — used for the card's hover-play preview.
+        ONLY ever a bible reference clip (characters/locations); NEVER a
+        generated story clip, by design (we only look at the Asset Library).
+      - n_characters / n_locations / n_assets: distinct Uploaded names, for the
+        card stat roll-up.
+
+    Cached in a module-level TTL cache (10 min) keyed by bible_sheet_id so the
+    60s /projects refresh does NOT re-read every bible's Asset Library each pass
+    (one Sheets round-trip per distinct bible, amortized over 10 min). On read
+    failure we reuse the last cached value if we have one rather than blanking
+    the card's video/counts. Returns {} when nothing is available."""
+    if not bible_sheet_id:
+        return {}
+    import time as _t
+    now = _t.time()
+    with _media_cache_lock:
+        hit = _media_cache.get(bible_sheet_id)
+        if hit and (now - hit[0]) < _MEDIA_TTL:
+            return hit[1]
+    result: dict = {}
+    try:
+        from auth import get_credentials
+        import gspread
+        from build_gallery import read_asset_library, drive_id, drive_thumb
+        gc = gspread.authorize(get_credentials())
+        sh = gc.open_by_key(bible_sheet_id)
+        rows = read_asset_library(sh)
+        live = [r for r in rows if (r.get("status") or "").strip().lower() == "uploaded"]
+
+        def _names(tab_prefix: str) -> set:
+            return {r["name"] for r in live
+                    if (r.get("bible_tab") or "").upper().startswith(tab_prefix)}
+
+        result["n_characters"] = len(_names("CHARACTER"))
+        result["n_locations"] = len(_names("LOCATION"))
+        result["n_assets"] = len({r["name"] for r in live})
+
+        def _first_video(tab_prefix: str):
+            for r in live:
+                if (r.get("type") or "").strip().lower() == "video" and \
+                   (r.get("bible_tab") or "").upper().startswith(tab_prefix):
+                    fid = drive_id(r.get("source_url"))
+                    if fid:
+                        return {"file_id": fid, "poster": drive_thumb(fid, 800),
+                                "kind": "character" if tab_prefix == "CHARACTER" else "location",
+                                "name": r["name"]}
+            return None
+
+        hero = _first_video("CHARACTER") or _first_video("LOCATION")
+        if hero:
+            result["hero_video"] = hero
+    except Exception as e:
+        print(f"[projects] _project_media({bible_sheet_id[:12]}…) failed: {e}")
+        with _media_cache_lock:
+            hit = _media_cache.get(bible_sheet_id)
+        return hit[1] if hit else {}
+    with _media_cache_lock:
+        _media_cache[bible_sheet_id] = (now, result)
+    return result
+
+
 def _read_projects_uncached() -> dict:
     """Read the master Projects sheet end-to-end and resolve every project's
     episodes via Drive folder scan. Returns:
@@ -799,7 +869,9 @@ def _read_projects_uncached() -> dict:
         }
     """
     if not MASTER_PROJECTS_SHEET_ID:
-        return {"projects": [], "registry": {}, "bible_for": {}, "siblings_for": {}}
+        # Legit "no master sheet configured" — _ok=True so read_projects does
+        # NOT treat this as a transient failure (no serve-stale).
+        return {"projects": [], "registry": {}, "bible_for": {}, "siblings_for": {}, "_ok": True}
     try:
         from auth import get_credentials
         import gspread
@@ -810,8 +882,10 @@ def _read_projects_uncached() -> dict:
             "A2:L500", value_render_option="FORMATTED_VALUE"
         )
     except Exception as e:
+        # Genuine read FAILURE — _ok=False so read_projects serves the last
+        # known-good snapshot instead of blanking the CMS.
         print(f"[projects] master sheet read failed: {e}")
-        return {"projects": [], "registry": {}, "bible_for": {}, "siblings_for": {}}
+        return {"projects": [], "registry": {}, "bible_for": {}, "siblings_for": {}, "_ok": False}
 
     # Parse rows into project dicts (skip blank slug rows)
     projects: list[dict] = []
@@ -865,6 +939,12 @@ def _read_projects_uncached() -> dict:
         # Detect cover image (cover.jpg / cover.png / cover.webp at folder root).
         # Uploaded by the +/Change button on /projects via /api/project-cover.
         p["cover_url"] = _detect_cover(p["drive_folder_id"]) if p["drive_folder_id"] else ""
+        # Asset Library roll-up: hero hover-video (char/loc ref) + asset counts.
+        media = _project_media(p["bible_sheet_id"])
+        p["hero_video"] = media.get("hero_video")
+        p["n_characters"] = media.get("n_characters", 0)
+        p["n_locations"] = media.get("n_locations", 0)
+        p["n_assets"] = media.get("n_assets", 0)
         for ep in eps:
             gallery_slug = ep["gallery_slug"]
             registry[gallery_slug] = (ep["sheet_id"], p["title"], ep["episode_title"])
@@ -884,11 +964,19 @@ def _read_projects_uncached() -> dict:
         "registry": registry,
         "bible_for": bible_for,
         "siblings_for": siblings_for,
+        "_ok": True,
     }
 
 
 def read_projects(force: bool = False) -> dict:
-    """Cached wrapper. Use force=True to bypass the 60s TTL after edits."""
+    """Cached wrapper. Use force=True to bypass the 60s TTL after edits.
+
+    Resilience: a fresh read that FAILED (transient Sheets/Drive error →
+    _ok=False) must NOT clobber a previously good snapshot — one flaky read
+    would otherwise blank the entire CMS for a full TTL window. We then keep
+    serving the last known-good projects. A read that SUCCEEDS but is legitimately
+    empty (_ok=True, e.g. the sheet was emptied) IS honored, so deletions show up
+    and force=True always reflects a successful fresh read."""
     import time as _t
     now = _t.time()
     with _projects_cache_lock:
@@ -897,6 +985,12 @@ def read_projects(force: bool = False) -> dict:
             return cached[1]
     data = _read_projects_uncached()
     with _projects_cache_lock:
+        prev = _projects_cache.get("data")
+        if not data.get("_ok") and prev and prev[1].get("projects"):
+            # Serve-stale-on-FAILURE only: keep the good snapshot but bump the
+            # timestamp so we retry on the next TTL rather than hammering.
+            _projects_cache["data"] = (now, prev[1])
+            return prev[1]
         _projects_cache["data"] = (now, data)
     return data
 
@@ -1043,6 +1137,141 @@ def _projects_landing():
                     headers={"Cache-Control": "max-age=30, must-revalidate"})
 
 
+_ASSET_VIDEO_CACHE = Path(tempfile.gettempdir()) / "dearai_asset_videos"
+_ASSET_VIDEO_MAX_FILES = 100        # cache eviction cap (oldest-mtime first)
+_ASSET_VIDEO_MAX_BYTES = 80 * 1024 * 1024  # refuse pathologically large downloads
+_asset_video_locks: dict = {}
+_asset_video_locks_guard = threading.Lock()
+
+
+def _known_asset_video_ids() -> set:
+    """The Drive file IDs the /projects cards actually reference (each project's
+    hero CHARACTER/LOCATION clip). The asset-video route serves ONLY these, so it
+    can't be abused as a general Drive read-proxy for arbitrary file IDs — even
+    when the OAuth gate is disabled. Backed by the 60s read_projects cache."""
+    ids = set()
+    try:
+        for p in read_projects().get("projects", []):
+            hv = p.get("hero_video")
+            if hv and hv.get("file_id"):
+                ids.add(hv["file_id"])
+    except Exception:
+        pass
+    return ids
+
+
+def _evict_asset_cache(max_files: int = _ASSET_VIDEO_MAX_FILES):
+    """Keep the asset-video cache bounded — delete oldest files past the cap."""
+    try:
+        files = sorted(_ASSET_VIDEO_CACHE.glob("*.mp4"),
+                       key=lambda f: f.stat().st_mtime)
+        for f in files[:max(0, len(files) - max_files)]:
+            try:
+                f.unlink()
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+
+def _asset_video_path(safe: str) -> Path:
+    """Build (once) a same-origin, FASTSTART-remuxed local copy of a Drive
+    asset video and return its path. Returns None on failure.
+
+    Why a cache + remux instead of a passthrough stream: the source ref MP4s
+    are typically NOT faststart (moov atom at the END), so a streaming proxy
+    makes the browser stall re-ranging for the moov. We download the file once,
+    remux to +faststart with ffmpeg (stream-copy, no re-encode — instant), and
+    serve the result with Flask send_file (native, fast Range support). If
+    ffmpeg isn't on PATH we still serve the cached raw bytes (much better than
+    per-range Drive round-trips)."""
+    import shutil as _sh
+    cached = _ASSET_VIDEO_CACHE / f"{safe}.mp4"
+    if cached.exists() and cached.stat().st_size > 0:
+        return cached
+    # One builder at a time per id (avoid duplicate downloads on concurrent hover).
+    with _asset_video_locks_guard:
+        lock = _asset_video_locks.setdefault(safe, threading.Lock())
+    with lock:
+        if cached.exists() and cached.stat().st_size > 0:
+            return cached
+        _ASSET_VIDEO_CACHE.mkdir(parents=True, exist_ok=True)
+        _evict_asset_cache()
+        raw = _ASSET_VIDEO_CACHE / f".{safe}.raw.mp4"
+        try:
+            from auth import get_credentials
+            from google.auth.transport.requests import Request as _GReq
+            import requests as _rq
+            creds = get_credentials()
+            if not getattr(creds, "valid", False):
+                creds.refresh(_GReq())
+            url = (f"https://www.googleapis.com/drive/v3/files/{safe}"
+                   f"?alt=media&supportsAllDrives=true")
+            # timeout kept well under the gunicorn worker --timeout (120s): a
+            # 45s download + 45s remux worst-case stays inside the window so the
+            # worker is never SIGKILLed mid-build.
+            r = _rq.get(url, headers={"Authorization": f"Bearer {creds.token}"},
+                        stream=True, timeout=45)
+            if r.status_code != 200:
+                print(f"[asset-video] download {r.status_code} for {safe}")
+                return None
+            total = 0
+            with open(raw, "wb") as fh:
+                for chunk in r.iter_content(chunk_size=262144):
+                    if not chunk:
+                        continue
+                    total += len(chunk)
+                    if total > _ASSET_VIDEO_MAX_BYTES:
+                        raise ValueError(f"asset video exceeds {_ASSET_VIDEO_MAX_BYTES} bytes")
+                    fh.write(chunk)
+            ff = _sh.which("ffmpeg")
+            if ff:
+                fs = _ASSET_VIDEO_CACHE / f".{safe}.fs.mp4"
+                try:
+                    import subprocess
+                    subprocess.run(
+                        [ff, "-y", "-loglevel", "error", "-i", str(raw),
+                         "-c", "copy", "-movflags", "+faststart", str(fs)],
+                        check=True, timeout=45)
+                    os.replace(fs, cached)
+                    raw.unlink(missing_ok=True)
+                except Exception as e:
+                    print(f"[asset-video] faststart remux failed for {safe}: {e}; serving raw")
+                    os.replace(raw, cached)
+            else:
+                os.replace(raw, cached)
+            return cached
+        except Exception as e:
+            print(f"[asset-video] cache build failed for {safe}: {e}")
+            try:
+                raw.unlink(missing_ok=True)
+            except Exception:
+                pass
+            return None
+
+
+@server.route("/api/asset-video/<file_id>")
+def _api_asset_video(file_id):
+    """Serve a CHARACTER/LOCATION reference clip as a same-origin, seekable,
+    faststart MP4 for the /projects hover-play <video>. Built + cached on first
+    hit by _asset_video_path; subsequent hovers are instant. Auth-gated like the
+    rest of the app; the file must be readable by our credentials."""
+    from flask import send_file, abort
+    safe = "".join(c for c in file_id if c.isalnum() or c in "_-")
+    if not safe:
+        abort(404)
+    # Allowlist: only serve IDs that the /projects cards actually reference, so
+    # this route can never be used as a general Drive read-proxy for arbitrary
+    # file IDs (confused-deputy), even if the OAuth gate is off.
+    if safe not in _known_asset_video_ids():
+        abort(404)
+    path = _asset_video_path(safe)
+    if not path:
+        abort(502)
+    return send_file(str(path), mimetype="video/mp4",
+                     conditional=True, max_age=86400)
+
+
 @server.route("/gallery/<name>")
 def _gallery(name):
     """Live-build a review gallery from the SOT on demand.
@@ -1153,7 +1382,7 @@ def _api_storyboard():
     sheet_id, _show, _ep = GALLERY_REGISTRY[gallery]
     job_id = uuid.uuid4().hex[:8]
     cmd = [PYTHON_BIN, "storyboard_generate.py",
-           "--sheet", sheet_id, "--set", str(set_n), "--force"]
+           "--sheet", sheet_id, "--set", str(set_n), "--force", "--style", "master"]
     append_job({
         "id": job_id,
         "label": f"sb-gen {gallery} set{set_n}",
@@ -1446,6 +1675,7 @@ def _api_new_project():
     ptype = ((form.get("type") if multipart_mode else body.get("type")) or "series").strip().lower()
     locale = ((form.get("locale") if multipart_mode else body.get("locale")) or "generic").strip().lower()
     depth = ((form.get("depth") if multipart_mode else body.get("depth")) or "").strip().lower()
+    global_preset = ((form.get("global_preset") if multipart_mode else body.get("global_preset")) or "").strip().lower()
     parent_show = ((form.get("parent_show") if multipart_mode else body.get("parent_show")) or "").strip()
     notes = ((form.get("notes") if multipart_mode else body.get("notes")) or "").strip()
 
@@ -1457,9 +1687,9 @@ def _api_new_project():
     if locale not in {"generic", "jakarta", "manila", "seoul"}:
         return jsonify({"ok": False,
                          "error": f"locale must be one of generic/jakarta/manila/seoul (got {locale!r})"}), 400
-    if multipart_mode and depth not in {"text", "storyboards", "bibles"}:
+    if multipart_mode and depth not in {"text", "bibles", "masters"}:
         return jsonify({"ok": False,
-                         "error": "depth must be one of text/storyboards/bibles"}), 400
+                         "error": "depth must be one of text/bibles/masters"}), 400
     if is_multipart_request and not multipart_mode:
         return jsonify({"ok": False, "error": "file is required"}), 400
     if multipart_mode and (not uploaded or not uploaded.filename):
@@ -1613,6 +1843,8 @@ def _api_new_project():
             # reuse the folder via --in-folder.
             cmd = [sys.executable, "_create_blank_sot.py",
                    "--name", title, "--sheet-name", first_sheet_name]
+            if global_preset:
+                cmd += ["--global-preset", global_preset]
             proc = subprocess.run(
                 cmd, cwd=str(PROJECT_ROOT),
                 capture_output=True, text=True, timeout=3600,
@@ -1752,6 +1984,8 @@ def _api_new_project():
                                  "--name", f"{title} Ep {ep_num}",
                                  "--in-folder", folder_id,
                                  "--sheet-name", extra_sheet_name]
+                    if global_preset:
+                        cmd_extra += ["--global-preset", global_preset]
                     proc_extra = subprocess.run(
                         cmd_extra, cwd=str(PROJECT_ROOT),
                         capture_output=True, text=True, timeout=3600,
@@ -1862,27 +2096,33 @@ def _api_new_project():
                             "--name", ep_label,
                             "--locale", locale,
                         ])
-                        # After atomization, set up the per-episode storyboard
-                        # folder tree + column E URLs. storyboard_generate.py
-                        # needs these to upload generated images.
-                        _setup_storyboard_folders(ep_num, ep_sheet_id)
-                        if depth in {"storyboards", "bibles"}:
-                            _run_stage(f"storyboards-ep{ep_num}", [
-                                sys.executable, "storyboard_generate.py",
-                                "--sheet", ep_sheet_id,
-                            ])
-                        if depth == "bibles":
-                            _run_stage(f"bibles-ep{ep_num}", [
+                        # New pipeline (no stick-figure storyboards):
+                        #   shotlist -> asset refs -> 1-2 master shots/scene.
+                        # 1) Asset reference images (character/location/prop bibles)
+                        if depth in {"bibles", "masters"}:
+                            _run_stage(f"asset-refs-ep{ep_num}", [
                                 sys.executable, "imggen_all_assets.py",
                                 "--sheet", ep_sheet_id,
+                            ])
+                        # 2) Master shots — 1-2 rendered wide establishing frames
+                        # per scene, in the chosen global look. Reuses the
+                        # storyboard folder tree + storyboard_generate's --style
+                        # master mode (writes to Storyboard Prompts G/H).
+                        if depth == "masters":
+                            _setup_storyboard_folders(ep_num, ep_sheet_id)
+                            _run_stage(f"masters-ep{ep_num}", [
+                                sys.executable, "storyboard_generate.py",
+                                "--sheet", ep_sheet_id, "--style", "master",
                             ])
                 except Exception as e:
                     stage = "generation"
                     msg = str(e)
                     if msg.startswith("shotlist"):
                         stage = "shotlist"
-                    elif msg.startswith("storyboards"):
-                        stage = "storyboards"
+                    elif msg.startswith("asset-refs"):
+                        stage = "asset refs"
+                    elif msg.startswith("masters"):
+                        stage = "master shots"
                     elif msg.startswith("bibles"):
                         stage = "bibles"
                     failed_project_status = f"Failed: {stage}"
@@ -2170,12 +2410,45 @@ def _debug_env():
         out["_project_root_listing"] = f"err: {e}"
     return jsonify(out)
 app.index_string = """<!DOCTYPE html>
-<html><head>
+<html lang="en"><head>
 <title>{%title%}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script>
+  // Dark/light mode — shared with the COVEN/WHF galleries via the same
+  // localStorage key ('gallery_dark_mode'), so the theme follows the user
+  // across /projects, the galleries, and this dashboard.
+  function applyDarkMode(on) {
+    document.documentElement.setAttribute('data-theme', on ? 'dark' : 'light');
+    var btn = document.getElementById('dark-toggle');
+    if (btn) { btn.textContent = on ? '\\u2600' : '\\u{1F319}'; }
+  }
+  function toggleDarkMode() {
+    var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    applyDarkMode(!isDark);
+    try { localStorage.setItem('gallery_dark_mode', !isDark ? '1' : '0'); } catch (e) {}
+  }
+  // Pre-paint: apply saved pref (or OS preference) before first render to avoid a flash.
+  (function() {
+    var saved = null;
+    try { saved = localStorage.getItem('gallery_dark_mode'); } catch (e) {}
+    var on;
+    if (saved === '1') on = true;
+    else if (saved === '0') on = false;
+    else on = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    applyDarkMode(on);
+    // Re-sync the toggle icon once the button exists (it's rendered after this script).
+    window.addEventListener('DOMContentLoaded', function() {
+      applyDarkMode(document.documentElement.getAttribute('data-theme') === 'dark');
+    });
+  })();
+</script>
 {%favicon%}{%css%}
-</head><body>{%app_entry%}<footer>{%config%}{%scripts%}{%renderer%}</footer></body></html>"""
+</head><body>
+<button id="dark-toggle" type="button" onclick="toggleDarkMode()"
+        title="Toggle dark / light mode (saved in your browser)"
+        aria-label="Toggle dark mode">&#127769;</button>
+{%app_entry%}<footer>{%config%}{%scripts%}{%renderer%}</footer></body></html>"""
 
 
 # -------- UI helpers -----------------------------------------------------
@@ -2494,7 +2767,7 @@ app.layout = html.Div(className="wrap", children=[
                  className="tabs-inner", children=[
             dcc.Tab(label="Overview", value="overview",
                     className="tab--single", selected_className="tab--selected"),
-            dcc.Tab(label="Storyboards", value="storyboards",
+            dcc.Tab(label="Master Shots", value="storyboards",
                     className="tab--single", selected_className="tab--selected"),
             dcc.Tab(label="Characters", value="characters",
                     className="tab--single", selected_className="tab--selected"),
@@ -2516,7 +2789,7 @@ app.layout = html.Div(className="wrap", children=[
         ]),  # closes tabs-wrap.children
         # Two thin forest-green batch buttons just BELOW the tab row
         html.Div(className="bulk-row", children=[
-            html.Button("⚡ Generate all pending storyboards",
+            html.Button("⚡ Generate all pending master shots",
                         id="bulk-gen-sb", type="button",
                         className="bulk-btn", n_clicks=0),
             html.Button("▶ Generate all pending videos",
@@ -2591,7 +2864,7 @@ def _bulk_run(sheet_id: str, kind: str):
         job_id = str(uuid.uuid4())[:8]
         if kind == "storyboard":
             cmd = [PYTHON_BIN, "storyboard_generate.py",
-                   "--sheet", sheet_id, "--set", str(set_n), "--force"]
+                   "--sheet", sheet_id, "--set", str(set_n), "--force", "--style", "master"]
             label = f"sb-gen set{set_n}"
             kind_tag = "storyboard"
         else:
@@ -2888,7 +3161,7 @@ def sb_refresh(sheet_id, _tick):
                 dcc.Store(id={"type": "prompt-bahasa", "set": s["set"]}, data=bahasa_text),
             ]),
             html.Button(
-                "Generate Storyboard",
+                "Generate Master Shot",
                 id={"type": "gen-sb", "sheet": sheet_id, "set": s["set"]},
                 type="button",
                 className="cta",
@@ -3267,7 +3540,7 @@ def fire_storyboard_for_set(n_clicks_list, ids_list):
     sheet_id = btn_id["sheet"]
     set_n = btn_id["set"]
     job_id = str(uuid.uuid4())[:8]
-    cmd = [PYTHON_BIN, "storyboard_generate.py", "--sheet", sheet_id, "--set", str(set_n), "--force"]
+    cmd = [PYTHON_BIN, "storyboard_generate.py", "--sheet", sheet_id, "--set", str(set_n), "--force", "--style", "master"]
     append_job({"id": job_id, "label": f"sb-gen set{set_n}", "status": "queued",
                 "started": datetime.now(timezone.utc).isoformat(),
                 "log": "", "cmd": " ".join(cmd), "kind": "storyboard",
@@ -3610,4 +3883,6 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8050))
     host = os.environ.get("HOST", "127.0.0.1")
     print(f"\n→ DearAI Production Dashboard: http://{host}:{port}\n")
-    app.run(debug=False, host=host, port=port)
+    # threaded=True so the /api/asset-video streaming proxy (and any other
+    # long-lived response) doesn't block the single-threaded dev server.
+    app.run(debug=False, host=host, port=port, threaded=True)

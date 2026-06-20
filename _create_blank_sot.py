@@ -213,7 +213,22 @@ def main():
     ap.add_argument("--sheet-name",
                     help="Override the spreadsheet name (default: '<name> — SOT'). "
                          "Use this with --in-folder to create 'Ep N — Title' sheets.")
+    ap.add_argument("--global-preset",
+                    help="global_presets.py preset id (e.g. 'neo-noir'). Writes the "
+                         "preset's cinematic camera→Video Prompts B1 + audio→B2 (and "
+                         "Storyboard camera B1) so every shot inherits the chosen film "
+                         "look. Default: bland placeholder.")
     args = ap.parse_args()
+
+    # Resolve the chosen global film-look preset (if any) up front.
+    preset = None
+    if getattr(args, "global_preset", None):
+        try:
+            from global_presets import get_preset
+            preset = get_preset(args.global_preset)
+            print(f"  global look: {preset['name']} ({preset['id']})", flush=True)
+        except Exception as e:
+            print(f"  [warn] global preset {args.global_preset!r} unresolved: {e}", flush=True)
 
     creds = get_credentials()
     drive = build("drive", "v3", credentials=creds)
@@ -290,10 +305,14 @@ def main():
     # Shotlist row 1 headers + Q+R formulas on row 2 (placeholder data row)
     batch.append({"range": "Shotlist!A1:T1", "values": [SHOTLIST_HEADERS]})
     # Storyboard Prompts: globals A1:B8 + headers A10:N10
+    # When a global preset is chosen, override the camera (B1) on Storyboard
+    # Prompts and camera (B1) + audio (B2) on Video Prompts with the preset text.
+    sp_overrides = {"B1": preset["camera"]} if preset else {}
+    vp_overrides = {"B1": preset["camera"], "B2": preset["audio"]} if preset else {}
     sp_globals_data = []
     for cell, val in SP_GLOBALS:
         sp_globals_data.append({"range": f"'Storyboard Prompts'!{cell}",
-                                 "values": [[val]]})
+                                 "values": [[sp_overrides.get(cell, val)]]})
     batch.extend(sp_globals_data)
     batch.append({"range": "'Storyboard Prompts'!A10:N10",
                    "values": [STORYBOARD_PROMPTS_HEADERS]})
@@ -301,7 +320,7 @@ def main():
     vp_globals_data = []
     for cell, val in VP_GLOBALS:
         vp_globals_data.append({"range": f"'Video Prompts'!{cell}",
-                                 "values": [[val]]})
+                                 "values": [[vp_overrides.get(cell, val)]]})
     batch.extend(vp_globals_data)
     # Bibles
     batch.append({"range": "CHARACTERS!A1:W1",

@@ -305,6 +305,22 @@ STYLE_PREAMBLES = {
 }
 
 
+# Master-shot mode (--style master): a SINGLE wide photoreal establishing /
+# master frame per scene, rendered in the show's chosen global film look (the
+# preset the producer picked at project creation, written to camera B1). This
+# REPLACES stick-figure storyboards — the master shot is the real coverage frame
+# the scene is built from. The show's B1 camera look is prepended at runtime.
+MASTER_INSTRUCTION = (
+    "Render ONE single, wide, cinematic ESTABLISHING / MASTER shot of the scene "
+    "described below — a finished photoreal film frame, full-bleed, no borders. "
+    "NOT a storyboard, NOT a panel grid, NO dividing lines, NO shot-number labels, "
+    "NO camera-movement captions. A single master coverage frame that establishes "
+    "the location, the staging/blocking of the characters, and the mood of the "
+    "scene, in the film look described above. Cinematic composition with clear "
+    "foreground / midground / background depth:"
+)
+
+
 # Location-conditioned mode (--locref): detailed pencil ENVIRONMENT that honors
 # a real location reference image + featureless STICK-FIGURE people. Validated
 # to hold the pencil look on gpt_image_2 without photoreal drift.
@@ -342,14 +358,17 @@ def main():
                     help="Print the Higgsfield request payload and exit before provider calls")
     ap.add_argument(
         "--style",
-        choices=["stick", "pencil", "photoreal", "sheet"],
+        choices=["stick", "pencil", "photoreal", "sheet", "master"],
         default="stick",
         help=(
             "Aesthetic preamble to prepend before the per-set body. "
             "stick (default) = featureless stick figures, sajangnim aesthetic. "
             "pencil = director-pad sketch. "
             "photoreal = full photoreal stills. "
-            "sheet = use whatever's in the SP tab globals (B1:B4) — legacy behavior."
+            "sheet = use whatever's in the SP tab globals (B1:B4) — legacy behavior. "
+            "master = ONE wide photoreal MASTER/establishing shot per scene in the "
+            "show's chosen global film look (reads camera B1) — no panels, no grid. "
+            "This is the storyboard-replacement: 1-2 master shots per scene."
         ),
     )
     ap.add_argument(
@@ -409,7 +428,10 @@ def main():
         print(f"Locref: {LOCREF_PATH}")
 
     if args.dry_run:
-        dry_prompt = STYLE_PREAMBLES[args.style if args.style != "sheet" else "stick"]
+        if args.style == "master":
+            dry_prompt = "<show camera B1 global>\n" + MASTER_INSTRUCTION
+        else:
+            dry_prompt = STYLE_PREAMBLES[args.style if args.style != "sheet" else "stick"]
         payload = {
             "provider": MODEL_PROVIDER,
             "model": MODEL,
@@ -464,6 +486,14 @@ def main():
             row[0] for row in globals_block if row and row[0]
         )
         print(f"Style: sheet (using B1:B4 globals)")
+    elif args.style == "master":
+        # Master shot = the show's chosen global film look (camera B1) + a
+        # single-frame establishing instruction. No stick-figure panel grid.
+        b1 = sb.get("B1", value_render_option="FORMATTED_VALUE")
+        camera_look = (b1[0][0] if b1 and b1[0] else "").strip() \
+            or "Shot on ARRI Alexa, 35mm film look. Cinematic, photoreal."
+        storyboard_globals = f"{camera_look}\n{MASTER_INSTRUCTION}"
+        print(f"Style: master (single establishing shot in the show's global look)")
     else:
         storyboard_globals = STYLE_PREAMBLES[args.style]
         print(f"Style: {args.style} (forced preamble; sheet globals ignored)")
