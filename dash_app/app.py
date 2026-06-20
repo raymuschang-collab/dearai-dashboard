@@ -1000,36 +1000,50 @@ def _read_projects_uncached() -> dict:
             if not p["bible_sheet_id"]:
                 p["bible_sheet_id"] = parent["bible_sheet_id"]
 
-    # For each project, discover episodes + build registry/bible_for/siblings_for
+    # Resolve each project's episodes + cover + Asset Library roll-up. These are
+    # the slow network-bound bits (Drive folder scans + cover lookup + Asset
+    # Library read) — running them SEQUENTIALLY across N projects sums to tens of
+    # seconds and on a cold load blows past Render's request timeout, so the page
+    # "never loads". Run them in a thread pool: a cold load is then bounded by the
+    # slowest single project, not the sum. (Creds are already warm from the master
+    # read above; each helper builds its own Drive/Sheets client, so this is
+    # thread-safe.)
+    import concurrent.futures as _cf
+
+    def _resolve(p: dict) -> None:
+        if not p["bible_sheet_id"]:
+            print(f"[projects] {p['slug']}: no bible_sheet_id, skipping")
+            return
+        try:
+            p["episodes"] = _discover_episodes(
+                slug=p["slug"], drive_folder_id=p["drive_folder_id"],
+                bible_sheet_id=p["bible_sheet_id"], show_title=p["title"],
+            )
+            p["cover_url"] = _detect_cover(p["drive_folder_id"]) if p["drive_folder_id"] else ""
+            media = _project_media(p["bible_sheet_id"])
+            p["hero_video"] = media.get("hero_video")
+            p["n_characters"] = media.get("n_characters", 0)
+            p["n_locations"] = media.get("n_locations", 0)
+            p["n_assets"] = media.get("n_assets", 0)
+        except Exception as e:
+            print(f"[projects] resolve {p['slug']} failed: {type(e).__name__}: {e}")
+
+    if projects:
+        with _cf.ThreadPoolExecutor(max_workers=min(8, len(projects))) as _ex:
+            list(_ex.map(_resolve, projects))
+
+    # Build the registry/bible_for/siblings serially — pure CPU, no network.
     registry: dict[str, tuple[str, str, str]] = {}
     bible_for: dict[str, str] = {}
     siblings_by_show: dict[str, list[tuple[str, str]]] = {}
-
     for p in projects:
-        if not p["bible_sheet_id"]:
-            print(f"[projects] {p['slug']}: no bible_sheet_id, skipping")
+        eps = p.get("episodes")
+        if not eps:
             continue
-        eps = _discover_episodes(
-            slug=p["slug"],
-            drive_folder_id=p["drive_folder_id"],
-            bible_sheet_id=p["bible_sheet_id"],
-            show_title=p["title"],
-        )
-        p["episodes"] = eps
-        # Detect cover image (cover.jpg / cover.png / cover.webp at folder root).
-        # Uploaded by the +/Change button on /projects via /api/project-cover.
-        p["cover_url"] = _detect_cover(p["drive_folder_id"]) if p["drive_folder_id"] else ""
-        # Asset Library roll-up: hero hover-video (char/loc ref) + asset counts.
-        media = _project_media(p["bible_sheet_id"])
-        p["hero_video"] = media.get("hero_video")
-        p["n_characters"] = media.get("n_characters", 0)
-        p["n_locations"] = media.get("n_locations", 0)
-        p["n_assets"] = media.get("n_assets", 0)
         for ep in eps:
             gallery_slug = ep["gallery_slug"]
             registry[gallery_slug] = (ep["sheet_id"], p["title"], ep["episode_title"])
             bible_for[gallery_slug] = p["bible_sheet_id"]
-        # Same-show galleries are siblings for the episode-picker dropdown
         siblings_by_show[p["slug"]] = [
             (ep["gallery_slug"], ep["episode_title"]) for ep in eps
         ]
