@@ -85,8 +85,17 @@ import plotly.graph_objects as go
 
 import bible_reader as br
 
-EXPENSE_LOG = PROJECT_ROOT / ".byteplus_expense.json"
-JOBS_LOG = PROJECT_ROOT / ".dash_jobs.json"
+# Persistent state lives under DEARAI_STATE_DIR when set (point this at a Render
+# persistent disk so the job queue + expense ledger survive redeploys — on the
+# default ephemeral disk they're wiped on every deploy). Falls back to the repo
+# root for local dev. The asset-video faststart cache also honors it.
+_STATE_DIR = Path(os.environ.get("DEARAI_STATE_DIR", "").strip() or PROJECT_ROOT)
+try:
+    _STATE_DIR.mkdir(parents=True, exist_ok=True)
+except Exception:
+    _STATE_DIR = PROJECT_ROOT  # never let a bad path break boot
+EXPENSE_LOG = _STATE_DIR / ".byteplus_expense.json"
+JOBS_LOG = _STATE_DIR / ".dash_jobs.json"
 PYTHON_BIN = sys.executable
 
 # ===== Series config =====================================================
@@ -378,11 +387,29 @@ else:
 
 
 # Debug route — returns recent failed-job logs as JSON so production
-# regressions can be diagnosed without shell access. Read-only, no auth
-# required (the dashboard URL is already private to the team). Strip if
-# you ever expose the URL beyond the team.
+# regressions can be diagnosed without shell access. These leak env-presence +
+# project/job listings, so they're LOCKED DOWN by _debug_guard(): reachable only
+# when explicitly opened for local dev (DEARAI_DEBUG_OPEN=1) or to a logged-in
+# admin (session email in DEARAI_ADMIN_EMAILS, or any logged-in user if that
+# allowlist is unset). Otherwise they 404 — including the dangerous auth-off
+# public state.
+def _debug_guard():
+    """Abort 404 unless the caller may access /debug/*. Returns None when allowed."""
+    if os.environ.get("DEARAI_DEBUG_OPEN", "").strip() == "1":
+        return
+    if AUTH_ENABLED:
+        email = (session.get("user_email") or "").strip().lower()
+        admins = {e.strip().lower()
+                  for e in os.environ.get("DEARAI_ADMIN_EMAILS", "").split(",") if e.strip()}
+        if email and (not admins or email in admins):
+            return
+    from flask import abort
+    abort(404)
+
+
 @server.route("/debug/jobs")
 def _debug_jobs():
+    _debug_guard()
     from flask import jsonify, request
     n = int(request.args.get("n", 10))
     only = request.args.get("only", "failed")  # "failed" | "all"
@@ -575,6 +602,59 @@ def _api_set_review():
 
     return jsonify({"ok": True, "set": set_n,
                      "updated": [u["range"] for u in updates]})
+
+
+@server.route("/api/edit-global", methods=["POST"])
+def _api_edit_global():
+    """Change a project's GLOBAL film look IN PLACE — writes camera → Video
+    Prompts B1, audio → B2 (and Storyboard Prompts B1, which the master-shot
+    generator reads), so every shot inherits the new look without recreating the
+    project. Accepts a preset id (from global_presets) OR explicit camera/audio
+    text. Flushes the bible cache so the change surfaces immediately."""
+    from flask import request, jsonify
+    payload = request.get_json(silent=True) or request.form
+    sheet_id = (payload.get("sheet_id") or "").strip()
+    preset_id = (payload.get("preset") or "").strip()
+    camera = (payload.get("camera") or "").strip()
+    audio = (payload.get("audio") or "").strip()
+    if not sheet_id:
+        return jsonify({"ok": False, "error": "sheet_id required"}), 400
+    if preset_id:
+        try:
+            from global_presets import get_preset
+            p = get_preset(preset_id)
+            camera, audio = p["camera"], p["audio"]
+        except Exception as e:
+            return jsonify({"ok": False, "error": f"preset: {e}"}), 400
+    if not camera and not audio:
+        return jsonify({"ok": False, "error": "preset or camera/audio required"}), 400
+    try:
+        from auth import get_credentials
+        import gspread
+        gc = gspread.authorize(get_credentials())
+        sh = gc.open_by_key(sheet_id)
+        vp = sh.worksheet("Video Prompts")
+        updates = []
+        if camera:
+            updates.append({"range": "B1", "values": [[camera]]})
+        if audio:
+            updates.append({"range": "B2", "values": [[audio]]})
+        vp.batch_update(updates, value_input_option="RAW")
+        if camera:
+            # keep the storyboard/master-shot camera global aligned
+            try:
+                sh.worksheet("Storyboard Prompts").update(
+                    "B1", [[camera]], value_input_option="RAW")
+            except Exception:
+                pass
+        try:
+            br.invalidate_all_caches()
+        except Exception:
+            pass
+        return jsonify({"ok": True, "preset": preset_id or None,
+                         "wrote": [u["range"] for u in updates]})
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
 
 
 @server.route("/api/jobs-sheet-check", methods=["POST"])
@@ -1137,7 +1217,12 @@ def _projects_landing():
                     headers={"Cache-Control": "max-age=30, must-revalidate"})
 
 
-_ASSET_VIDEO_CACHE = Path(tempfile.gettempdir()) / "dearai_asset_videos"
+# Faststart video cache — on the persistent disk if DEARAI_STATE_DIR is set
+# (survives redeploys), else the system temp dir (rebuilt on demand).
+_ASSET_VIDEO_CACHE = (
+    (_STATE_DIR / "asset_videos") if os.environ.get("DEARAI_STATE_DIR", "").strip()
+    else Path(tempfile.gettempdir()) / "dearai_asset_videos"
+)
 _ASSET_VIDEO_MAX_FILES = 100        # cache eviction cap (oldest-mtime first)
 _ASSET_VIDEO_MAX_BYTES = 80 * 1024 * 1024  # refuse pathologically large downloads
 _asset_video_locks: dict = {}
@@ -2286,6 +2371,7 @@ def _gallery_refresh(name):
 def _debug_refresh():
     """Flush all bible_reader caches without needing the dashboard ↻ button.
     Use when sheet edits aren't surfacing because of the 10-min TTL."""
+    _debug_guard()
     from flask import jsonify
     br.invalidate_all_caches()
     return jsonify({"ok": True, "msg": "all bible_reader caches invalidated"})
@@ -2298,6 +2384,7 @@ def _debug_anthropic():
     package imports, and (if both) a 1-token ping to validate the key
     actually works. Use this before debugging why shotlist_gen.py fell
     back to the heuristic."""
+    _debug_guard()
     from flask import jsonify
     out: dict = {}
     key = os.environ.get("ANTHROPIC_API_KEY", "")
@@ -2338,6 +2425,7 @@ def _debug_higgs():
     output. Use this to figure out why the CLI auth check fails for
     storyboard / bible regen subprocesses even when credentials.json
     is on disk."""
+    _debug_guard()
     from flask import jsonify
     import shutil
     import subprocess as _sp
@@ -2377,6 +2465,7 @@ def _debug_env():
     """Return non-secret env state so we can verify Render config drift —
     presence flags only, never the values themselves for keys that look
     like secrets."""
+    _debug_guard()
     from flask import jsonify
     SAFE_KEYS = {"SERIES", "PORT", "PYTHON_VERSION", "RENDER", "RENDER_SERVICE_NAME",
                  "HIGGS_BIN", "PATH"}

@@ -531,9 +531,18 @@ def main():
     # LOCATIONS bible names; the matched row's iter-1 image is downloaded once
     # and threaded as that set's --image. Uses the location-conditioned preamble.
     auto_ref_by_row = {}
-    if args.auto_locref:
-        storyboard_globals = LOCREF_PREAMBLE
-        print("Style: auto-locref (per-set location ref from SP!L + pencil/stick preamble)")
+    # Attach per-set LOCATION refs when explicitly asked (--auto-locref) OR in
+    # master mode — so each establishing frame is conditioned on the real
+    # location plate (ref-conditioned master shots that look like the actual set,
+    # not a text-only render). Master mode keeps its photoreal MASTER preamble;
+    # only --auto-locref swaps in the pencil/stick location preamble.
+    _attach_loc = bool(args.auto_locref or args.style == "master")
+    if _attach_loc:
+        if args.auto_locref:
+            storyboard_globals = LOCREF_PREAMBLE
+            print("Style: auto-locref (per-set location ref from SP!L + pencil/stick preamble)")
+        else:
+            print("Master shots: conditioning each frame on its SP!L location plate (global look kept)")
         loc_ws = sb.spreadsheet.worksheet("LOCATIONS")
         loc_rows = loc_ws.get("A5:J60", value_render_option="FORMATTED_VALUE")
         bible = []  # (name, iter1_view_url) in bible row order
@@ -572,7 +581,7 @@ def main():
 
     if concurrency == 1:
         for set_num_int, sheet_row, row in jobs:
-            if args.auto_locref:
+            if _attach_loc:
                 LOCREF_PATH = auto_ref_by_row.get(sheet_row)
             r = process_row(
                 sb, drive, sheet_row, row,

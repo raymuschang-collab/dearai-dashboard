@@ -137,8 +137,13 @@ def _project_card(p: dict) -> str:
 
     # The card itself wraps everything except the file input. The cover slot
     # has its own click handler (JS) that prevents default + opens file picker.
+    # Data attributes power client-side search + sort (no backend round-trip).
+    _search_blob = _html.escape(" ".join([title, slug, owner]).lower())
+    _created_iso = _html.escape(p.get("created_at", "") or "")
     return f'''
-    <div class="proj-card-wrapper">
+    <div class="proj-card-wrapper" data-search="{_search_blob}"
+         data-title="{_html.escape(title.lower())}" data-created="{_created_iso}"
+         data-status="{_html.escape(status)}">
       {file_input_html}
       <a class="proj-card" href="{_html.escape(target)}">
         {cover_html}
@@ -287,6 +292,15 @@ def render_projects_page(projects: list[dict], user_email: str = "") -> str:
     background: var(--ink); color: var(--card-bg); border-color: var(--ink);
   }}
   .filter-chip .count {{ opacity: 0.6; margin-left: 4px; font-variant-numeric: tabular-nums; }}
+  .proj-search, .proj-sort {{
+    font-family: 'Inter', sans-serif; font-size: 12px;
+    border: 1px solid var(--line); border-radius: 8px;
+    padding: 6px 10px; background: var(--card-bg); color: var(--ink);
+    margin-left: 6px;
+  }}
+  .proj-search {{ width: 150px; }}
+  .proj-search:focus, .proj-sort:focus {{ outline: 2px solid var(--accent); outline-offset: 1px; }}
+  .proj-sort {{ cursor: pointer; }}
   .filter-spacer {{ flex: 1; }}
   .new-proj-btn {{
     background: var(--accent); color: white;
@@ -664,6 +678,13 @@ def render_projects_page(projects: list[dict], user_email: str = "") -> str:
   <button class="filter-chip" data-filter="client">Client<span class="count">{counts.get('client', 0)}</span></button>
   <button class="filter-chip" data-filter="archived">Archived<span class="count">{counts.get('archived', 0)}</span></button>
   <button class="filter-chip" data-filter="all">All<span class="count">{counts['all']}</span></button>
+  <input id="proj-search" class="proj-search" type="search" placeholder="Search…" autocomplete="off" aria-label="Search projects">
+  <select id="proj-sort" class="proj-sort" aria-label="Sort projects">
+    <option value="created-desc">Newest</option>
+    <option value="created-asc">Oldest</option>
+    <option value="title">Title A–Z</option>
+    <option value="status">Status</option>
+  </select>
   <span class="filter-spacer"></span>
   <button class="new-proj-btn" onclick="openNewProjectModal()">+ New Project</button>
 </div>
@@ -697,26 +718,51 @@ def render_projects_page(projects: list[dict], user_email: str = "") -> str:
     applyDarkMode(on);
   }})();
 
-  // Filter chips — toggle visibility of cards by data attributes.
-  // We re-derive each card's status/type from its DOM (no extra data attrs needed).
+  // Filter chips + search box + sort — composed into one applyView()/applySort().
   (function() {{
     const chips = document.querySelectorAll('.filter-chip');
-    const wrappers = document.querySelectorAll('.proj-card-wrapper');
-    function activate(filter) {{
-      chips.forEach(c => c.classList.toggle('active', c.dataset.filter === filter));
-      wrappers.forEach(w => {{
-        const card = w.querySelector('a.proj-card');
-        const status = card.querySelector('.status-badge')?.textContent?.toLowerCase() || '';
-        const type = card.querySelector('.type-chip')?.textContent?.toLowerCase() || '';
-        let visible = false;
-        if (filter === 'all') visible = true;
-        else if (filter === 'visible') visible = status !== 'archived';
-        else if (filter === 'active' || filter === 'review' || filter === 'draft' || filter === 'archived') visible = status === filter;
-        else if (filter === 'series' || filter === 'poc' || filter === 'concept' || filter === 'client') visible = type === filter;
-        w.style.display = visible ? '' : 'none';
+    const grid = document.getElementById('proj-grid');
+    const searchEl = document.getElementById('proj-search');
+    const sortEl = document.getElementById('proj-sort');
+    let currentFilter = 'visible';
+    function matchesFilter(w, filter) {{
+      const card = w.querySelector('a.proj-card');
+      const status = (card.querySelector('.status-badge')?.textContent || '').toLowerCase();
+      const type = (card.querySelector('.type-chip')?.textContent || '').toLowerCase();
+      if (filter === 'all') return true;
+      if (filter === 'visible') return status !== 'archived';
+      if (['active','review','draft','archived'].indexOf(filter) >= 0) return status === filter;
+      if (['series','poc','concept','client'].indexOf(filter) >= 0) return type === filter;
+      return true;
+    }}
+    function applyView() {{
+      const q = (searchEl && searchEl.value || '').trim().toLowerCase();
+      document.querySelectorAll('.proj-card-wrapper').forEach(w => {{
+        const passFilter = matchesFilter(w, currentFilter);
+        const passSearch = !q || (w.dataset.search || '').indexOf(q) >= 0;
+        w.style.display = (passFilter && passSearch) ? '' : 'none';
       }});
     }}
-    chips.forEach(c => c.addEventListener('click', () => activate(c.dataset.filter)));
+    function applySort() {{
+      if (!grid) return;
+      const mode = (sortEl && sortEl.value) || 'created-desc';
+      const ws = Array.prototype.slice.call(grid.querySelectorAll('.proj-card-wrapper'));
+      ws.sort((a, b) => {{
+        if (mode === 'title') return (a.dataset.title||'').localeCompare(b.dataset.title||'');
+        if (mode === 'status') return (a.dataset.status||'').localeCompare(b.dataset.status||'');
+        const ca = a.dataset.created || '', cb = b.dataset.created || '';
+        return mode === 'created-asc' ? ca.localeCompare(cb) : cb.localeCompare(ca);
+      }});
+      ws.forEach(w => grid.appendChild(w));
+    }}
+    chips.forEach(c => c.addEventListener('click', () => {{
+      chips.forEach(x => x.classList.toggle('active', x === c));
+      currentFilter = c.dataset.filter;
+      applyView();
+    }}));
+    if (searchEl) searchEl.addEventListener('input', applyView);
+    if (sortEl) sortEl.addEventListener('change', () => {{ applySort(); applyView(); }});
+    applySort();  // initial sort: newest first
   }})();
 
   // Cover image upload — click any card-cover slot → opens its sibling
