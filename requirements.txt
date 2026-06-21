@@ -15,6 +15,12 @@ google-api-python-client==2.184.0
 requests==2.32.5
 python-dotenv==1.1.1
 
+# --- Shared cache (optional) ---
+# When REDIS_URL is set, all gunicorn workers share one warm cache (kills the
+# cold-read / cross-worker-staleness problem). The app degrades to an in-memory
+# cache if this is absent or unreachable, so it's safe to deploy without Redis.
+redis==5.2.1
+
 # --- Auth (Google OAuth via Authlib) ---
 # Optional at runtime — middleware short-circuits when GOOGLE_CLIENT_ID
 # isn't set, so the app keeps booting on Render even before the user

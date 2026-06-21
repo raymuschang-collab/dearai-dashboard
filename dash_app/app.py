@@ -265,6 +265,46 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 # generates https:// URLs (required for OAuth redirect_uri matching).
 server.wsgi_app = ProxyFix(server.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
+
+# --- gzip compression -------------------------------------------------------
+# The /projects HTML and Dash's JSON payloads are large and otherwise sent
+# uncompressed. gzip them (when the client accepts it) for a ~70-80% smaller
+# transfer — a big load-time win on the heaviest responses. No new dependency:
+# a plain after_request gzips text/JSON bodies above a small threshold.
+import gzip as _gzip  # noqa: E402
+
+_GZIP_TYPES = ("text/html", "text/css", "application/javascript",
+               "text/javascript", "application/json", "image/svg+xml",
+               "text/plain")
+_GZIP_MIN_BYTES = 1024
+
+
+@server.after_request
+def _gzip_response(resp):
+    try:
+        from flask import request
+        accept = (request.headers.get("Accept-Encoding") or "")
+        if "gzip" not in accept.lower():
+            return resp
+        if resp.direct_passthrough or resp.status_code < 200 or resp.status_code >= 300:
+            return resp
+        if resp.headers.get("Content-Encoding"):
+            return resp
+        ctype = (resp.content_type or "").split(";")[0].strip().lower()
+        if ctype not in _GZIP_TYPES:
+            return resp
+        data = resp.get_data()
+        if len(data) < _GZIP_MIN_BYTES:
+            return resp
+        resp.set_data(_gzip.compress(data, 6))
+        resp.headers["Content-Encoding"] = "gzip"
+        resp.headers["Content-Length"] = str(len(resp.get_data()))
+        resp.headers.add("Vary", "Accept-Encoding")
+    except Exception:
+        return resp
+    return resp
+
+
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "").strip()
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "").strip()
 ALLOWED_DOMAINS = {
@@ -748,8 +788,74 @@ def _api_jobs_sheet_check():
 # galleries 404 cleanly (deploy doesn't break).
 
 MASTER_PROJECTS_SHEET_ID = os.environ.get("MASTER_PROJECTS_SHEET_ID", "").strip()
-_PROJECTS_TTL = 60.0  # cache the parsed projects index for this many seconds
-_projects_cache: dict = {}
+
+# ---------------------------------------------------------------------------
+# Shared cache — Redis-backed when REDIS_URL is set, so ALL gunicorn workers
+# share one warm cache instead of each holding its own (kills cross-worker
+# staleness + cold-read flakiness). Falls back to a per-process in-memory dict
+# when Redis is absent/unreachable, so local dev + Redis-less Render still work.
+# ---------------------------------------------------------------------------
+import pickle as _pickle  # noqa: E402
+_redis = None
+_REDIS_URL = os.environ.get("REDIS_URL", "").strip()
+if _REDIS_URL:
+    try:
+        import redis as _redis_lib  # type: ignore
+        _redis = _redis_lib.from_url(
+            _REDIS_URL, socket_timeout=2, socket_connect_timeout=2)
+        _redis.ping()
+        print("[cache] Redis shared cache connected")
+    except Exception as _e:
+        print(f"[cache] Redis unavailable ({_e}); using in-memory cache")
+        _redis = None
+_local_cache: dict = {}            # key -> (expires_at, value)
+_local_cache_lock = threading.Lock()
+
+
+def cache_get(key: str):
+    """Return the cached value for key, or None if missing/expired."""
+    if _redis is not None:
+        try:
+            raw = _redis.get(key)
+            return _pickle.loads(raw) if raw is not None else None
+        except Exception:
+            pass  # degrade to local cache
+    import time as _t
+    with _local_cache_lock:
+        hit = _local_cache.get(key)
+        if hit and hit[0] > _t.time():
+            return hit[1]
+        if hit:
+            _local_cache.pop(key, None)
+    return None
+
+
+def cache_set(key: str, value, ttl: float) -> None:
+    if _redis is not None:
+        try:
+            _redis.setex(key, int(max(1, ttl)), _pickle.dumps(value))
+            return
+        except Exception:
+            pass
+    import time as _t
+    with _local_cache_lock:
+        _local_cache[key] = (_t.time() + ttl, value)
+
+
+def cache_del(key: str) -> None:
+    if _redis is not None:
+        try:
+            _redis.delete(key)
+        except Exception:
+            pass
+    with _local_cache_lock:
+        _local_cache.pop(key, None)
+
+
+_PROJECTS_TTL = 300.0  # cache the parsed projects index for 5 min (edits force-flush)
+_PROJECTS_KEY = "dearai:projects"
+_PROJECTS_GOOD_KEY = "dearai:projects:lastgood"
+_projects_cache: dict = {}          # legacy local handle (kept for shims)
 _projects_cache_lock = threading.Lock()
 # Permissive episode-sheet name matcher. Accepts:
 #   "Ep 1 — Pelarian Pertama"
@@ -870,8 +976,6 @@ def _detect_cover(drive_folder_id: str) -> str:
 
 
 _MEDIA_TTL = 600.0  # cache per-bible Asset Library roll-up for 10 min
-_media_cache: dict = {}
-_media_cache_lock = threading.Lock()
 
 
 def _project_media(bible_sheet_id: str) -> dict:
@@ -883,19 +987,17 @@ def _project_media(bible_sheet_id: str) -> dict:
       - n_characters / n_locations / n_assets: distinct Uploaded names, for the
         card stat roll-up.
 
-    Cached in a module-level TTL cache (10 min) keyed by bible_sheet_id so the
-    60s /projects refresh does NOT re-read every bible's Asset Library each pass
-    (one Sheets round-trip per distinct bible, amortized over 10 min). On read
-    failure we reuse the last cached value if we have one rather than blanking
-    the card's video/counts. Returns {} when nothing is available."""
+    Cached in the shared cache (Redis if configured, else in-memory; 10 min)
+    keyed by bible_sheet_id so the /projects refresh does NOT re-read every
+    bible's Asset Library each pass. On read failure we reuse the last cached
+    value if we have one rather than blanking the card's video/counts. Returns
+    {} when nothing is available."""
     if not bible_sheet_id:
         return {}
-    import time as _t
-    now = _t.time()
-    with _media_cache_lock:
-        hit = _media_cache.get(bible_sheet_id)
-        if hit and (now - hit[0]) < _MEDIA_TTL:
-            return hit[1]
+    _mkey = f"dearai:media:{bible_sheet_id}"
+    hit = cache_get(_mkey)
+    if hit is not None:
+        return hit
     result: dict = {}
     try:
         from auth import get_credentials
@@ -930,11 +1032,10 @@ def _project_media(bible_sheet_id: str) -> dict:
             result["hero_video"] = hero
     except Exception as e:
         print(f"[projects] _project_media({bible_sheet_id[:12]}…) failed: {e}")
-        with _media_cache_lock:
-            hit = _media_cache.get(bible_sheet_id)
-        return hit[1] if hit else {}
-    with _media_cache_lock:
-        _media_cache[bible_sheet_id] = (now, result)
+        stale = cache_get(_mkey + ":good")
+        return stale if stale is not None else {}
+    cache_set(_mkey, result, _MEDIA_TTL)
+    cache_set(_mkey + ":good", result, 86400)  # last-known-good for failure reuse
     return result
 
 
@@ -1063,7 +1164,8 @@ def _read_projects_uncached() -> dict:
 
 
 def read_projects(force: bool = False) -> dict:
-    """Cached wrapper. Use force=True to bypass the 60s TTL after edits.
+    """Cached wrapper (shared cache: Redis if configured, else in-memory). Use
+    force=True to bypass the TTL after edits.
 
     Resilience: a fresh read that FAILED (transient Sheets/Drive error →
     _ok=False) must NOT clobber a previously good snapshot — one flaky read
@@ -1071,21 +1173,21 @@ def read_projects(force: bool = False) -> dict:
     serving the last known-good projects. A read that SUCCEEDS but is legitimately
     empty (_ok=True, e.g. the sheet was emptied) IS honored, so deletions show up
     and force=True always reflects a successful fresh read."""
-    import time as _t
-    now = _t.time()
-    with _projects_cache_lock:
-        cached = _projects_cache.get("data")
-        if cached and not force and (now - cached[0]) < _PROJECTS_TTL:
-            return cached[1]
+    if not force:
+        cached = cache_get(_PROJECTS_KEY)
+        if cached is not None:
+            return cached
     data = _read_projects_uncached()
-    with _projects_cache_lock:
-        prev = _projects_cache.get("data")
-        if not data.get("_ok") and prev and prev[1].get("projects"):
-            # Serve-stale-on-FAILURE only: keep the good snapshot but bump the
-            # timestamp so we retry on the next TTL rather than hammering.
-            _projects_cache["data"] = (now, prev[1])
-            return prev[1]
-        _projects_cache["data"] = (now, data)
+    if not data.get("_ok"):
+        # Serve-stale-on-FAILURE: reuse the last known-good snapshot (shared
+        # across workers) rather than blanking the CMS.
+        prev = cache_get(_PROJECTS_GOOD_KEY)
+        if prev and prev.get("projects"):
+            cache_set(_PROJECTS_KEY, prev, _PROJECTS_TTL)
+            return prev
+    cache_set(_PROJECTS_KEY, data, _PROJECTS_TTL)
+    if data.get("projects"):
+        cache_set(_PROJECTS_GOOD_KEY, data, 86400)  # last-known-good for a day
     return data
 
 
@@ -2060,8 +2162,7 @@ def _api_new_project():
             _log(f"  ✓ row appended at Projects!A{row_num or '?'}")
 
             _log("[4/5] Flushing read_projects cache")
-            with _projects_cache_lock:
-                _projects_cache.pop("data", None)
+            cache_del(_PROJECTS_KEY)
             _log("  ✓ cache flushed; new project visible at /projects")
 
             # Setup is complete — the gallery URL is now addressable. Signal
@@ -2357,8 +2458,7 @@ def _api_project_cover(slug):
         cover_url = f"https://lh3.googleusercontent.com/d/{new_file['id']}=w800"
 
         # Flush projects cache so the cover shows up on next /projects load
-        with _projects_cache_lock:
-            _projects_cache.pop("data", None)
+        cache_del(_PROJECTS_KEY)
 
         return jsonify({
             "ok": True,
@@ -3921,6 +4021,16 @@ def _prime_gallery_caches():
     registry = projects_data.get("registry") or {}
     if not registry:
         print(f"[cache-primer] no galleries in master registry, skipping")
+        return
+
+    # The projects index is now warm — that's what /projects (the landing) needs,
+    # and it's the slow cold-read we care about. Pre-building EVERY gallery's HTML
+    # on boot hammers Sheets (N episode + bible reads → 429 backoffs that slow the
+    # first user requests), so it's now OPT-IN. By default galleries build lazily
+    # on first visit (30s-cached thereafter).
+    if os.environ.get("DEARAI_PRIME_GALLERIES", "").strip().lower() not in ("1", "true", "yes"):
+        print(f"[cache-primer] projects index warmed; skipping per-gallery pre-build "
+              f"({len(registry)} galleries build lazily — set DEARAI_PRIME_GALLERIES=1 to pre-build)")
         return
 
     # Build each gallery in order. For a 6-ep series we make 1 bible-sheet

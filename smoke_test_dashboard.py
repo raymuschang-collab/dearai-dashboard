@@ -150,6 +150,19 @@ os.environ.pop("DEARAI_DEBUG_OPEN", None)
 from global_presets import GLOBAL_PRESETS  # noqa: E402
 check("global_presets has 6 presets", len(GLOBAL_PRESETS) == 6, f"n={len(GLOBAL_PRESETS)}")
 
+# === gzip compression =========================================================
+r = client.get("/projects", headers={"Accept-Encoding": "gzip"})
+check("/projects gzip-compressed when accepted",
+      r.headers.get("Content-Encoding") == "gzip",
+      f"enc={r.headers.get('Content-Encoding')}")
+
+# === shared cache helper (in-memory fallback) =================================
+app_mod.cache_set("smoke:k", {"v": 42}, 30)
+check("shared cache get/set roundtrip", app_mod.cache_get("smoke:k") == {"v": 42})
+app_mod.cache_del("smoke:k")
+check("shared cache del", app_mod.cache_get("smoke:k") is None)
+check("projects TTL bumped to 300s", getattr(app_mod, "_PROJECTS_TTL", 0) == 300.0)
+
 # === report ===================================================================
 passed = sum(1 for ok, _ in _results if ok)
 total = len(_results)
